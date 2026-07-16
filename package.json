@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:windows": "tauri build --bundles nsis",
+    "build:linux": "tauri build --bundles appimage,deb"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

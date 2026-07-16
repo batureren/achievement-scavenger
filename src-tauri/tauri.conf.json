@@ -23,7 +23,7 @@
       "csp": null
     }
   },
-  "bundle": {
+"bundle": {
     "createUpdaterArtifacts": true,
     "publisher": "sawworm Games",
     "windows": {
@@ -33,7 +33,9 @@
     },
     "active": true,
     "targets": [
-      "nsis"
+      "nsis",
+      "appimage",
+      "deb"
     ],
     "icon": [
       "icons/32x32.png",

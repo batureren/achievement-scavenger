@@ -20,7 +20,6 @@ tauri = { version = "2.0.0-beta", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2.3.2"
 tauri-plugin-shell = "2"
 tauri-plugin-autostart = "2.0.0"
-winreg = "0.52"
 discord-rich-presence = "0.2.3"
 xcap = "0.3.3"
 image = "0.25.1"
@@ -35,3 +34,6 @@ tauri-plugin-updater = "2"
 debug = 0
 strip = true
 incremental = true
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52.0"

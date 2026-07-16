@@ -284,6 +284,7 @@ fn set_window_mode(app_handle: tauri::AppHandle, mode: String) -> Result<(), Str
 }
 
 #[tauri::command]
+#[allow(unused_variables)]
 fn launch_steam_game(app_id: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     std::process::Command::new("cmd")
@@ -302,6 +303,7 @@ fn set_always_on_top(app_handle: tauri::AppHandle, value: bool) -> Result<(), St
 }
 
 #[tauri::command]
+#[allow(unused_variables)]
 fn set_window_opacity(app_handle: tauri::AppHandle, opacity: f32) -> Result<(), String> {
     let window = app_handle
         .get_webview_window("main")
