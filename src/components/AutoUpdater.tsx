@@ -1,38 +1,43 @@
-import { useEffect } from "react";
-import { check } from "@tauri-apps/plugin-updater";
-import { ask } from "@tauri-apps/plugin-dialog";
-import { relaunch } from "@tauri-apps/plugin-process";
-import toast from "react-hot-toast";
+import { useEffect } from 'react';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import toast from 'react-hot-toast';
 
 export function AutoUpdater() {
   useEffect(() => {
-    const checkForUpdates = async () => {
+    async function checkForUpdates() {
       try {
         const update = await check();
-        if (update) {
-          const wantsUpdate = await ask(
-            `Version ${update.version} is available.\n\nRelease notes:\n${update.body}`,
-            {
-              title: "Update Available",
-              kind: "info",
-              okLabel: "Update Now",
-              cancelLabel: "Later",
+        
+        if (update) {          
+          toast.loading(`Updating to v${update.version}...`, { duration: 5000 });
+          
+          let downloaded = 0;
+          let contentLength = 0;
+          
+          await update.downloadAndInstall((event) => {
+            switch (event.event) {
+              case 'Started':
+                contentLength = event.data.contentLength || 0;
+                break;
+              case 'Progress':
+                downloaded += event.data.chunkLength;
+                break;
+              case 'Finished':
+                console.log('Download finished');
+                break;
             }
-          );
+          });
 
-          if (wantsUpdate) {
-            toast.loading("Downloading update...", { id: "update-toast" });
-            await update.downloadAndInstall();
-            toast.success("Update installed! Restarting...", { id: "update-toast" });
-            await relaunch();
-          }
+          toast.success("Update installed! Restarting...");
+          await relaunch();
         }
       } catch (error) {
-        console.error(error);
+        console.error("Failed to check for updates:", error);
       }
-    };
+    }
 
-    checkForUpdates();
+    setTimeout(checkForUpdates, 3000);
   }, []);
 
   return null;
