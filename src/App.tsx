@@ -30,10 +30,10 @@ import {
 function App() {
   const [appState, setAppState] = useState<"LOADING" | "SETUP" | "WAITING" | "PLAYING">("LOADING");
   
-  const [settings, setSettings] = useState<AppSettings>({ 
+const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
-    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false 
+    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true 
   });
 
   const t = (key: string) => {
@@ -97,7 +97,7 @@ function App() {
 
   // Refs
   const allLocalEditsRef = useRef<Record<string, Record<string, LocalEdit>>>({});
-  const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en" });
+  const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en", discordRPCEnabled: true });
   const apiKeyRef = useRef<string>("");
   const raCredsRef = useRef<{ user: string; key: string }>({ user: "", key: "" });
   const xboxCredsRef = useRef<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
@@ -1017,10 +1017,13 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
   const isSelectedGameLive = runningAppIds.includes(selectedAppId);
 
   useEffect(() => {
-    if (appState !== "PLAYING" || !selectedAppId || gameName === "Loading..." || gameName === "Library Dashboard") { invoke("clear_discord_rpc").catch(() => {}); return; }
+    if (settings.discordRPCEnabled === false || appState !== "PLAYING" || !selectedAppId || gameName === "Loading..." || gameName === "Library Dashboard") { 
+      invoke("clear_discord_rpc").catch(() => {}); 
+      return; 
+    }
     const firstTrackedLocked = achievements.find((a) => currentGameTracked.includes(a.apiname) && !a.unlocked);
     invoke("update_discord_rpc", { gameName: gameName, unlocked: unlockedAch, total: totalAch, hunting: firstTrackedLocked ? firstTrackedLocked.display_name : "" }).catch(console.error);
-  }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements]);
+  }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled]);
 
   // --- Render ---
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
@@ -1042,6 +1045,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
         onToggleTransparency={handleToggleTransparency}
         onToggleStartup={handleToggleStartup}
         onOpenScreenshots={handleOpenScreenshots}
+        onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
       />
 
       {!isMiniMode && (

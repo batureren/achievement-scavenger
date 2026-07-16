@@ -1,3 +1,4 @@
+import React from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import { Theme } from "./types";
 
@@ -42,7 +43,7 @@ export function renderHintWithLinks(text: string) {
   return parts.map((part, i) =>
     urlRegex.test(part)
       ? <a key={i} href="#" onClick={(e) => { e.preventDefault(); open(part); }} style={{ color: "var(--accent-green)", textDecoration: "underline", wordBreak: "break-all" }}>{part}</a>
-      : part
+      : <React.Fragment key={i}>{part}</React.Fragment>
   );
 }
 

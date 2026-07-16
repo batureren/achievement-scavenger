@@ -15,13 +15,14 @@ interface MenuBarProps {
   onToggleTransparency: () => void;
   onToggleStartup: () => void;
   onOpenScreenshots: () => void;
+  onToggleDiscordRPC: () => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const toggle = (name: string) => setOpenMenu(prev => prev === name ? null : name);
@@ -182,6 +183,15 @@ export function MenuBar({
         {openMenu === "account" && (
           <div className="menu-dropdown">
             <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>{t("menu.keys")}</button>
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input 
+                type="checkbox" 
+                checked={settings.discordRPCEnabled !== false} 
+                onChange={onToggleDiscordRPC} 
+                style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} 
+              />
+              {t("menu.discordRPC")}
+            </label>
           </div>
         )}
       </div>

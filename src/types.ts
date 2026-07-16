@@ -29,7 +29,7 @@ export interface AppSettings {
   lastSelectedTab: string; windowWidth: number; windowHeight: number;
   windowMode?: "WINDOWED" | "BORDERLESS" | "FULLSCREEN"; uiScale?: number;
   isMiniMode?: boolean; language: string; overlayStyle?: OverlayStyle;
-  enableTransparency?: boolean; runOnStartup?: boolean;
+  enableTransparency?: boolean; runOnStartup?: boolean; discordRPCEnabled?: boolean;
 }
 
 export interface GameHistory {
