@@ -13,8 +13,6 @@ use tauri::{
 };
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
-use winreg::enums::*;
-use winreg::RegKey;
 
 pub struct DiscordState {
     tx: Mutex<mpsc::Sender<RpcCommand>>,
@@ -220,8 +218,6 @@ fn clear_discord_rpc(state: tauri::State<DiscordState>) {
         let _ = tx.send(RpcCommand::Clear);
     }
 }
-
-const MY_STEAM_APP_ID: u32 = 4848280;
 
 fn get_data_path(app_handle: &tauri::AppHandle, filename: &str) -> Result<PathBuf, String> {
     let mut path = app_handle
@@ -463,36 +459,49 @@ fn save_chapters(app_handle: tauri::AppHandle, data: String) -> Result<(), Strin
 // --- Steam Status ---
 #[tauri::command]
 fn get_local_steam_status() -> Result<String, String> {
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let active_process = hkcu
-        .open_subkey("Software\\Valve\\Steam\\ActiveProcess")
-        .map_err(|e| e.to_string())?;
-    let active_user: u32 = active_process.get_value("ActiveUser").unwrap_or(0);
-    if active_user == 0 {
-        return Ok("NOT_LOGGED_IN".to_string());
-    }
-    let steam_id_64 = (active_user as u64) + 76561197960265728;
-    let apps_key = match hkcu.open_subkey("Software\\Valve\\Steam\\Apps") {
-        Ok(k) => k,
-        Err(_) => return Ok(format!("|||{}", steam_id_64)),
-    };
-    let mut running_ids: Vec<String> = Vec::new();
-    for subkey_name in apps_key.enum_keys().filter_map(|k| k.ok()) {
-        let app_id: u32 = match subkey_name.parse() {
-            Ok(id) => id,
-            Err(_) => continue,
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::*;
+        use winreg::RegKey;
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let active_process = match hkcu.open_subkey("Software\\Valve\\Steam\\ActiveProcess") {
+            Ok(k) => k,
+            Err(e) => return Err(e.to_string()),
         };
-        if app_id == MY_STEAM_APP_ID {
-            continue;
+        
+        let active_user: u32 = active_process.get_value("ActiveUser").unwrap_or(0);
+        if active_user == 0 {
+            return Ok("NOT_LOGGED_IN".to_string());
         }
-        if let Ok(app_subkey) = apps_key.open_subkey(&subkey_name) {
-            let running: u32 = app_subkey.get_value("Running").unwrap_or(0);
-            if running == 1 {
-                running_ids.push(app_id.to_string());
+        
+        let steam_id_64 = (active_user as u64) + 76561197960265728;
+        let apps_key = match hkcu.open_subkey("Software\\Valve\\Steam\\Apps") {
+            Ok(k) => k,
+            Err(_) => return Ok(format!("|||{}", steam_id_64)),
+        };
+        
+        let mut running_ids: Vec<String> = Vec::new();
+        for subkey_name in apps_key.enum_keys().filter_map(|k| k.ok()) {
+            let app_id: u32 = match subkey_name.parse() {
+                Ok(id) => id,
+                Err(_) => continue,
+            };
+                        
+            if let Ok(app_subkey) = apps_key.open_subkey(&subkey_name) {
+                let running: u32 = app_subkey.get_value("Running").unwrap_or(0);
+                if running == 1 {
+                    running_ids.push(app_id.to_string());
+                }
             }
         }
+        Ok(format!("{}|||{}", running_ids.join(","), steam_id_64))
     }
-    Ok(format!("{}|||{}", running_ids.join(","), steam_id_64))
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok("NOT_LOGGED_IN".to_string())
+    }
 }
 
 // --- Steam API ---
