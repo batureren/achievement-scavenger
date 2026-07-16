@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#27272a" />
+      <stop offset="100%" stop-color="#18181b" />
+    </linearGradient>
+    
+    <!-- Scavenger HUD Gradient -->
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    
+    <!-- Achievement Star Gradient -->
+    <linearGradient id="yellowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Base / Squircle -->
+  <rect x="12" y="12" width="232" height="232" rx="54" fill="url(#bgGrad)" stroke="#3f3f46" stroke-width="2"/>
+
+  <!-- Inner Radar/Tracking Ring -->
+  <circle cx="128" cy="128" r="80" fill="none" stroke="#3f3f46" stroke-width="3" stroke-dasharray="6 8"/>
+
+  <!-- Crosshair / HUD Outer Markers -->
+  <path d="M 128 26 V 42 M 128 214 V 230 M 26 128 H 42 M 214 128 H 230" stroke="url(#greenGrad)" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Targeting Brackets -->
+  <path d="M 92 64 H 72 A 8 8 0 0 0 64 72 V 92" fill="none" stroke="url(#greenGrad)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 164 64 H 184 A 8 8 0 0 1 192 72 V 92" fill="none" stroke="url(#greenGrad)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 92 192 H 72 A 8 8 0 0 1 64 184 V 164" fill="none" stroke="url(#greenGrad)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M 164 192 H 184 A 8 8 0 0 0 192 184 V 164" fill="none" stroke="url(#greenGrad)" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Achievement Star Shadow / Subtle Glow -->
+  <path d="M 128 64 C 128 104, 104 128, 64 128 C 104 128, 128 152, 128 192 C 128 152, 152 128, 192 128 C 152 128, 128 104, 128 64 Z" fill="#f59e0b" opacity="0.25" transform-origin="128 128" transform="scale(1.25)"/>
+  
+  <!-- Core Achievement Star -->
+  <path d="M 128 64 C 128 104, 104 128, 64 128 C 104 128, 128 152, 128 192 C 128 152, 152 128, 192 128 C 152 128, 128 104, 128 64 Z" fill="url(#yellowGrad)"/>
+
+  <!-- Inner Star Highlight (for depth) -->
+  <polygon points="128,96 136,120 160,128 136,136 128,160 120,136 96,128 120,120" fill="#fef3c7" opacity="0.8"/>
+  
+  <!-- Tiny center reticle dot -->
+  <circle cx="128" cy="128" r="4" fill="#d97706" />
+</svg>
