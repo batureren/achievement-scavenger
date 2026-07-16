@@ -331,7 +331,7 @@ function App() {
 
   const handleChangeTheme = (themeId: string) => { applyTheme(themes.find(t => t.id === themeId) || BUILTIN_THEMES[0]); saveSettings({ ...settingsRef.current, themeId }); };
 
-  const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
+const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     const html = document.documentElement;
     const OVERLAY_CLASS_PREFIX = "overlay-";
     const TRANSPARENT_STYLES: OverlayStyle[] = ["ghost", "mmo", "neon", "tactical", "frosted"];
@@ -341,12 +341,15 @@ function App() {
     );
     classesToRemove.forEach(cls => html.classList.remove(cls));
     
+    const isLinux = navigator.userAgent.toLowerCase().includes("linux");
+    const safeIsTransparent = isLinux ? false : isTransparent;
+    
     if (style !== "default") {
       html.classList.add(`${OVERLAY_CLASS_PREFIX}${style}`);
-      if (!isTransparent) html.classList.add("overlay-opaque");
+      if (!safeIsTransparent) html.classList.add("overlay-opaque");
     }
 
-    const needsTransparent = TRANSPARENT_STYLES.includes(style) && isTransparent;
+    const needsTransparent = TRANSPARENT_STYLES.includes(style) && safeIsTransparent;
     invoke("set_window_transparent", { transparent: needsTransparent }).catch(() => {
       invoke("set_background_color", { r: 0, g: 0, b: 0, a: needsTransparent ? 0 : 255 }).catch(() => {});
     });

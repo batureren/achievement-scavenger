@@ -727,6 +727,11 @@ fn set_window_transparent(window: tauri::Window, transparent: bool) {
 // --- Entry Point ---
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    {
+    std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
     let (tx, rx) = mpsc::channel();
     spawn_discord_thread(rx);
     tauri::Builder::default()
