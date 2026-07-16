@@ -987,17 +987,32 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     return achievements.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
   }, [achievements, runningAppIds, selectedAppId, selectedChapter]);
   
-  const filteredAchievements = useMemo(() => {
+const filteredAchievements = useMemo(() => {
     let result = achievements.filter(ach => {
       const isTracked = currentGameTracked.includes(ach.apiname);
-      if (guidedMode) { const isCurrentChapter = selectedChapter !== "ALL" && ach.chapter === selectedChapter; if (!ach.is_missable && !ach.unlocked && !isTracked && !isCurrentChapter) return false; }
+      const achChapter = ach.chapter?.trim() || "No Chapter";
+
+      if (selectedChapter !== "ALL" && achChapter !== selectedChapter) {
+        return false;
+      }
+
+      if (guidedMode) {
+        if (!ach.is_missable && !ach.unlocked && !isTracked) {
+          return false;
+        }
+      }
+
       if (filter === "UNLOCKED" && !ach.unlocked) return false; 
       if (filter === "LOCKED" && ach.unlocked) return false; 
       if (filter === "TRACKED" && !isTracked) return false;
       if (filter === "MISSABLE" && !ach.is_missable) return false;
       if (filter === "SPOILER" && !ach.is_spoiler) return false;
-      if (!guidedMode) { const achChapter = ach.chapter?.trim() || "No Chapter"; if (selectedChapter !== "ALL" && achChapter !== selectedChapter) return false; }
-      if (searchQuery.trim() !== "") { const q = searchQuery.toLowerCase(); if (!(ach.display_name?.toLowerCase().includes(q) || ach.description?.toLowerCase().includes(q))) return false; }
+
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase();
+        if (!(ach.display_name?.toLowerCase().includes(q) || ach.description?.toLowerCase().includes(q))) return false;
+      }
+      
       return true;
     });
     
