@@ -16,13 +16,14 @@ interface MenuBarProps {
   onToggleStartup: () => void;
   onOpenScreenshots: () => void;
   onToggleDiscordRPC: () => void;
+  onToggleMinimizeToTray: () => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const toggle = (name: string) => setOpenMenu(prev => prev === name ? null : name);
@@ -39,15 +40,20 @@ export function MenuBar({
         <button className="menu-trigger" onClick={() => toggle("view")}>{t("menu.view")}</button>
         {openMenu === "view" && (
           <div className="menu-dropdown" onClick={e => e.stopPropagation()}>
-            <button className="menu-option" onClick={() => { onToggleAlwaysOnTop(); setOpenMenu(null); }}>
-              <span className="menu-check">{settings.alwaysOnTop ? "✓" : ""}</span> {t("menu.alwaysOnTop")}
-            </button>
+            
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input type="checkbox" checked={!!settings.alwaysOnTop} onChange={() => { onToggleAlwaysOnTop(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              {t("menu.alwaysOnTop")}
+            </label>
+
             <div className="menu-option" style={{ cursor: "default", fontSize: "0.75rem", color: "var(--text-muted)", paddingTop: 0, paddingLeft: "38px" }}>
               {t("menu.overlayWarning")}
             </div>
-            <button className="menu-option" onClick={() => { onToggleMiniMode(); setOpenMenu(null); }}>
-              <span className="menu-check">{isMiniMode ? "✓" : ""}</span> {t("menu.miniMode")}
-            </button>
+
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input type="checkbox" checked={!!isMiniMode} onChange={() => { onToggleMiniMode(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              {t("menu.miniMode")}
+            </label>
             
             <div className="menu-divider"></div>
             
@@ -84,17 +90,27 @@ export function MenuBar({
             </div>
 
             <div className="menu-divider"></div>
-            <button className="menu-option" onClick={() => { onToggleSound(); setOpenMenu(null); }}>
-              <span className="menu-check">{settings.soundEnabled ? "✓" : ""}</span> {t("menu.sound")}
-            </button>
 
-            <button className="menu-option" onClick={() => { onToggleStartup(); setOpenMenu(null); }}>
-              <span className="menu-check">{settings.runOnStartup ? "✓" : ""}</span> {t("menu.startup")}
-            </button>
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input type="checkbox" checked={!!settings.soundEnabled} onChange={() => { onToggleSound(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              {t("menu.sound")}
+            </label>
+
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input type="checkbox" checked={!!settings.runOnStartup} onChange={() => { onToggleStartup(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              {t("menu.startup")}
+            </label>
+
+            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+              <input type="checkbox" checked={!!settings.minimizeToTray} onChange={onToggleMinimizeToTray} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              {t("menu.minimizeToTray")}
+            </label>
+            
             <div className="menu-divider"></div>
 
-            <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }}>
-              <span className="menu-check"></span> {t("menu.screenshots")}
+            <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }} style={{ padding: "8px 14px", gap: "8px" }}>
+              <span style={{ width: "13px" }}></span>
+              {t("menu.screenshots")}
             </button>
             
             <div className="menu-divider"></div>
@@ -118,14 +134,16 @@ export function MenuBar({
           </div>
         )}
       </div>
+      
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("themes")}>{t("menu.themes")}</button>
         {openMenu === "themes" && (
           <div className="menu-dropdown">
             {themes.map(tObj => (
-              <button key={tObj.id} className="menu-option" onClick={() => { onChangeTheme(tObj.id); setOpenMenu(null); }}>
-                <span className="menu-check">{settings.themeId === tObj.id ? "✓" : ""}</span> {tObj.name}
-              </button>
+              <label key={tObj.id} className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+                <input type="radio" name="theme-selection" checked={settings.themeId === tObj.id} onChange={() => { onChangeTheme(tObj.id); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+                {tObj.name}
+              </label>
             ))}
           </div>
         )}
@@ -182,7 +200,10 @@ export function MenuBar({
         <button className="menu-trigger" onClick={() => toggle("account")}>{t("menu.accounts")}</button>
         {openMenu === "account" && (
           <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>{t("menu.keys")}</button>
+            <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }} style={{ padding: "8px 14px", gap: "8px" }}>
+               <span style={{ width: "13px" }}></span>
+              {t("menu.keys")}
+            </button>
             <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
               <input 
                 type="checkbox" 
@@ -200,9 +221,11 @@ export function MenuBar({
         <button className="menu-trigger" onClick={() => toggle("links")}>{t("menu.links")}</button>
         {openMenu === "links" && (
           <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { open("https://store.steampowered.com/curator/45972821"); setOpenMenu(null); }}> sawworm Games
+            <button className="menu-option" onClick={() => { open("https://store.steampowered.com/curator/45972821"); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+              sawworm Games
             </button>
-            <button className="menu-option" onClick={() => { open("https://discord.gg/UYJUhscHSE"); setOpenMenu(null); }}> Discord
+            <button className="menu-option" onClick={() => { open("https://discord.gg/UYJUhscHSE"); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+              Discord
             </button>
           </div>
         )}

@@ -9,7 +9,7 @@ use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Manager,
 };
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
@@ -795,11 +795,7 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|_window, event| {
-            if let WindowEvent::CloseRequested { .. } = event { 
-                std::process::exit(0);
-            }
-        })
+        
         .invoke_handler(tauri::generate_handler![
             get_local_steam_status, get_achievements, get_window_size, get_game_schema, get_global_achievement_percentages, get_app_name, launch_steam_game,
             set_always_on_top, set_window_opacity, load_settings, save_settings, load_api_key, save_api_key,

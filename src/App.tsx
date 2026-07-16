@@ -33,7 +33,7 @@ function App() {
 const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
-    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true 
+    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false
   });
 
   const t = (key: string) => {
@@ -1062,6 +1062,25 @@ const filteredAchievements = useMemo(() => {
     invoke("update_discord_rpc", { gameName: gameName, unlocked: unlockedAch, total: totalAch, hunting: firstTrackedLocked ? firstTrackedLocked.display_name : "" }).catch(console.error);
   }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled]);
 
+useEffect(() => {
+    let unlistenFn: () => void;
+    
+    const setupCloseListener = async () => {
+      unlistenFn = await getCurrentWebviewWindow().onCloseRequested((event) => {
+        if (settingsRef.current.minimizeToTray) {
+          event.preventDefault();
+          getCurrentWebviewWindow().hide();
+        }
+      });
+    };
+    
+    setupCloseListener();
+    
+    return () => {
+      if (unlistenFn) unlistenFn();
+    };
+  }, []);
+
   // --- Render ---
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
   if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} /></div>;
@@ -1083,6 +1102,7 @@ const filteredAchievements = useMemo(() => {
         onToggleStartup={handleToggleStartup}
         onOpenScreenshots={handleOpenScreenshots}
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
+        onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
       />
 
       {!isMiniMode && (
