@@ -272,18 +272,40 @@ const [settings, setSettings] = useState<AppSettings>({
         const editsData = safeParseJSON(editsStr, {});
         setAllLocalEdits(editsData); 
         allLocalEditsRef.current = editsData;
-        if (savedSettings.lastSelectedTab) {
-          setSelectedAppId(savedSettings.lastSelectedTab);
-          selectedAppIdRef.current = savedSettings.lastSelectedTab;
-          if (savedSettings.lastSelectedTab !== "") setAppState("PLAYING");
+        
+        let initialTab = savedSettings.lastSelectedTab || "";
+
+        try {
+          if (savedKey) {
+            const statusRes = await invoke<string>("get_local_steam_status");
+            if (statusRes !== "NOT_LOGGED_IN") {
+              const parts = statusRes.split("|||");
+              const rIds = parts[0] ? parts[0].split(",").filter(id => id && id !== "0") : [];
+              if (rIds.length > 0) {
+                initialTab = rIds[rIds.length - 1];
+                cachedRunningAppIdsRef.current = rIds;
+                cachedSteamIdRef.current = parts[1] || "";
+                prevRunningAppIdsRef.current = rIds;
+                setRunningAppIds(rIds);
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Initial Steam check failed", e);
+        }
+
+        if (initialTab) {
+          setSelectedAppId(initialTab);
+          selectedAppIdRef.current = initialTab;
+          if (initialTab !== "") setAppState("PLAYING");
         }
 
         if (savedSettings.windowMode && savedSettings.windowMode !== "WINDOWED") {
           await invoke("set_window_mode", { mode: savedSettings.windowMode }).catch(() => {});
         }
 
-        if (savedSettings.lastSelectedTab && savedSettings.gameSortOrders?.[savedSettings.lastSelectedTab]) {
-          setSortOrder(savedSettings.gameSortOrders[savedSettings.lastSelectedTab]);
+        if (initialTab && savedSettings.gameSortOrders?.[initialTab]) {
+          setSortOrder(savedSettings.gameSortOrders[initialTab]);
         }
       } catch (e) { 
         setAppState("SETUP"); 
