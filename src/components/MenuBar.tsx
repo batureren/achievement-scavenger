@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import { getVersion } from "@tauri-apps/api/app";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+import toast from "react-hot-toast";
 import { AppSettings, Theme, OverlayStyle } from "../types";
 import { OVERLAY_STYLES, SUPPORTED_LANGUAGES } from "../constants";
 
@@ -26,13 +30,37 @@ export function MenuBar({
   onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string>("");
+
   const toggle = (name: string) => setOpenMenu(prev => prev === name ? null : name);
   
   useEffect(() => { 
     const handler = () => setOpenMenu(null); 
     document.addEventListener("click", handler); 
+    
+    getVersion().then(v => setAppVersion(v)).catch(() => {});
+
     return () => document.removeEventListener("click", handler); 
   }, []);
+
+  const handleCheckUpdate = async () => {
+    try {
+      const toastId = toast.loading("Checking for updates...");
+      const update = await check();
+      
+      if (update) {
+        toast.loading(`Updating to v${update.version}...`, { id: toastId });
+        await update.downloadAndInstall();
+        toast.success("Update installed! Restarting...", { id: toastId });
+        await relaunch();
+      } else {
+        toast.success("You are on the latest version!", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Failed to check for updates.");
+      console.error(error);
+    }
+  };
 
   return (
     <div className="menu-bar" onClick={e => e.stopPropagation()}>
@@ -229,7 +257,20 @@ export function MenuBar({
           </div>
         )}
       </div>
-
+      
+      <div className="menu-item">
+        <button className="menu-trigger" onClick={() => toggle("version")} style={{ color: "var(--text-muted)", fontWeight: "normal" }}>
+          v{appVersion || "..."}
+        </button>
+        {openMenu === "version" && (
+          <div className="menu-dropdown">
+            <button className="menu-option" onClick={() => { handleCheckUpdate(); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+              Check for updates
+            </button>
+          </div>
+        )}
+      </div>
+      
     </div>
   );
 }
