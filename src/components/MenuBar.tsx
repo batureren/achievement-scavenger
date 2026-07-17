@@ -46,7 +46,7 @@ export function MenuBar({
               {t("menu.alwaysOnTop")}
             </label>
 
-            <div className="menu-option" style={{ cursor: "default", fontSize: "0.75rem", color: "var(--text-muted)", paddingTop: 0, paddingLeft: "38px" }}>
+            <div className="menu-option" style={{ cursor: "default", fontSize: "0.75rem", color: "var(--text-muted)", paddingTop: 0, paddingLeft: "26px" }}>
               {t("menu.overlayWarning")}
             </div>
 
@@ -106,23 +106,22 @@ export function MenuBar({
             
             <div className="menu-divider"></div>
 
-            <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }} style={{ padding: "8px 14px", gap: "8px" }}>
-              <span style={{ width: "13px" }}></span>
+            <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }}>
               {t("menu.screenshots")}
             </button>
             
             <div className="menu-divider"></div>
             
             <div className="menu-option column">
-              <div>
+              <div className="justify-between">
                 <span>{t("menu.opacity")}</span>
                 <span style={{ color: "var(--accent-green)" }}>{Math.round(settings.opacity * 100)}%</span>
               </div>
               <input type="range" min="0.1" max="1.0" step="0.05" value={settings.opacity} onChange={e => onChangeOpacity(parseFloat(e.target.value))} onMouseUp={onSaveOpacity} onTouchEnd={onSaveOpacity}/>
             </div>
 
-            <div className="menu-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", cursor: "default", paddingBottom: "12px" }}>
-              <div>
+            <div className="menu-option column">
+              <div className="justify-between">
                 <span>{t("menu.uiScale")}</span>
                 <span style={{ color: "var(--accent-green)" }}>{Math.round((settings.uiScale || 1.0) * 100)}%</span>
               </div>
@@ -198,8 +197,7 @@ export function MenuBar({
         <button className="menu-trigger" onClick={() => toggle("account")}>{t("menu.accounts")}</button>
         {openMenu === "account" && (
           <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }} style={{ padding: "8px 14px", gap: "8px" }}>
-               <span style={{ width: "13px" }}></span>
+            <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>
               {t("menu.keys")}
             </button>
             <label className="menu-option">

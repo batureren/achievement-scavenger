@@ -150,7 +150,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 6px 12px;
   background: none;
   border: none;
   color: var(--text-main);
@@ -179,6 +179,12 @@ a:hover {
   border-radius: 4px;
   font-size: 0.8rem; 
   cursor: pointer;
+}
+
+.justify-between{
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .menu-check {
@@ -573,6 +579,7 @@ a:hover {
 .add-link-form input[type="text"] { flex: 1 1 100px; }
 .add-link-form input[type="url"]  { flex: 2 1 140px; }
 input[type="checkbox"] { cursor: pointer; accent-color: var(--accent-green);}
+input[type="radio"] { cursor: pointer; accent-color: var(--accent-green);}
 input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: pointer;}
 
 .btn-add-link {
