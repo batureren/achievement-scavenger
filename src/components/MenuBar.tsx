@@ -49,16 +49,36 @@ export function MenuBar({
       const update = await check();
       
       if (update) {
-        toast.loading(`Updating to v${update.version}...`, { id: toastId });
-        await update.downloadAndInstall();
+        let downloaded = 0;
+        let contentLength = 0;
+
+        await update.downloadAndInstall((event) => {
+          switch (event.event) {
+            case 'Started':
+              contentLength = event.data.contentLength || 0;
+              toast.loading(`Downloading v${update.version}...`, { id: toastId });
+              break;
+            case 'Progress':
+              downloaded += event.data.chunkLength;
+              if (contentLength > 0) {
+                const pct = Math.round((downloaded / contentLength) * 100);
+                toast.loading(`Downloading v${update.version}... ${pct}%`, { id: toastId });
+              }
+              break;
+            case 'Finished':
+              toast.loading(`Installing update...`, { id: toastId });
+              break;
+          }
+        });
+
         toast.success("Update installed! Restarting...", { id: toastId });
         await relaunch();
       } else {
         toast.success("You are on the latest version!", { id: toastId });
       }
-    } catch (error) {
-      toast.error("Failed to check for updates.");
-      console.error(error);
+    } catch (error: any) {
+      toast.error(`Update failed: ${error.message || error}`);
+      console.error("Updater error:", error);
     }
   };
 
@@ -257,7 +277,7 @@ export function MenuBar({
           </div>
         )}
       </div>
-      
+
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("version")} style={{ color: "var(--text-muted)", fontWeight: "normal" }}>
           v{appVersion || "..."}
