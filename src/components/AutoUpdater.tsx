@@ -12,16 +12,12 @@ export function AutoUpdater() {
         if (update) {          
           toast.loading(`Updating to v${update.version}...`, { duration: 5000 });
           
-          let downloaded = 0;
-          let contentLength = 0;
-          
           await update.downloadAndInstall((event) => {
             switch (event.event) {
               case 'Started':
-                contentLength = event.data.contentLength || 0;
+                console.log(`Update started. Total size: ${event.data.contentLength} bytes`);
                 break;
               case 'Progress':
-                downloaded += event.data.chunkLength;
                 break;
               case 'Finished':
                 console.log('Download finished');

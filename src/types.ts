@@ -40,3 +40,18 @@ export interface GameHistory {
   rarestUnlocked?: { name: string; percent: number; color: string } | null;
   raImageIcon?: string;
 }
+
+export interface ChecklistItem {
+  id: string;
+  name: string;
+  desc: string;
+  imageUrl: string;
+  videoUrl: string;
+  completed: boolean;
+}
+
+export interface CustomChecklist {
+  id: string;
+  title: string;
+  items: ChecklistItem[];
+}

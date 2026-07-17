@@ -724,6 +724,21 @@ fn set_window_transparent(window: tauri::Window, transparent: bool) {
     let _ = window.set_shadow(!transparent);
 }
 
+#[tauri::command]
+fn load_checklists(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = get_data_path(&app_handle, "checklists.json")?;
+    match std::fs::read_to_string(path) {
+        Ok(data) => Ok(data),
+        Err(_) => Ok("{}".to_string()),
+    }
+}
+
+#[tauri::command]
+fn save_checklists(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = get_data_path(&app_handle, "checklists.json")?;
+    std::fs::write(path, data).map_err(|e| e.to_string())
+}
+
 // --- Entry Point ---
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

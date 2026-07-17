@@ -149,8 +149,8 @@ a:hover {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
+  gap: 8px;
+  padding: 8px 14px;
   background: none;
   border: none;
   color: var(--text-main);
@@ -160,8 +160,25 @@ a:hover {
   transition: background-color var(--transition);
 }
 
+.menu-option.column{
+  flex-direction: column;
+  align-items: baseline;
+  cursor: default;
+}
+
 .menu-option:hover {
   background-color: rgba(255, 255, 255, 0.07);
+}
+
+.menu-option select{
+  width: 100%;
+  padding: 4px 8px; 
+  background: var(--bg-color); 
+  color: var(--text-main);
+  border: 1px solid var(--border-color); 
+  border-radius: 4px;
+  font-size: 0.8rem; 
+  cursor: pointer;
 }
 
 .menu-check {
@@ -555,6 +572,8 @@ a:hover {
 
 .add-link-form input[type="text"] { flex: 1 1 100px; }
 .add-link-form input[type="url"]  { flex: 2 1 140px; }
+input[type="checkbox"] { cursor: pointer; accent-color: var(--accent-green);}
+input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: pointer;}
 
 .btn-add-link {
   padding: 7px 14px;
@@ -2580,4 +2599,187 @@ html.overlay-tactical.overlay-opaque .filter-btn.active,
 html.overlay-frosted.overlay-opaque .filter-btn.active {
   background: var(--accent-green) !important;
   color: #000 !important;
+}
+
+/* ============================================================
+   INNER TABS (Achievements vs Checklists)
+   ============================================================ */
+.inner-tabs-container {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.inner-tab {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.inner-tab:hover {
+  color: var(--text-main);
+}
+
+.inner-tab.active {
+  color: var(--accent-green);
+  border-bottom-color: var(--accent-green);
+}
+
+/* ============================================================
+   CUSTOM CHECKLISTS (Game8 Wiki Style)
+   ============================================================ */
+.checklists-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.checklists-sidebar {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.checklist-tab-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checklist-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.checklist-tab-btn.active {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.checklists-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Checklist Item Card */
+.cl-item-card {
+  display: flex;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  gap: 16px;
+  transition: border-color var(--transition), opacity var(--transition);
+}
+
+.cl-item-card.completed {
+  opacity: 0.6;
+  background: rgba(52, 211, 153, 0.04);
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.cl-item-checkbox {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.cl-item-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent-green);
+  cursor: pointer;
+}
+
+.cl-item-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0,0,0,0.5);
+  background: #111;
+  flex-shrink: 0;
+}
+
+.cl-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cl-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.cl-item-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.cl-item-card.completed .cl-item-title {
+  text-decoration: line-through;
+  color: var(--accent-green);
+}
+
+.cl-item-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.cl-item-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* Form Styles */
+.cl-form-container {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .checklists-layout { flex-direction: column; }
+  .checklists-sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+  .checklist-tab-btn { white-space: nowrap; }
+  .cl-item-card { flex-direction: column; }
+  .cl-item-img { width: 100%; height: 160px; }
 }

@@ -41,8 +41,8 @@ export function MenuBar({
         {openMenu === "view" && (
           <div className="menu-dropdown" onClick={e => e.stopPropagation()}>
             
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-              <input type="checkbox" checked={!!settings.alwaysOnTop} onChange={() => { onToggleAlwaysOnTop(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+            <label className="menu-option">
+              <input type="checkbox" checked={!!settings.alwaysOnTop} onChange={() => { onToggleAlwaysOnTop(); setOpenMenu(null); }} />
               {t("menu.alwaysOnTop")}
             </label>
 
@@ -50,21 +50,20 @@ export function MenuBar({
               {t("menu.overlayWarning")}
             </div>
 
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-              <input type="checkbox" checked={!!isMiniMode} onChange={() => { onToggleMiniMode(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+            <label className="menu-option">
+              <input type="checkbox" checked={!!isMiniMode} onChange={() => { onToggleMiniMode(); setOpenMenu(null); }} />
               {t("menu.miniMode")}
             </label>
             
             <div className="menu-divider"></div>
             
-            <div className="menu-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", cursor: "default" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: "0.85rem" }}>
+            <div className="menu-option column">
+              <div>
                 <span>{t("menu.windowMode")}</span>
               </div>
               <select 
                 value={settings.windowMode || "WINDOWED"} 
-                onChange={e => onSetWindowMode(e.target.value as any)} 
-                style={{ width: "100%", padding: "4px 8px", background: "var(--bg-color)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer" }}
+                onChange={e => onSetWindowMode(e.target.value as any)}
               >
                 <option value="WINDOWED">Windowed</option>
                 <option value="BORDERLESS">Borderless Window</option>
@@ -74,14 +73,13 @@ export function MenuBar({
 
             <div className="menu-divider"></div>
             
-            <div className="menu-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", cursor: "default" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: "0.85rem" }}>
+            <div className="menu-option column">
+              <div>
                 <span>{t("menu.language")}</span>
               </div>
               <select 
                 value={settings.language || "en"} 
-                onChange={e => onChangeLanguage(e.target.value)} 
-                style={{ width: "100%", padding: "4px 8px", background: "var(--bg-color)", color: "var(--text-main)", border: "1px solid var(--border-color)", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer" }}
+                onChange={e => onChangeLanguage(e.target.value)}
               >
                 {SUPPORTED_LANGUAGES.map(l => (
                   <option key={l.code} value={l.code}>{l.name}</option>
@@ -91,18 +89,18 @@ export function MenuBar({
 
             <div className="menu-divider"></div>
 
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-              <input type="checkbox" checked={!!settings.soundEnabled} onChange={() => { onToggleSound(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+            <label className="menu-option">
+              <input type="checkbox" checked={!!settings.soundEnabled} onChange={() => { onToggleSound(); setOpenMenu(null); }} />
               {t("menu.sound")}
             </label>
 
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-              <input type="checkbox" checked={!!settings.runOnStartup} onChange={() => { onToggleStartup(); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+            <label className="menu-option">
+              <input type="checkbox" checked={!!settings.runOnStartup} onChange={() => { onToggleStartup(); setOpenMenu(null); }} />
               {t("menu.startup")}
             </label>
 
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-              <input type="checkbox" checked={!!settings.minimizeToTray} onChange={onToggleMinimizeToTray} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+            <label className="menu-option">
+              <input type="checkbox" checked={!!settings.minimizeToTray} onChange={onToggleMinimizeToTray} />
               {t("menu.minimizeToTray")}
             </label>
             
@@ -115,20 +113,20 @@ export function MenuBar({
             
             <div className="menu-divider"></div>
             
-            <div className="menu-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", cursor: "default" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: "0.85rem" }}>
+            <div className="menu-option column">
+              <div>
                 <span>{t("menu.opacity")}</span>
                 <span style={{ color: "var(--accent-green)" }}>{Math.round(settings.opacity * 100)}%</span>
               </div>
-              <input type="range" min="0.1" max="1.0" step="0.05" value={settings.opacity} onChange={e => onChangeOpacity(parseFloat(e.target.value))} onMouseUp={onSaveOpacity} onTouchEnd={onSaveOpacity} style={{ width: "100%", accentColor: "var(--accent-green)", cursor: "pointer" }} />
+              <input type="range" min="0.1" max="1.0" step="0.05" value={settings.opacity} onChange={e => onChangeOpacity(parseFloat(e.target.value))} onMouseUp={onSaveOpacity} onTouchEnd={onSaveOpacity}/>
             </div>
 
             <div className="menu-option" style={{ flexDirection: "column", alignItems: "flex-start", gap: "8px", cursor: "default", paddingBottom: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", width: "100%", fontSize: "0.85rem" }}>
+              <div>
                 <span>{t("menu.uiScale")}</span>
                 <span style={{ color: "var(--accent-green)" }}>{Math.round((settings.uiScale || 1.0) * 100)}%</span>
               </div>
-              <input type="range" min="0.6" max="1.8" step="0.05" value={settings.uiScale || 1.0} onChange={e => onChangeUiScale(parseFloat(e.target.value))} onMouseUp={onSaveUiScale} onTouchEnd={onSaveUiScale} style={{ width: "100%", accentColor: "var(--accent-green)", cursor: "pointer" }} />
+              <input type="range" min="0.6" max="1.8" step="0.05" value={settings.uiScale || 1.0} onChange={e => onChangeUiScale(parseFloat(e.target.value))} onMouseUp={onSaveUiScale} onTouchEnd={onSaveUiScale}/>
             </div>
 
           </div>
@@ -140,8 +138,8 @@ export function MenuBar({
         {openMenu === "themes" && (
           <div className="menu-dropdown">
             {themes.map(tObj => (
-              <label key={tObj.id} className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
-                <input type="radio" name="theme-selection" checked={settings.themeId === tObj.id} onChange={() => { onChangeTheme(tObj.id); setOpenMenu(null); }} style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} />
+              <label key={tObj.id} className="menu-option">
+                <input type="radio" name="theme-selection" checked={settings.themeId === tObj.id} onChange={() => { onChangeTheme(tObj.id); setOpenMenu(null); }} />
                 {tObj.name}
               </label>
             ))}
@@ -168,12 +166,12 @@ export function MenuBar({
               </svg>
               HUD / Overlay Style
             </div>
-            <label className="menu-option" style={{ padding: "8px 14px", borderBottom: "1px solid var(--border-color)", cursor: "pointer", gap: "8px" }}>
+            <label className="menu-option">
               <input 
                 type="checkbox" 
                 checked={settings.enableTransparency !== false} 
                 onChange={onToggleTransparency} 
-                style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} 
+               
               />
               Transparent Background
             </label>
@@ -204,12 +202,12 @@ export function MenuBar({
                <span style={{ width: "13px" }}></span>
               {t("menu.keys")}
             </button>
-            <label className="menu-option" style={{ padding: "8px 14px", cursor: "pointer", gap: "8px" }}>
+            <label className="menu-option">
               <input 
                 type="checkbox" 
                 checked={settings.discordRPCEnabled !== false} 
                 onChange={onToggleDiscordRPC} 
-                style={{ cursor: "pointer", accentColor: "var(--accent-green)" }} 
+               
               />
               {t("menu.discordRPC")}
             </label>

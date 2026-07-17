@@ -5,7 +5,6 @@ import toast, { Toaster } from "react-hot-toast";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import "./css/style.css";
 
-// Components
 import { useUnlockSound } from "./components/UseUnlockSound";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { MenuBar } from "./components/MenuBar";
@@ -17,7 +16,8 @@ import { PlatformIcon, GitHubIcon } from "./components/Icons";
 import { 
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
-  SortOrder, LibrarySortOrder, LibraryFilter, FilterType 
+  SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
+  CustomChecklist, ChecklistItem
 } from "./types";
 import { 
   BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
@@ -26,11 +26,10 @@ import {
   safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData
 } from "./utils";
 
-
 function App() {
   const [appState, setAppState] = useState<"LOADING" | "SETUP" | "WAITING" | "PLAYING">("LOADING");
   
-const [settings, setSettings] = useState<AppSettings>({ 
+  const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
     windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false
@@ -49,11 +48,17 @@ const [settings, setSettings] = useState<AppSettings>({
   const [achievements, setAchievements] = useState<MergedAchievement[]>([]);
   const [isProfilePrivate, setIsProfilePrivate] = useState(false);
   
-  // View States
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DEFAULT");
+
+  const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS">("ACHIEVEMENTS");
+  const [allChecklists, setAllChecklists] = useState<Record<string, CustomChecklist[]>>({});
+  const [activeChecklistId, setActiveChecklistId] = useState<string | null>(null);
+  const [newChecklistName, setNewChecklistName] = useState("");
+  const [newItemForm, setNewItemForm] = useState<Partial<ChecklistItem>>({});
+  const [isEditingChecklist, setIsEditingChecklist] = useState(false);
 
   useEffect(() => {
     const appId = selectedAppIdRef.current;
@@ -73,7 +78,6 @@ const [settings, setSettings] = useState<AppSettings>({
   const [librarySearch, setLibrarySearch] = useState("");
   const [missableAlertDismissed, setMissableAlertDismissed] = useState(false);
 
-  // Multi-game tracking state
   const [runningAppIds, setRunningAppIds] = useState<string[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string>(""); 
   const isSelectedGameRA = selectedAppId.startsWith("RA_");
@@ -95,7 +99,7 @@ const [settings, setSettings] = useState<AppSettings>({
   const [gameHistory, setGameHistory] = useState<Record<string, GameHistory>>({});
   const [pendingRemoveGame, setPendingRemoveGame] = useState<GameHistory | null>(null);
 
-  // Refs
+  const saveEditsTimeoutRef = useRef<number | null>(null);
   const allLocalEditsRef = useRef<Record<string, Record<string, LocalEdit>>>({});
   const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en", discordRPCEnabled: true });
   const apiKeyRef = useRef<string>("");
@@ -113,7 +117,6 @@ const [settings, setSettings] = useState<AppSettings>({
   const lastNetworkFetchRef = useRef<number>(0);
   const prevUnlockedRef = useRef<Record<string, Set<string>>>({});
   
-  // Polling Refs
   const lastRaPollTimeRef = useRef<number>(0);
   const lastSteamStatusPollRef = useRef<number>(0);
   const tickInFlightRef = useRef<boolean>(false);
@@ -126,7 +129,6 @@ const [settings, setSettings] = useState<AppSettings>({
   const lastXboxNetworkFetchRef = useRef<number>(0); 
   const activeXboxIdRef = useRef<string | null>(null);
 
-  // Tabs bar scroll arrows
   const tabsBarRef = useRef<HTMLDivElement>(null);
   const [tabsCanScrollLeft, setTabsCanScrollLeft] = useState(false);
   const [tabsCanScrollRight, setTabsCanScrollRight] = useState(false);
@@ -168,7 +170,7 @@ const [settings, setSettings] = useState<AppSettings>({
       await invoke("set_window_mode", { mode });
       saveSettings({ ...settingsRef.current, windowMode: mode });
     } catch (e) {
-      console.error("Failed to set window mode", e);
+      console.error(e);
     }
   };
 
@@ -208,7 +210,6 @@ const [settings, setSettings] = useState<AppSettings>({
     return () => { window.removeEventListener("resize", handleResize); if (debounceTimer) window.clearTimeout(debounceTimer); };
   }, [appState]);
 
-  // 1. Mount Phase
   useEffect(() => {
     async function init() {
       try { const res = await fetch(THEMES_URL); if (res.ok) { const remote = await res.json(); if (Array.isArray(remote) && remote.length > 0) setThemes(remote); } } catch { }
@@ -262,7 +263,7 @@ const [settings, setSettings] = useState<AppSettings>({
         try {
           const isAutostart = await invoke<boolean>("plugin:autostart|is_enabled");
           savedSettings.runOnStartup = isAutostart;
-        } catch(e) { console.error("Autostart error", e); }
+        } catch(e) {}
 
         const historyStr = await invoke<string>("load_history"); setGameHistory(safeParseJSON(historyStr, {}));
         const linksStr = await invoke<string>("load_user_links"); setUserLinks(Array.isArray(safeParseJSON(linksStr, [])) ? safeParseJSON(linksStr, []) : []);
@@ -273,6 +274,9 @@ const [settings, setSettings] = useState<AppSettings>({
         setAllLocalEdits(editsData); 
         allLocalEditsRef.current = editsData;
         
+        const checklistsStr = await invoke<string>("load_checklists").catch(() => "{}");
+        setAllChecklists(safeParseJSON(checklistsStr, {}));
+
         let initialTab = savedSettings.lastSelectedTab || "";
 
         try {
@@ -290,9 +294,7 @@ const [settings, setSettings] = useState<AppSettings>({
               }
             }
           }
-        } catch (e) {
-          console.error("Initial Steam check failed", e);
-        }
+        } catch (e) {}
 
         if (initialTab) {
           setSelectedAppId(initialTab);
@@ -329,7 +331,7 @@ const [settings, setSettings] = useState<AppSettings>({
       }
       setIsMiniMode(newVal);
       saveSettings({ ...settingsRef.current, isMiniMode: newVal });
-    } catch (e) { console.error(e); }
+    } catch (e) {}
   };
 
   const handleChangeLanguage = (lang: string) => {
@@ -353,7 +355,7 @@ const [settings, setSettings] = useState<AppSettings>({
 
   const handleChangeTheme = (themeId: string) => { applyTheme(themes.find(t => t.id === themeId) || BUILTIN_THEMES[0]); saveSettings({ ...settingsRef.current, themeId }); };
 
-const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
+  const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     const html = document.documentElement;
     const OVERLAY_CLASS_PREFIX = "overlay-";
     const TRANSPARENT_STYLES: OverlayStyle[] = ["ghost", "mmo", "neon", "tactical", "frosted"];
@@ -395,7 +397,6 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
   const handleChangeOpacity = async (opacity: number) => { setSettings(prev => ({ ...prev, opacity })); settingsRef.current.opacity = opacity; await invoke("set_window_opacity", { opacity }).catch(console.error); };
   const handleSaveOpacity = () => { saveSettings({ ...settingsRef.current, opacity: settings.opacity }); };
 
-  // 2. Polling loop
   useEffect(() => {
     if (appState === "LOADING" || appState === "SETUP") return;
     const tick = async (options: { forceTabSwitch?: boolean } = {}) => {
@@ -435,7 +436,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
                   return updated;
                 });
               }
-            } catch (e) { console.error("RA Poll error", e); }
+            } catch (e) {}
           }
 
           if (xbox.apiKey && xbox.xuid && now - lastXboxPollTimeRef.current > 60000) {
@@ -466,7 +467,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
                   return updated;
                 });
               }
-            } catch (e) { console.error("Xbox Poll error", e); }
+            } catch (e) {}
           }
 
           if (key && now - lastSteamStatusPollRef.current > 15000) {
@@ -481,7 +482,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
                 cachedRunningAppIdsRef.current = [];
                 cachedSteamIdRef.current = "";
               }
-            } catch (e) { console.error("Steam Poll error", e); }
+            } catch (e) {}
           }
         }
 
@@ -634,7 +635,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
               setSelectedChapter("ALL"); setSearchQuery(""); setSortOrder("DEFAULT"); setGuidedMode(false); setMissableAlertDismissed(false);
               setIsProfilePrivate(false);
 
-          } catch(e) { console.error("Error setting up game data", e) }
+          } catch(e) {}
         } else {
           setGameHistory(prev => {
               if (prev[targetAppId]) {
@@ -798,7 +799,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
               return changed ? next : prev;
             });
 
-        } catch (error) { console.error("Error fetching live data:", error); }
+        } catch (error) {}
       } finally {
         tickInFlightRef.current = false;
         if (pendingTickRef.current) { pendingTickRef.current = false; setTimeout(() => tickRef.current({ forceTabSwitch: true }), 0); }
@@ -821,7 +822,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     try {
       if (newVal) await invoke("plugin:autostart|enable"); else await invoke("plugin:autostart|disable");
       saveSettings({ ...settingsRef.current, runOnStartup: newVal });
-    } catch(e) { console.error(e); }
+    } catch(e) {}
   };
 
   const updateHistorySafely = (appId: string, name: string, achs: MergedAchievement[], _isRA: boolean) => {
@@ -890,15 +891,21 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     }); 
   };
   
-  const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => { 
-    const appId = selectedAppIdRef.current; if (!appId) return; 
-    const gameEdits = allLocalEditsRef.current[appId] || {}; 
-    const updatedGameEdits = { ...gameEdits, [apiname]: { ...(gameEdits[apiname] || {}), [field]: value } }; 
-    const newAllEdits = { ...allLocalEditsRef.current, [appId]: updatedGameEdits }; 
-    setAllLocalEdits(newAllEdits); allLocalEditsRef.current = newAllEdits; 
+const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => { 
+  const appId = selectedAppIdRef.current; if (!appId) return; 
+  const gameEdits = allLocalEditsRef.current[appId] || {}; 
+  const updatedGameEdits = { ...gameEdits, [apiname]: { ...(gameEdits[apiname] || {}), [field]: value } }; 
+  const newAllEdits = { ...allLocalEditsRef.current, [appId]: updatedGameEdits }; 
+  
+  setAllLocalEdits(newAllEdits); 
+  allLocalEditsRef.current = newAllEdits; 
+  setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a)); 
+
+  if (saveEditsTimeoutRef.current) window.clearTimeout(saveEditsTimeoutRef.current);
+  saveEditsTimeoutRef.current = window.setTimeout(() => {
     invoke("save_local_edits", { data: JSON.stringify(newAllEdits) }).catch(console.error); 
-    setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a)); 
-  };
+  }, 1000);
+};
 
   const currentGameChapters = useMemo(() => {
     const local = allLocalChapters[selectedAppId];
@@ -987,7 +994,7 @@ const applyOverlayStyle = (style: OverlayStyle, isTransparent: boolean) => {
     return achievements.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
   }, [achievements, runningAppIds, selectedAppId, selectedChapter]);
   
-const filteredAchievements = useMemo(() => {
+  const filteredAchievements = useMemo(() => {
     let result = achievements.filter(ach => {
       const isTracked = currentGameTracked.includes(ach.apiname);
       const achChapter = ach.chapter?.trim() || "No Chapter";
@@ -1062,7 +1069,7 @@ const filteredAchievements = useMemo(() => {
     invoke("update_discord_rpc", { gameName: gameName, unlocked: unlockedAch, total: totalAch, hunting: firstTrackedLocked ? firstTrackedLocked.display_name : "" }).catch(console.error);
   }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled]);
 
-useEffect(() => {
+  useEffect(() => {
     let unlistenFn: () => void;
     
     const setupCloseListener = async () => {
@@ -1081,7 +1088,6 @@ useEffect(() => {
     };
   }, []);
 
-  // --- Render ---
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
   if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} /></div>;
 
@@ -1219,56 +1225,6 @@ useEffect(() => {
 
           <div className="progress-bar-track"><div className="progress-bar-fill" style={{ width: totalAch > 0 ? `${(unlockedAch / totalAch) * 100}%` : "0%" }} /></div>
 
-          {totalAch > 0 && (
-            <div className="accordion-section">
-              <div className="accordion-header" onClick={() => setStatsOpen(o => !o)}>
-                <span className="accordion-title">{t("accordion.stats")}</span>
-                <span className={`accordion-chevron ${statsOpen ? "open" : ""}`}>▼</span>
-              </div>
-              {statsOpen && (
-                <div className="accordion-body" style={{ paddingTop: 0 }}>
-                  <div className="stats-dashboard">
-                    <div className="stat-card"><span className="stat-label">{t("stat.avgCompletion")}</span><span className="stat-value">{averagePercent}%</span></div>
-                    {isSelectedGameRA && totalPoints > 0 && (
-                      <div className="stat-card">
-                        <span className="stat-label">⭐ Points</span>
-                        <span className="stat-value" style={{ fontSize: "1rem" }}>
-                          <span style={{ color: "var(--accent-yellow)" }}>{earnedPoints}</span>
-                          <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalPoints}</span>
-                        </span>
-                        <span className="stat-label" style={{ marginTop: "4px", fontSize: "0.72rem" }}>
-                          True: <span style={{ color: "var(--accent-yellow)" }}>{earnedTruePoints}</span>
-                          <span style={{ color: "var(--text-muted)" }}> / {totalTruePoints}</span>
-                        </span>
-                      </div>
-                    )}
-                    {isSelectedGameXbox && totalGamerscore > 0 && (
-                      <div className="stat-card">
-                        <span className="stat-label">🟩 Gamerscore</span>
-                        <span className="stat-value" style={{ fontSize: "1rem" }}>
-                          <span style={{ color: "#107c10" }}>{earnedGamerscore}</span>
-                          <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalGamerscore}</span>
-                        </span>
-                      </div>
-                    )}
-                    <div className="stat-card rarity-distribution">
-                      <span className="stat-label">{t("stat.rarityDist")}</span>
-                      <div className="rarity-bars">
-                        <div title={`Common (40%+)`} style={{ flex: rarityBreakdown.C, background: "#a1a1aa" }}></div>
-                        <div title={`Uncommon (20%+)`} style={{ flex: rarityBreakdown.U, background: "#60a5fa" }}></div>
-                        <div title={`Rare (10%+)`} style={{ flex: rarityBreakdown.R, background: "#c084fc" }}></div>
-                        <div title={`Very Rare (5%+)`} style={{ flex: rarityBreakdown.VR, background: "#f59e0b" }}></div>
-                        <div title={`Ultra Rare (<5%)`} style={{ flex: rarityBreakdown.UR, background: "#ef4444" }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isProfilePrivate && <div className="privacy-warning">⚠️ Cannot check unlocks: Your Steam "Game Details" are private.</div>}
-
           <div className="accordion-section">
             <div className="accordion-header" onClick={() => setLinksOpen(o => !o)}>
               <span className="accordion-title">{t("accordion.shortcuts")}</span>
@@ -1350,84 +1306,290 @@ useEffect(() => {
             )}
           </div>
 
-          <div className="controls-container">
-            <div className="filter-bar">
-              <div className="filter-btns">
-                <button className={`filter-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>{t("filter.all")} ({totalAch})</button>
-                <button className={`filter-btn ${filter === "LOCKED" ? "active" : ""}`} onClick={() => setFilter("LOCKED")}>{t("filter.locked")} ({lockedAch})</button>
-                <button className={`filter-btn ${filter === "UNLOCKED" ? "active" : ""}`} onClick={() => setFilter("UNLOCKED")}>{t("filter.unlocked")} ({unlockedAch})</button>
-                <button className={`filter-btn ${filter === "TRACKED" ? "active" : ""}`} onClick={() => setFilter("TRACKED")}>{t("filter.tracked")} ({trackedAchCount})</button>
-                <button className={`filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""} ${missableAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("MISSABLE")}>{t("filter.missable")} {missableAchCount > 0 && <span className="filter-badge">{missableAchCount}</span>}</button>
-                <button className={`filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""} ${spoilerAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("SPOILER")}>{t("filter.spoilers")} {spoilerAchCount > 0 && <span className="filter-badge filter-badge-spoiler">{spoilerAchCount}</span>}</button>
-                <button className={`filter-btn guided-toggle ${guidedMode ? "active" : ""}`} onClick={() => setGuidedMode(!guidedMode)}>{guidedMode ? t("filter.guidedOn") : t("filter.guided")}</button>
-              </div>
-              <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select">
-                <option value="ALL">{t("chap.all")}</option>
-                {allKnownChaptersForDropdown.map((chap) => { 
-                  const count = chapterCounts[chap] || 0; 
-                  if (count === 0 && !editMode) return null; 
-                  const displayName = chap === "No Chapter" ? t("chap.fallback") : chap;
-                  return <option key={chap} value={chap}>{displayName} ({count})</option>; 
-                })}
-              </select>
-            </div>
-
-            <div className="search-sort-bar">
-              <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
-              <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)} className="control-select">
-                <option value="DEFAULT">{t("sort.api")}</option>
-                <option value="A_Z">{t("sort.az")}</option>
-                <option value="Z_A">{t("sort.za")}</option>
-                <option value="RARITY_ASC">{t("sort.rarest")}</option>
-                <option value="RARITY_DESC">{t("sort.common")}</option>
-                <option value="CHAPTER">{t("sort.chapter")}</option>
-              </select>
-            </div>
+          <div className="inner-tabs-container">
+            <button 
+              className={`inner-tab ${innerTab === "ACHIEVEMENTS" ? "active" : ""}`} 
+              onClick={() => setInnerTab("ACHIEVEMENTS")}
+            >
+              Achievements
+            </button>
+            {/* <button 
+              className={`inner-tab ${innerTab === "CHECKLISTS" ? "active" : ""}`} 
+              onClick={() => setInnerTab("CHECKLISTS")}
+            >
+              Checklists
+            </button> */}
           </div>
 
-          {missableAlertAchs.length > 0 && !missableAlertDismissed && (
-            <div className="missable-alert">
-              <div className="missable-alert-left">
-                <span className="missable-alert-icon">⚠️</span>
-                <div>
-                  <strong className="missable-alert-title">{missableAlertAchs.length === 1 ? "1 missable achievement" : `${missableAlertAchs.length} missable achievements`} in {selectedChapter}!</strong>
-                  <p className="missable-alert-sub">{missableAlertAchs.map(a => a.display_name).join(", ")} — don't progress before unlocking!</p>
+          {innerTab === "ACHIEVEMENTS" && (
+            <>
+              {totalAch > 0 && (
+                <div className="accordion-section">
+                  <div className="accordion-header" onClick={() => setStatsOpen(o => !o)}>
+                    <span className="accordion-title">{t("accordion.stats")}</span>
+                    <span className={`accordion-chevron ${statsOpen ? "open" : ""}`}>▼</span>
+                  </div>
+                  {statsOpen && (
+                    <div className="accordion-body" style={{ paddingTop: 0 }}>
+                      <div className="stats-dashboard">
+                        <div className="stat-card"><span className="stat-label">{t("stat.avgCompletion")}</span><span className="stat-value">{averagePercent}%</span></div>
+                        {isSelectedGameRA && totalPoints > 0 && (
+                          <div className="stat-card">
+                            <span className="stat-label">⭐ Points</span>
+                            <span className="stat-value" style={{ fontSize: "1rem" }}>
+                              <span style={{ color: "var(--accent-yellow)" }}>{earnedPoints}</span>
+                              <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalPoints}</span>
+                            </span>
+                            <span className="stat-label" style={{ marginTop: "4px", fontSize: "0.72rem" }}>
+                              True: <span style={{ color: "var(--accent-yellow)" }}>{earnedTruePoints}</span>
+                              <span style={{ color: "var(--text-muted)" }}> / {totalTruePoints}</span>
+                            </span>
+                          </div>
+                        )}
+                        {isSelectedGameXbox && totalGamerscore > 0 && (
+                          <div className="stat-card">
+                            <span className="stat-label">🟩 Gamerscore</span>
+                            <span className="stat-value" style={{ fontSize: "1rem" }}>
+                              <span style={{ color: "#107c10" }}>{earnedGamerscore}</span>
+                              <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalGamerscore}</span>
+                            </span>
+                          </div>
+                        )}
+                        <div className="stat-card rarity-distribution">
+                          <span className="stat-label">{t("stat.rarityDist")}</span>
+                          <div className="rarity-bars">
+                            <div title={`Common (40%+)`} style={{ flex: rarityBreakdown.C, background: "#a1a1aa" }}></div>
+                            <div title={`Uncommon (20%+)`} style={{ flex: rarityBreakdown.U, background: "#60a5fa" }}></div>
+                            <div title={`Rare (10%+)`} style={{ flex: rarityBreakdown.R, background: "#c084fc" }}></div>
+                            <div title={`Very Rare (5%+)`} style={{ flex: rarityBreakdown.VR, background: "#f59e0b" }}></div>
+                            <div title={`Ultra Rare (<5%)`} style={{ flex: rarityBreakdown.UR, background: "#ef4444" }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isProfilePrivate && <div className="privacy-warning">⚠️ Cannot check unlocks: Your Steam "Game Details" are private.</div>}
+
+              <div className="controls-container">
+                <div className="filter-bar">
+                  <div className="filter-btns">
+                    <button className={`filter-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>{t("filter.all")} ({totalAch})</button>
+                    <button className={`filter-btn ${filter === "LOCKED" ? "active" : ""}`} onClick={() => setFilter("LOCKED")}>{t("filter.locked")} ({lockedAch})</button>
+                    <button className={`filter-btn ${filter === "UNLOCKED" ? "active" : ""}`} onClick={() => setFilter("UNLOCKED")}>{t("filter.unlocked")} ({unlockedAch})</button>
+                    <button className={`filter-btn ${filter === "TRACKED" ? "active" : ""}`} onClick={() => setFilter("TRACKED")}>{t("filter.tracked")} ({trackedAchCount})</button>
+                    <button className={`filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""} ${missableAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("MISSABLE")}>{t("filter.missable")} {missableAchCount > 0 && <span className="filter-badge">{missableAchCount}</span>}</button>
+                    <button className={`filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""} ${spoilerAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("SPOILER")}>{t("filter.spoilers")} {spoilerAchCount > 0 && <span className="filter-badge filter-badge-spoiler">{spoilerAchCount}</span>}</button>
+                    <button className={`filter-btn guided-toggle ${guidedMode ? "active" : ""}`} onClick={() => setGuidedMode(!guidedMode)}>{guidedMode ? t("filter.guidedOn") : t("filter.guided")}</button>
+                  </div>
+                  <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select">
+                    <option value="ALL">{t("chap.all")}</option>
+                    {allKnownChaptersForDropdown.map((chap) => { 
+                      const count = chapterCounts[chap] || 0; 
+                      if (count === 0 && !editMode) return null; 
+                      const displayName = chap === "No Chapter" ? t("chap.fallback") : chap;
+                      return <option key={chap} value={chap}>{displayName} ({count})</option>; 
+                    })}
+                  </select>
+                </div>
+
+                <div className="search-sort-bar">
+                  <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
+                  <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)} className="control-select">
+                    <option value="DEFAULT">{t("sort.api")}</option>
+                    <option value="A_Z">{t("sort.az")}</option>
+                    <option value="Z_A">{t("sort.za")}</option>
+                    <option value="RARITY_ASC">{t("sort.rarest")}</option>
+                    <option value="RARITY_DESC">{t("sort.common")}</option>
+                    <option value="CHAPTER">{t("sort.chapter")}</option>
+                  </select>
                 </div>
               </div>
-              <div className="missable-alert-actions">
-                <button className="missable-alert-btn" onClick={() => { setFilter("MISSABLE"); setMissableAlertDismissed(true); }}>Show them</button>
-                <button className="missable-alert-dismiss" onClick={() => setMissableAlertDismissed(true)} title="Dismiss">✕</button>
-              </div>
-            </div>
-          )}
 
-          <div className="achievement-list">
-            {filteredAchievements.map((ach) => (
-              <AchievementCard 
-                key={ach.apiname}
-                ach={ach}
-                achievements={achievements}
-                isTracked={currentGameTracked.includes(ach.apiname)}
-                isHintHidden={hiddenHintsForGame.includes(ach.apiname)}
-                editMode={editMode}
-                localOrOfficialEditData={allLocalEdits[selectedAppId]?.[ach.apiname] || {}}
-                allKnownChaptersForDropdown={allKnownChaptersForDropdown}
-                handleToggleTrack={handleToggleTrack}
-                handleToggleHint={handleToggleHint}
-                handleEdit={handleEdit}
-                t={t}
-              />
-            ))}
-          </div>
-
-          {achievements.length === 0 && !isProfilePrivate && (
-            (schemaCacheRef.current[selectedAppId] && schemaCacheRef.current[selectedAppId].filter(a => !a.appIdMarker).length === 0 && selectedAppId && !isSelectedGameRA && !isSelectedGameXbox)
-              ? <div className="empty-state" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "40px 0" }}>
-                  <span>This game has no achievements.</span>
+              {missableAlertAchs.length > 0 && !missableAlertDismissed && (
+                <div className="missable-alert">
+                  <div className="missable-alert-left">
+                    <span className="missable-alert-icon">⚠️</span>
+                    <div>
+                      <strong className="missable-alert-title">{missableAlertAchs.length === 1 ? "1 missable achievement" : `${missableAlertAchs.length} missable achievements`} in {selectedChapter}!</strong>
+                      <p className="missable-alert-sub">{missableAlertAchs.map(a => a.display_name).join(", ")} — don't progress before unlocking!</p>
+                    </div>
+                  </div>
+                  <div className="missable-alert-actions">
+                    <button className="missable-alert-btn" onClick={() => { setFilter("MISSABLE"); setMissableAlertDismissed(true); }}>Show them</button>
+                    <button className="missable-alert-dismiss" onClick={() => setMissableAlertDismissed(true)} title="Dismiss">✕</button>
+                  </div>
                 </div>
-              : <p className="empty-state">Loading Achievements...</p>
+              )}
+
+              <div className="achievement-list">
+                {filteredAchievements.map((ach) => (
+                  <AchievementCard 
+                    key={ach.apiname}
+                    ach={ach}
+                    achievements={achievements}
+                    isTracked={currentGameTracked.includes(ach.apiname)}
+                    isHintHidden={hiddenHintsForGame.includes(ach.apiname)}
+                    editMode={editMode}
+                    localOrOfficialEditData={allLocalEdits[selectedAppId]?.[ach.apiname] || {}}
+                    allKnownChaptersForDropdown={allKnownChaptersForDropdown}
+                    handleToggleTrack={handleToggleTrack}
+                    handleToggleHint={handleToggleHint}
+                    handleEdit={handleEdit}
+                    t={t}
+                  />
+                ))}
+              </div>
+
+              {achievements.length === 0 && !isProfilePrivate && (
+                (schemaCacheRef.current[selectedAppId] && schemaCacheRef.current[selectedAppId].filter(a => !a.appIdMarker).length === 0 && selectedAppId && !isSelectedGameRA && !isSelectedGameXbox)
+                  ? <div className="empty-state" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "40px 0" }}>
+                      <span>This game has no achievements.</span>
+                    </div>
+                  : <p className="empty-state">Loading Achievements...</p>
+              )}
+              {achievements.length > 0 && filteredAchievements.length === 0 && <p className="empty-state">No achievements match your filters.</p>}
+            </>
           )}
-          {achievements.length > 0 && filteredAchievements.length === 0 && <p className="empty-state">No achievements match your filters.</p>}
+
+          {innerTab === "CHECKLISTS" && (() => {
+            const gameChecklists = allChecklists[selectedAppId] || [];
+            const activeChecklist = gameChecklists.find(c => c.id === activeChecklistId) || gameChecklists[0];
+
+            const saveGameChecklists = async (newList: CustomChecklist[]) => {
+              const updated = { ...allChecklists, [selectedAppId]: newList };
+              setAllChecklists(updated);
+              await invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+            };
+
+            const handleCreateChecklist = (e: React.FormEvent) => {
+              e.preventDefault();
+              if (!newChecklistName.trim()) return;
+              const newList = [...gameChecklists, { id: Date.now().toString(), title: newChecklistName, items: [] }];
+              saveGameChecklists(newList);
+              setNewChecklistName("");
+              setActiveChecklistId(newList[newList.length - 1].id);
+            };
+
+            const handleAddItem = (e: React.FormEvent) => {
+              e.preventDefault();
+              if (!activeChecklist || !newItemForm.name) return;
+              const newItem: ChecklistItem = {
+                id: Date.now().toString(),
+                name: newItemForm.name,
+                desc: newItemForm.desc || "",
+                imageUrl: newItemForm.imageUrl || "",
+                videoUrl: newItemForm.videoUrl || "",
+                completed: false
+              };
+              
+              const updatedList = gameChecklists.map(c => 
+                c.id === activeChecklist.id ? { ...c, items: [...c.items, newItem] } : c
+              );
+              saveGameChecklists(updatedList);
+              setNewItemForm({});
+              setIsEditingChecklist(false);
+            };
+
+            const toggleItemComplete = (itemId: string) => {
+              const updatedList = gameChecklists.map(c => 
+                c.id === activeChecklist.id ? {
+                  ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
+                } : c
+              );
+              saveGameChecklists(updatedList);
+            };
+
+            return (
+              <div className="checklists-layout">
+                <div className="checklists-sidebar">
+                  {gameChecklists.map(list => (
+                    <button 
+                      key={list.id} 
+                      className={`checklist-tab-btn ${activeChecklist?.id === list.id ? "active" : ""}`}
+                      onClick={() => setActiveChecklistId(list.id)}
+                    >
+                      {list.title}
+                      <span style={{fontSize: "0.75rem", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "10px"}}>
+                        {list.items.filter(i => i.completed).length}/{list.items.length}
+                      </span>
+                    </button>
+                  ))}
+                  
+                  <form onSubmit={handleCreateChecklist} className="add-link-form" style={{marginTop: "10px"}}>
+                    <input 
+                      type="text" 
+                      placeholder="New checklist topic..." 
+                      value={newChecklistName} 
+                      onChange={e => setNewChecklistName(e.target.value)} 
+                    />
+                    <button type="submit" className="btn-add-link">+</button>
+                  </form>
+                </div>
+
+                <div className="checklists-content">
+                  {!activeChecklist ? (
+                     <div className="empty-state">Select or create a checklist to start hunting.</div>
+                  ) : (
+                    <>
+                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
+                        <h2 style={{fontSize: "1.4rem", color: "var(--accent-green)"}}>{activeChecklist.title}</h2>
+                        <button className="btn-small btn-small-success" onClick={() => setIsEditingChecklist(!isEditingChecklist)}>
+                          {isEditingChecklist ? "Cancel" : "+ Add Item"}
+                        </button>
+                      </div>
+
+                      {isEditingChecklist && (
+                        <form className="cl-form-container" onSubmit={handleAddItem}>
+                          <input type="text" className="edit-input" placeholder="Item Name (e.g. Can #12)" required 
+                                 value={newItemForm.name || ""} onChange={e => setNewItemForm({...newItemForm, name: e.target.value})} />
+                          <textarea className="edit-input edit-textarea" placeholder="Description / Location details..." 
+                                    value={newItemForm.desc || ""} onChange={e => setNewItemForm({...newItemForm, desc: e.target.value})} />
+                          <div style={{display: "flex", gap: "10px"}}>
+                            <input type="url" className="edit-input" placeholder="Image URL (optional)" 
+                                   value={newItemForm.imageUrl || ""} onChange={e => setNewItemForm({...newItemForm, imageUrl: e.target.value})} />
+                            <input type="url" className="edit-input" placeholder="Video URL (optional)" 
+                                   value={newItemForm.videoUrl || ""} onChange={e => setNewItemForm({...newItemForm, videoUrl: e.target.value})} />
+                          </div>
+                          <button type="submit" className="btn-primary" style={{alignSelf: "flex-end"}}>Save Item</button>
+                        </form>
+                      )}
+
+                      {activeChecklist.items.length === 0 && !isEditingChecklist && (
+                        <div className="empty-state">No items added to this checklist yet.</div>
+                      )}
+                      {activeChecklist.items.map(item => (
+                        <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
+                          <div className="cl-item-checkbox">
+                            <input type="checkbox" checked={item.completed} onChange={() => toggleItemComplete(item.id)} />
+                          </div>
+                          
+                          {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="cl-item-img" />}
+                          
+                          <div className="cl-item-info">
+                            <div className="cl-item-header">
+                              <h3 className="cl-item-title">{item.name}</h3>
+                            </div>
+                            {item.desc && <p className="cl-item-desc">{item.desc}</p>}
+                            
+                            <div className="cl-item-actions">
+                              {item.videoUrl && (
+                                <button className="btn-small" onClick={() => open(item.videoUrl)}>
+                                  ▶ Watch Video
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

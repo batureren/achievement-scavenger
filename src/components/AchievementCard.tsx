@@ -1,3 +1,4 @@
+import React from "react";
 import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
 import { renderHintWithLinks, getYouTubeEmbedUrl } from "../utils";
@@ -16,18 +17,38 @@ interface AchievementCardProps {
   t: (key: string) => string;
 }
 
-export function AchievementCard({
-  ach, isTracked, isHintHidden, editMode, localOrOfficialEditData,
-  allKnownChaptersForDropdown, achievements,
-  handleToggleTrack, handleToggleHint, handleEdit, t
+function AchievementCardBase({ 
+  ach, 
+  achievements, 
+  isTracked, 
+  isHintHidden, 
+  editMode, 
+  localOrOfficialEditData, 
+  allKnownChaptersForDropdown, 
+  handleToggleTrack, 
+  handleToggleHint, 
+  handleEdit, 
+  t 
 }: AchievementCardProps) {
 
   const tier = ach.globalPercent != null ? getRarityTier(ach.globalPercent) : null;
   const pColor = tier ? tier.color : "var(--text-muted)";
 
+  const triggerHighlight = (id: string) => {
+    const el = document.getElementById(`ach-${id}`);
+    if (el) { 
+      el.scrollIntoView({ behavior: "smooth", block: "center" }); 
+      el.classList.remove("chain-highlight");
+      void el.offsetWidth;
+      el.classList.add("chain-highlight"); 
+      setTimeout(() => el.classList.remove("chain-highlight"), 1500); 
+    }
+  };
+
   return (
     <div id={`ach-${ach.apiname}`} className={`achievement-card ${ach.unlocked ? "unlocked" : ""} ${isTracked ? "is-tracked-card" : ""}`}>
       <div className="achievement-card-bg" style={{ width: `${ach.globalPercent || 0}%` }} />
+      
       {ach.is_missable && (
         <span className="missable-badge">MISSABLE</span>
       )}
@@ -63,7 +84,7 @@ export function AchievementCard({
             
             <div className="card-actions">
               {ach.hint && !editMode && (
-                <button className={`icon-btn ${isHintHidden ? "hint-hidden" : "hint-visible"}`} onClick={() => handleToggleHint(ach.apiname)}>
+                <button className={`icon-btn ${isHintHidden ? "hint-hidden" : "hint-visible"}`} onClick={() => handleToggleHint(ach.apiname)} title="Toggle Hint Visibility">
                   {isHintHidden ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                   ) : (
@@ -102,7 +123,7 @@ export function AchievementCard({
           </div>
 
           <div className="edit-requires">
-            <label className="edit-input-label">🔗 Requires (prerequisite achievements)</label>
+            <label className="edit-input-label">Requires (prerequisite achievements)</label>
             <div className="edit-requires-list">
               {achievements.filter(a => a.apiname !== ach.apiname).map(other => {
                 const currentRequires: string[] = localOrOfficialEditData.requires ?? ach.requires ?? [];
@@ -130,16 +151,13 @@ export function AchievementCard({
         <>
           {ach.requires && ach.requires.length > 0 && (
             <div className="chain-row">
-              <span className="chain-label">🔗 Requires:</span>
+              <span className="chain-label">Requires:</span>
               {ach.requires.map(reqId => {
                 const reqAch = achievements.find(a => a.apiname === reqId);
                 if (!reqAch) return null;
                 return (
                   <button key={reqId} className={`chain-badge chain-badge--requires${reqAch.unlocked ? " chain-badge--done" : ""}`}
-                    onClick={() => {
-                      const el = document.getElementById(`ach-${reqId}`);
-                      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("chain-highlight"); setTimeout(() => el.classList.remove("chain-highlight"), 1500); }
-                    }}>
+                    onClick={() => triggerHighlight(reqId)}>
                     {reqAch.unlocked ? "✅" : "🔒"} {reqAch.display_name}
                   </button>
                 );
@@ -151,20 +169,23 @@ export function AchievementCard({
             if (!unlocks.length) return null;
             return (
               <div className="chain-row">
-                <span className="chain-label">➡ Unlocks:</span>
+                <span className="chain-label">Unlocks:</span>
                 {unlocks.map(u => (
                   <button key={u.apiname} className={`chain-badge chain-badge--unlocks${u.unlocked ? " chain-badge--done" : ""}`}
-                    onClick={() => {
-                      const el = document.getElementById(`ach-${u.apiname}`);
-                      if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("chain-highlight"); setTimeout(() => el.classList.remove("chain-highlight"), 1500); }
-                    }}>
+                    onClick={() => triggerHighlight(u.apiname)}>
                     {u.unlocked ? "✅" : "⬜"} {u.display_name}
                   </button>
                 ))}
               </div>
             );
           })()}
-          {ach.notes && <div className="notes-box"><span className="notes-label">📝 Notes: </span>{ach.notes}</div>}
+          
+          {ach.notes && (
+            <div className="notes-box">
+              <span className="notes-label">Notes: </span>{ach.notes}
+            </div>
+          )}
+          
           {ach.hint && !isHintHidden && (
             <div className="hint-box">
               <p style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>
@@ -180,3 +201,14 @@ export function AchievementCard({
     </div>
   );
 }
+
+export const AchievementCard = React.memo(AchievementCardBase, (prevProps, nextProps) => {
+  return (
+    prevProps.ach === nextProps.ach &&
+    prevProps.isTracked === nextProps.isTracked &&
+    prevProps.isHintHidden === nextProps.isHintHidden &&
+    prevProps.editMode === nextProps.editMode &&
+    prevProps.localOrOfficialEditData === nextProps.localOrOfficialEditData &&
+    prevProps.achievements === nextProps.achievements
+  );
+});
