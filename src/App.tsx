@@ -1201,14 +1201,14 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
 
       {!isMiniMode && (
         <div className="game-tabs-bar-outer">
-          {tabsCanScrollLeft && (
-            <button className="tabs-scroll-btn tabs-scroll-btn--left" onClick={() => scrollTabsBy(-1)} aria-label="Scroll tabs left">‹</button>
-          )}
-          <div className="game-tabs-bar" ref={tabsBarRef} onScroll={updateTabsScrollState}>
             <button className={`game-tab ${!selectedAppId ? "active" : ""}`} onClick={() => handleSelectTab("")}>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:"5px",flexShrink:0}}><rect x="2" y="3" width="7" height="18"/><rect x="9" y="3" width="7" height="18"/><rect x="16" y="3" width="6" height="18"/></svg>
               {t("lib.title")}
             </button>
+          {tabsCanScrollLeft && (
+            <button className="tabs-scroll-btn tabs-scroll-btn--left" onClick={() => scrollTabsBy(-1)} aria-label="Scroll tabs left">‹</button>
+          )}
+          <div className="game-tabs-bar" ref={tabsBarRef} onScroll={updateTabsScrollState}>
             {Object.entries(gameHistory)
               .sort(([, a], [, b]) => b.lastPlayed - a.lastPlayed)
               .map(([dictKey, game]) => {
