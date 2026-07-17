@@ -1121,16 +1121,21 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:"5px",flexShrink:0}}><rect x="2" y="3" width="7" height="18"/><rect x="9" y="3" width="7" height="18"/><rect x="16" y="3" width="6" height="18"/></svg>
               {t("lib.title")}
             </button>
-            {Object.values(gameHistory).sort((a, b) => b.lastPlayed - a.lastPlayed).map(game => (
-              <div key={game.appId} className={`game-tab-wrapper ${selectedAppId === game.appId ? "active" : ""}`}>
-                <button className={`game-tab ${selectedAppId === game.appId ? "active" : ""}`} onClick={() => handleSelectTab(game.appId)}>
-                  {runningAppIds.includes(game.appId) && <span className="live-dot" title="Game is currently running"></span>}
-                  <PlatformIcon platform={game.platform} size={16}/>
-                  {game.name}
-                </button>
-                <button className="game-tab-remove" title={runningAppIds.includes(game.appId) ? "Can't remove a game that's currently running" : `Remove "${game.name}" from history`} disabled={runningAppIds.includes(game.appId)} onClick={(e) => { e.stopPropagation(); handleRemoveGame(game); }}>×</button>
-              </div>
-            ))}
+            {Object.entries(gameHistory)
+              .sort(([, a], [, b]) => b.lastPlayed - a.lastPlayed)
+              .map(([dictKey, game]) => {
+                const safeAppId = game.appId || dictKey; 
+                return (
+                  <div key={dictKey} className={`game-tab-wrapper ${selectedAppId === safeAppId ? "active" : ""}`}>
+                    <button className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
+                      {runningAppIds.includes(safeAppId) && <span className="live-dot" title="Game is currently running"></span>}
+                      <PlatformIcon platform={game.platform} size={16}/>
+                      {game.name}
+                    </button>
+                    <button className="game-tab-remove" title={runningAppIds.includes(safeAppId) ? "Can't remove a game that's currently running" : `Remove "${game.name}" from history`} disabled={runningAppIds.includes(safeAppId)} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
+                  </div>
+                );
+            })}
           </div>
           {tabsCanScrollRight && (
             <button className="tabs-scroll-btn tabs-scroll-btn--right" onClick={() => scrollTabsBy(1)} aria-label="Scroll tabs right">›</button>

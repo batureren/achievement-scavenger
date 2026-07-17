@@ -217,10 +217,13 @@ export function MenuBar({
         <button className="menu-trigger" onClick={() => toggle("links")}>{t("menu.links")}</button>
         {openMenu === "links" && (
           <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { open("https://store.steampowered.com/curator/45972821"); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+            <button className="menu-option" onClick={() => { open("https://www.reddit.com/r/AchievementScavenger/"); setOpenMenu(null); }}> 
+              Reddit
+            </button>
+            <button className="menu-option" onClick={() => { open("https://store.steampowered.com/curator/45972821"); setOpenMenu(null); }}> 
               sawworm Games
             </button>
-            <button className="menu-option" onClick={() => { open("https://discord.gg/UYJUhscHSE"); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+            <button className="menu-option" onClick={() => { open("https://discord.gg/UYJUhscHSE"); setOpenMenu(null); }}> 
               Discord
             </button>
           </div>
