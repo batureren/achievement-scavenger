@@ -4,6 +4,8 @@ A cross-platform desktop companion app for hunting achievements. Achievement Sca
 
 Built with **Tauri (Rust + React/TypeScript)**.
 
+![Achievement Scavenger Screenshot](https://achievementscavenger.batureren.com/assets/hero-screenshot.webp)
+
 ---
 
 ## Features
