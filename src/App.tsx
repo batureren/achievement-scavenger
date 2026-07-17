@@ -43,6 +43,7 @@ function App() {
   const [apiKey, setApiKey] = useState<string>("");
   const [raCreds, setRaCreds] = useState<{ user: string; key: string }>({ user: "", key: "" });
   const [xboxCreds, setXboxCreds] = useState<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
+  const [psnCreds, setPsnCreds] = useState<{ accessToken: string; accountId: string; npsso: string }>({ accessToken: "", accountId: "", npsso: "" });
 
   const [gameName, setGameName] = useState("Loading...");
   const [achievements, setAchievements] = useState<MergedAchievement[]>([]);
@@ -82,6 +83,7 @@ function App() {
   const [selectedAppId, setSelectedAppId] = useState<string>(""); 
   const isSelectedGameRA = selectedAppId.startsWith("RA_");
   const isSelectedGameXbox = selectedAppId.startsWith("XBOX_");
+  const isSelectedGamePSN = selectedAppId.startsWith("PSN_");
 
   const [userLinks, setUserLinks] = useState<UserLink[]>([]);
   const [linkTitle, setLinkTitle] = useState("");
@@ -105,6 +107,7 @@ function App() {
   const apiKeyRef = useRef<string>("");
   const raCredsRef = useRef<{ user: string; key: string }>({ user: "", key: "" });
   const xboxCredsRef = useRef<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
+  const psnCredsRef = useRef<{ accessToken: string; accountId: string; npsso: string }>({ accessToken: "", accountId: "", npsso: "" });
   const selectedAppIdRef = useRef<string>("");
   const prevRunningAppIdsRef = useRef<string[]>([]);
   const gameNameRef = useRef<string>("Unknown Game");
@@ -128,6 +131,9 @@ function App() {
   const lastXboxPollTimeRef = useRef<number>(0);
   const lastXboxNetworkFetchRef = useRef<number>(0); 
   const activeXboxIdRef = useRef<string | null>(null);
+  const lastPsnPollTimeRef = useRef<number>(0);
+  const activePsnIdRef = useRef<string | null>(null);
+  const gameHistoryRef = useRef<Record<string, GameHistory>>({});
 
   const tabsBarRef = useRef<HTMLDivElement>(null);
   const [tabsCanScrollLeft, setTabsCanScrollLeft] = useState(false);
@@ -161,6 +167,10 @@ function App() {
     const activeTab = el.querySelector(".game-tab-wrapper.active") as HTMLElement | null;
     activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
   }, [selectedAppId]);
+
+  useEffect(() => {
+  gameHistoryRef.current = gameHistory;
+}, [gameHistory]);
 
   const [statsOpen, setStatsOpen] = useState(true);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -239,6 +249,7 @@ function App() {
         const savedKey = await invoke<string>("load_api_key");
         const savedRa = await invoke<string>("load_ra_credentials");
         const savedXbox = await invoke<string>("load_xbox_credentials");
+        const savedPsn = await invoke<string>("load_psn_credentials");
         
         const rawRa = safeParseJSON(savedRa, {});
         const parsedRa = { user: rawRa.user || "", key: rawRa.key || "" };
@@ -253,7 +264,12 @@ function App() {
         setXboxCreds(parsedXbox);
         xboxCredsRef.current = parsedXbox;
 
-        if ((savedKey && savedKey.length > 0) || (parsedRa.user && parsedRa.key) || (parsedXbox.apiKey && parsedXbox.xuid)) { 
+        const rawPsn = safeParseJSON(savedPsn, {});
+        const parsedPsn = { accessToken: rawPsn.accessToken || "", accountId: rawPsn.accountId || "", npsso: rawPsn.npsso || "" };
+        setPsnCreds(parsedPsn);
+        psnCredsRef.current = parsedPsn;
+
+        if ((savedKey && savedKey.length > 0) || (parsedRa.user && parsedRa.key) || (parsedXbox.apiKey && parsedXbox.xuid) || (parsedPsn.accessToken && parsedPsn.accountId)) { 
           setAppState("WAITING"); 
         } else { 
           setAppState("SETUP"); 
@@ -409,9 +425,10 @@ function App() {
         const key = apiKeyRef.current; 
         const ra = raCredsRef.current;
         const xbox = xboxCredsRef.current;
+        const psn = psnCredsRef.current;
         const now = Date.now();
 
-        if (!key && !(ra.user && ra.key) && !(xbox.apiKey && xbox.xuid)) return;
+        if (!key && !(ra.user && ra.key) && !(xbox.apiKey && xbox.xuid) && !(psn.accessToken && psn.accountId)) return;
 
         if (!options.forceTabSwitch) {
           if (ra.user && ra.key && now - lastRaPollTimeRef.current > 15000) {
@@ -470,6 +487,34 @@ function App() {
             } catch (e) {}
           }
 
+          if (psn.accessToken && psn.accountId && now - lastPsnPollTimeRef.current > 60000) {
+            lastPsnPollTimeRef.current = now;
+            try {
+              const recentStr = await invoke<string>("get_psn_recent_games", { accessToken: psn.accessToken, accountId: psn.accountId });
+              const recentData = safeParseJSON(recentStr, { trophyTitles: [] });
+              const titles = Array.isArray(recentData.trophyTitles) ? recentData.trophyTitles : [];
+
+              if (titles.length > 0) {
+                const recentGame = titles[0];
+                const gameIdStr = `PSN_${recentGame.npCommunicationId}`;
+                const lastPlayedUTC = recentGame.lastUpdatedDateTime ? new Date(recentGame.lastUpdatedDateTime).getTime() : Date.now();
+                const isLive = (Date.now() - lastPlayedUTC) < 4 * 60 * 60 * 1000;
+
+                if (isLive) activePsnIdRef.current = gameIdStr; else activePsnIdRef.current = null;
+
+                setGameHistory(prev => {
+                  const existing = prev[gameIdStr];
+                  const timeToSave = isLive ? Date.now() : lastPlayedUTC;
+                  if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.trophyTitleName) return prev;
+
+                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.trophyTitleName || `PSN Title`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "PSN" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: recentGame.trophyTitleIconUrl || existing?.raImageIcon } };
+                  invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
+                  return updated;
+                });
+              }
+            } catch (e) {}
+          }
+
           if (key && now - lastSteamStatusPollRef.current > 15000) {
             lastSteamStatusPollRef.current = now;
             try {
@@ -491,6 +536,7 @@ function App() {
 
         if (activeRaIdRef.current && !actualRunningAppIds.includes(activeRaIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activeRaIdRef.current];
         if (activeXboxIdRef.current && !actualRunningAppIds.includes(activeXboxIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activeXboxIdRef.current];
+        if (activePsnIdRef.current && !actualRunningAppIds.includes(activePsnIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activePsnIdRef.current];
 
         setRunningAppIds(actualRunningAppIds);
 
@@ -505,12 +551,12 @@ function App() {
           setGameName("Loading...");
           gameNameRef.current = "Loading...";
 
-          const steamOrXboxLaunched = newlyLaunched.filter(id => !id.startsWith("RA_"));
-          if (steamOrXboxLaunched.length > 0) {
+          const consoleOrSteamLaunched = newlyLaunched.filter(id => !id.startsWith("RA_"));
+          if (consoleOrSteamLaunched.length > 0) {
             setGameHistory(prev => {
               let updated = { ...prev };
-              for (const id of steamOrXboxLaunched) {
-                const platform: GameHistory["platform"] = id.startsWith("XBOX_") ? "XBOX" : "STEAM";
+              for (const id of consoleOrSteamLaunched) {
+                const platform: GameHistory["platform"] = id.startsWith("XBOX_") ? "XBOX" : id.startsWith("PSN_") ? "PSN" : "STEAM";
                 updated[id] = { ...updated[id], lastPlayed: Date.now(), platform };
               }
               invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
@@ -532,6 +578,7 @@ function App() {
         
         const isTargetRA = targetAppId.startsWith("RA_");
         const isTargetXbox = targetAppId.startsWith("XBOX_");
+        const isTargetPSN = targetAppId.startsWith("PSN_");
         const currentLang = settingsRef.current.language || "en";
         const steamLang = STEAM_LANG_MAP[currentLang] || "english";
 
@@ -577,6 +624,18 @@ function App() {
                     });
                   }
                   schemaCacheRef.current[targetAppId] = [{ appIdMarker: targetAppId }];
+              } else if (isTargetPSN) {
+                const pureId = targetAppId.replace("PSN_", "");
+                const psnDataStr = await invoke<string>("get_psn_trophies", { accessToken: psn.accessToken, accountId: psn.accountId, npCommunicationId: pureId });
+                const psnData = safeParseJSON(psnDataStr, { schema: { trophies: [] }, progress: { trophies: [] } });
+                const schemaAchs = Array.isArray(psnData.schema.trophies) ? psnData.schema.trophies : [];
+
+                const cachedName = gameHistoryRef.current[targetAppId]?.name;
+                const resolvedName = (cachedName && cachedName !== "PSN Title")
+                ? cachedName
+                : (schemaAchs.length > 0 ? `PSN Title: ${pureId}` : `Unknown PSN Game`);
+                setGameName(resolvedName); gameNameRef.current = resolvedName; currentTickGameName = resolvedName;
+                schemaCacheRef.current[targetAppId] = [{ appIdMarker: targetAppId }];
               } else {
                   const [schemaRes, pctRes] = await Promise.all([
                     invoke<string>("get_game_schema", { appId: targetAppId, apiKey: key, lang: steamLang }),
@@ -720,6 +779,34 @@ function App() {
                     };
                 }).filter((a: MergedAchievement) => a.apiname);
 
+            } else if (isTargetPSN) {
+                const pureId = targetAppId.replace("PSN_", "");
+                const psnDataStr = await invoke<string>("get_psn_trophies", { accessToken: psn.accessToken, accountId: psn.accountId, npCommunicationId: pureId });
+                const psnData = safeParseJSON(psnDataStr, { schema: { trophies: [] }, progress: { trophies: [] } });
+                const schemaAchs = Array.isArray(psnData.schema.trophies) ? psnData.schema.trophies : [];
+                const progAchs = Array.isArray(psnData.progress.trophies) ? psnData.progress.trophies : [];
+
+                merged = schemaAchs.map((a: any) => {
+                    const apiname = (a.trophyId ?? "").toString();
+                    const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
+                    const localEdit = gameEdits[apiname] || {};
+                    const prog = progAchs.find((p: any) => p.trophyId === a.trophyId) || {};
+                    
+                    const isUnlocked = prog.earned === true;
+                    // Sony conveniently returns global rarity exactly as trophyEarnedRate!
+                    const rarityPct = prog.trophyEarnedRate ? Number(prog.trophyEarnedRate) : undefined;
+
+                    return {
+                        apiname, display_name: communityAch.display_name || a.trophyName, description: communityAch.description || a.trophyDetail,
+                        icon: a.trophyIconUrl || "", icongray: a.trophyIconUrl || "", unlocked: isUnlocked,
+                        is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? (a.trophyHidden || false),
+                        chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
+                        video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
+                        globalPercent: rarityPct,
+                        requires: localEdit.requires ?? communityAch.requires ?? [],
+                    };
+                }).filter((a: MergedAchievement) => a.apiname);
+
             } else {
                 const achRes = await invoke<string>("get_achievements", { steamId, appId: targetAppId, apiKey: key, lang: steamLang });
                 const liveData = safeParseJSON(achRes);
@@ -814,6 +901,7 @@ function App() {
   const resolvePlatform = (appId: string): GameHistory["platform"] => {
     if (appId.startsWith("RA_")) return "RA";
     if (appId.startsWith("XBOX_")) return "XBOX";
+    if (appId.startsWith("PSN_")) return "PSN";
     return "STEAM";
   };
 
@@ -1089,7 +1177,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
   }, []);
 
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
-  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} /></div>;
+  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
 
   return (
     <div id="app-container" className={isMiniMode ? "mini-mode-active" : ""}>
@@ -1157,6 +1245,10 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
             handleSelectTab={handleSelectTab}
             handleRemoveGame={handleRemoveGame}
             setGameHistory={setGameHistory}
+            steamApiKey={apiKey}
+            raCreds={raCreds}
+            xboxCreds={xboxCreds}
+            psnCreds={psnCreds}
             t={t}
           />
         </div>
@@ -1200,12 +1292,12 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
         <div className="tracking-screen">
           <div className="tracking-header">
             <div>
-              <p className="game-label" style={{ borderColor: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : "var(--border-color)", color: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : "var(--text-muted)" }}>
-                {isSelectedGameRA ? "RetroAchievements" : isSelectedGameXbox ? "Xbox Live" : (isSelectedGameLive ? t("status.live") : t("status.offline"))}
+              <p className="game-label" style={{ borderColor: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : isSelectedGamePSN ? "#00439c" : "var(--border-color)", color: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : isSelectedGamePSN ? "#00439c" : "var(--text-muted)" }}>
+                {isSelectedGameRA ? "RetroAchievements" : isSelectedGameXbox ? "Xbox Live" : isSelectedGamePSN ? "PlayStation Network" : (isSelectedGameLive ? t("status.live") : t("status.offline"))}
               </p>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
                 <h1 className="game-title" style={{ marginTop: 4 }}>{gameName}</h1>
-                {!isSelectedGameRA && !isSelectedGameXbox && hasCommunityDb !== null && (
+                {!isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN && hasCommunityDb !== null && (
                   hasCommunityDb ? (
                     <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
                       {t("db.available")}
@@ -1449,7 +1541,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
               </div>
 
               {achievements.length === 0 && !isProfilePrivate && (
-                (schemaCacheRef.current[selectedAppId] && schemaCacheRef.current[selectedAppId].filter(a => !a.appIdMarker).length === 0 && selectedAppId && !isSelectedGameRA && !isSelectedGameXbox)
+                (schemaCacheRef.current[selectedAppId] && schemaCacheRef.current[selectedAppId].filter(a => !a.appIdMarker).length === 0 && selectedAppId && !isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN)
                   ? <div className="empty-state" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "40px 0" }}>
                       <span>This game has no achievements.</span>
                     </div>

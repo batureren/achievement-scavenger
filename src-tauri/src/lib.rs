@@ -379,6 +379,164 @@ fn save_xbox_credentials(app_handle: tauri::AppHandle, data: String) -> Result<(
     let path = get_data_path(&app_handle, "xbox_creds.json")?;
     fs::write(path, data).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+fn load_psn_credentials(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = get_data_path(&app_handle, "psn_creds.json")?;
+    match fs::read_to_string(path) {
+        Ok(data) => Ok(data),
+        Err(_) => Ok("{}".to_string()),
+    }
+}
+#[tauri::command]
+fn save_psn_credentials(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = get_data_path(&app_handle, "psn_creds.json")?;
+    fs::write(path, data).map_err(|e| e.to_string())
+}
+
+// --- PlayStation Network API ---
+#[tauri::command]
+async fn authenticate_psn(npsso: String) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|e| format!("Client build error: {}", e))?;
+
+    let auth_url = "https://ca.account.sony.com/api/authz/v3/oauth/authorize";
+    let res = client.get(auth_url)
+        .query(&[
+            ("access_type", "offline"),
+            ("client_id", "09515159-7237-4370-9b40-3806e67c0891"),
+            ("redirect_uri", "com.scee.psxandroid.scecompcall://redirect"),
+            ("response_type", "code"),
+            ("scope", "psn:mobile.v2.core psn:clientapp")
+        ])
+        .header("Cookie", format!("npsso={}", npsso.trim()))
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {}", e))?;
+
+    let status = res.status();
+
+    if status.is_client_error() || status.is_server_error() {
+        let err_body = res.text().await.unwrap_or_default();
+        return Err(format!("Sony rejected the auth request ({}). Details: {}", status, err_body));
+    }
+
+    let location = res.headers().get("location")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| format!("No redirect location found. HTTP Status: {}", status))?;
+
+    let code = location.split("code=").nth(1).and_then(|s| s.split('&').next())
+        .ok_or_else(|| format!("No code found. NPSSO might be expired. Redirected to: {}", location))?;
+
+    let token_url = "https://ca.account.sony.com/api/authz/v3/oauth/token";
+    let mut params = std::collections::HashMap::new();
+    params.insert("code", code);
+    params.insert("grant_type", "authorization_code");
+    params.insert("redirect_uri", "com.scee.psxandroid.scecompcall://redirect");
+    params.insert("token_format", "jwt");
+
+    let token_res = client.post(token_url)
+        .header("Authorization", "Basic MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A=")
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Token request failed: {}", e))?;
+
+    if !token_res.status().is_success() {
+        let err_body = token_res.text().await.unwrap_or_default();
+        return Err(format!("Failed to get access token: {}", err_body));
+    }
+
+    let token_json: serde_json::Value = token_res.json().await.map_err(|e| format!("Failed to parse token JSON: {}", e))?;
+    let access_token = token_json["access_token"].as_str().ok_or("No access token returned in JSON.")?;
+
+    Ok(serde_json::json!({ "accessToken": access_token, "accountId": "me" }).to_string())
+}
+
+#[tauri::command]
+async fn get_psn_recent_games(
+    access_token: String,
+    account_id: String,
+    limit: Option<u32>,
+    offset: Option<u32>,
+) -> Result<String, String> {
+    let client = reqwest::Client::new();
+    let limit = limit.unwrap_or(10);
+    let offset = offset.unwrap_or(0);
+    let url = format!(
+        "https://m.np.playstation.com/api/trophy/v1/users/{}/trophyTitles?limit={}&offset={}",
+        account_id, limit, offset
+    );
+    let res = client.get(&url).header("Authorization", format!("Bearer {}", access_token)).send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() { return Ok("{\"error\": \"API_ERROR\"}".to_string()); }
+    let text = res.text().await.map_err(|e| e.to_string())?;
+    Ok(text)
+}
+
+#[tauri::command]
+async fn get_psn_trophies(access_token: String, account_id: String, np_communication_id: String) -> Result<String, String> {
+    let client = reqwest::Client::new();
+
+    async fn fetch_for_service(
+        client: &reqwest::Client,
+        access_token: &str,
+        account_id: &str,
+        np_communication_id: &str,
+        service: &str,
+    ) -> (serde_json::Value, serde_json::Value) {
+        let schema_url = format!(
+            "https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
+            np_communication_id, service
+        );
+        let schema_json = match client.get(&schema_url)
+            .header("Authorization", format!("Bearer {}", access_token))
+            .send().await
+        {
+            Ok(res) => res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({})),
+            Err(_) => serde_json::json!({}),
+        };
+
+        let progress_url = format!(
+            "https://m.np.playstation.com/api/trophy/v1/users/{}/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
+            account_id, np_communication_id, service
+        );
+        let progress_json = match client.get(&progress_url)
+            .header("Authorization", format!("Bearer {}", access_token))
+            .send().await
+        {
+            Ok(res) => res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({})),
+            Err(_) => serde_json::json!({}),
+        };
+
+        (schema_json, progress_json)
+    }
+
+    let (mut schema_json, mut progress_json) =
+        fetch_for_service(&client, &access_token, &account_id, &np_communication_id, "trophy2").await;
+
+    let has_trophies = schema_json.get("trophies")
+        .and_then(|t| t.as_array())
+        .map(|a| !a.is_empty())
+        .unwrap_or(false);
+
+    if !has_trophies {
+        let (fb_schema, fb_progress) =
+            fetch_for_service(&client, &access_token, &account_id, &np_communication_id, "trophy").await;
+        let fb_has_trophies = fb_schema.get("trophies")
+            .and_then(|t| t.as_array())
+            .map(|a| !a.is_empty())
+            .unwrap_or(false);
+        if fb_has_trophies {
+            schema_json = fb_schema;
+            progress_json = fb_progress;
+        }
+    }
+
+    Ok(serde_json::json!({ "schema": schema_json, "progress": progress_json }).to_string())
+}
+
 #[tauri::command]
 fn load_user_links(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "user_links.json")?;
@@ -573,20 +731,37 @@ async fn get_app_name(app_id: String, lang: String) -> Result<String, String> {
     Ok(name)
 }
 
-// --- RetroAchievements API ---
 #[tauri::command]
-async fn get_ra_recent_game(user: String, api_key: String) -> Result<String, String> {
+async fn get_steam_owned_games(steam_id: String, api_key: String) -> Result<String, String> {
+    if api_key.is_empty() {
+        return Ok("{\"error\": \"NO_API_KEY\"}".to_string());
+    }
     let url = format!(
-        "https://retroachievements.org/API/API_GetUserRecentlyPlayedGames.php?z={}&y={}&u={}&c=1",
-        user, api_key, user
+        "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}&include_appinfo=true&include_played_free_games=true",
+        api_key, steam_id
     );
     let res = reqwest::get(&url).await.map_err(|e| e.to_string())?;
     if !res.status().is_success() {
-        return Ok("[]".to_string());
+        return Ok("{\"error\": \"API_ERROR\"}".to_string());
     }
+    let json: Value = res.json().await.map_err(|e| e.to_string())?;
+    Ok(json.to_string())
+}
+
+// --- RetroAchievements API ---
+#[tauri::command]
+async fn get_ra_recent_game(user: String, api_key: String, count: Option<u32>) -> Result<String, String> {
+    let count = count.unwrap_or(1);
+    let url = format!(
+        "https://retroachievements.org/API/API_GetUserRecentlyPlayedGames.php?z={}&y={}&u={}&c={}",
+        user, api_key, user, count
+    );
+    let res = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() { return Ok("[]".to_string()); }
     let text = res.text().await.map_err(|e| e.to_string())?;
     Ok(text)
 }
+
 #[tauri::command]
 async fn get_ra_achievements(
     user: String,
@@ -812,12 +987,14 @@ pub fn run() {
         })
         
         .invoke_handler(tauri::generate_handler![
-            get_local_steam_status, get_achievements, get_window_size, get_game_schema, get_global_achievement_percentages, get_app_name, launch_steam_game,
+            get_local_steam_status, get_achievements, get_steam_owned_games, 
+            get_window_size, get_game_schema, get_global_achievement_percentages, get_app_name, launch_steam_game,
             set_always_on_top, set_window_opacity, load_settings, save_settings, load_api_key, save_api_key,
             load_user_links, save_user_links, load_tracked, save_tracked, load_local_edits, save_local_edits,
             load_chapters, save_chapters, save_file_dialog, load_history, save_history, set_custom_window_size,
             load_ra_credentials, save_ra_credentials, get_ra_recent_game, get_ra_achievements, set_window_mode, get_steam_header_image,
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
+            load_psn_credentials, save_psn_credentials, authenticate_psn, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder
         ])
         .run(tauri::generate_context!())

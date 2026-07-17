@@ -12,9 +12,14 @@ export const XboxIcon = ({ size = 14 }: { size?: number }) => (
   <img src="/xbox.webp" width={size} height={size} style={{flexShrink:0, verticalAlign:"middle"}} alt="Xbox"/>
 );
 
+export const PSNIcon = ({ size = 14 }: { size?: number }) => (
+  <img src="/psn.webp" width={size} height={14} style={{flexShrink:0, verticalAlign:"middle"}} alt="PSN"/>
+);
+
 export const PlatformIcon = ({ platform, size = 14 }: { platform: GameHistory["platform"]; size?: number }) => {
   if (platform === "RA") return <RAIcon size={size} />;
   if (platform === "XBOX") return <XboxIcon size={size} />;
+  if (platform === "PSN") return <PSNIcon size={size} />;
   return <SteamIcon size={size} />;
 };
 

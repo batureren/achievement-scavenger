@@ -35,7 +35,7 @@ export interface AppSettings {
 
 export interface GameHistory {
   appId: string; name: string; totalAch: number; unlockedAch: number;
-  lastPlayed: number; platform: "STEAM" | "RA" | "XBOX"; pinned?: boolean;
+  lastPlayed: number; platform: "STEAM" | "RA" | "XBOX" | "PSN"; pinned?: boolean;
   completionStatus?: CompletionStatus;
   rarestUnlocked?: { name: string; percent: number; color: string } | null;
   raImageIcon?: string;

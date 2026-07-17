@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
@@ -7,6 +7,17 @@ import {
 import { COMPLETION_CONFIG, COMPLETION_KEYS } from "../constants";
 import { PlatformIcon } from "./Icons";
 import { timeAgo } from "../utils";
+import { BatchImportModal } from "./BatchImportModal";
+
+type PlatformFilter = "ALL" | "STEAM" | "RA" | "XBOX" | "PSN";
+
+const PLATFORM_FILTER_LABELS: Record<PlatformFilter, string> = {
+  ALL: "All Platforms",
+  STEAM: "Steam",
+  RA: "RetroAchievements",
+  XBOX: "Xbox",
+  PSN: "PlayStation",
+};
 
 interface LibraryDashboardProps {
   gameHistory: Record<string, GameHistory>;
@@ -21,6 +32,10 @@ interface LibraryDashboardProps {
   handleRemoveGame: (g: GameHistory) => void;
   setGameHistory: React.Dispatch<React.SetStateAction<Record<string, GameHistory>>>;
   t: (key: string) => string;
+  steamApiKey: string;
+  raCreds: { user: string; key: string };
+  xboxCreds: { apiKey: string; xuid: string; gamertag: string };
+  psnCreds: { accessToken: string; accountId: string };
 }
 
 let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
@@ -28,8 +43,12 @@ let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
 export function LibraryDashboard({
   gameHistory, runningAppIds, libraryFilter, setLibraryFilter,
   librarySort, setLibrarySort, librarySearch, setLibrarySearch,
-  handleSelectTab, handleRemoveGame, setGameHistory, t
+  handleSelectTab, handleRemoveGame, setGameHistory, t,
+  steamApiKey, raCreds, xboxCreds, psnCreds
 }: LibraryDashboardProps) {
+
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("ALL");
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const togglePin = (e: React.MouseEvent, appId: string) => {
     e.stopPropagation();
@@ -51,6 +70,7 @@ export function LibraryDashboard({
 
   let games = Object.values(gameHistory).filter(g => {
     if (libraryFilter !== "ALL" && g.completionStatus !== libraryFilter) return false;
+    if (platformFilter !== "ALL" && g.platform !== platformFilter) return false;
     if (librarySearch.trim()) return g.name.toLowerCase().includes(librarySearch.trim().toLowerCase());
     return true;
   });
@@ -72,6 +92,20 @@ export function LibraryDashboard({
         <p className="status-text" style={{ justifyContent: "center" }}>
           Launch any Steam game, or play any game on RetroAchievements. We'll automatically detect it and create a tab for it here!
         </p>
+        <button className="library-filter-chip library-import-btn" style={{ marginTop: "16px" }} onClick={() => setIsImportOpen(true)}>
+          ＋ Batch Import Games
+        </button>
+
+        <BatchImportModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          gameHistory={gameHistory}
+          setGameHistory={setGameHistory}
+          steamApiKey={steamApiKey}
+          raCreds={raCreds}
+          xboxCreds={xboxCreds}
+          psnCreds={psnCreds}
+        />
       </div>
     );
   }
@@ -86,6 +120,15 @@ export function LibraryDashboard({
           </span>
         </h2>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          {(["ALL", "STEAM", "RA", "XBOX", "PSN"] as PlatformFilter[]).map(p => (
+            <button key={p} onClick={() => setPlatformFilter(p)}
+              className={`library-filter-chip${platformFilter === p ? " active" : ""}`}>
+              {PLATFORM_FILTER_LABELS[p]}
+            </button>
+          ))}
+
+          <div style={{ width: "1px", height: "18px", background: "var(--border-color)", margin: "0 2px" }} />
+
           {(["ALL", "in_progress", "complete", "not_started", "abandoned"] as (LibraryFilter)[]).map(f => {
             const cfg = f === "ALL" ? null : COMPLETION_CONFIG[f as CompletionStatus];
             return (
@@ -103,6 +146,10 @@ export function LibraryDashboard({
             <option value="COMPLETION_DESC">{t("lib.most_complete")}</option>
             <option value="COMPLETION_ASC">{t("lib.least_complete")}</option>
           </select>
+
+          <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
+            ＋ Batch Import
+          </button>
         </div>
         <input
           type="text"
@@ -143,8 +190,9 @@ export function LibraryDashboard({
                   ])) : [];
                   
                   const isXbox = game.platform === "XBOX";
+                  const isPSN = game.platform === "PSN";
                   const raSrc = (!isSteam && game.raImageIcon)
-                    ? isXbox ? game.raImageIcon : `https://media.retroachievements.org${game.raImageIcon}`
+                    ? (isXbox || isPSN) ? game.raImageIcon : `https://media.retroachievements.org${game.raImageIcon}`
                     : null;
 
                   const imgSrc = isSteam ? steamSrcs[0] : raSrc;
@@ -272,6 +320,17 @@ export function LibraryDashboard({
           })}
         </div>
       )}
+
+      <BatchImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        gameHistory={gameHistory}
+        setGameHistory={setGameHistory}
+        steamApiKey={steamApiKey}
+        raCreds={raCreds}
+        xboxCreds={xboxCreds}
+        psnCreds={psnCreds}
+      />
     </>
   );
 }

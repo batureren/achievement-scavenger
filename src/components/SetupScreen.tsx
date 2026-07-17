@@ -2,19 +2,22 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
 import { unwrapXboxData } from "../utils";
+import { SteamIcon, RAIcon, XboxIcon, PSNIcon } from "./Icons";
 
 interface SetupScreenProps {
-  onKeySaved: (k: string, ra: {user: string, key: string}, xbox: {apiKey: string, xuid: string, gamertag: string}) => void;
+  onKeySaved: (k: string, ra: {user: string, key: string}, xbox: {apiKey: string, xuid: string, gamertag: string}, psn: {accessToken: string, accountId: string, npsso: string}) => void;
   currentKey: string;
   currentRa: {user: string, key: string};
   currentXbox: {apiKey: string, xuid: string, gamertag: string};
+  currentPsn?: {accessToken: string, accountId: string, npsso: string};
 }
 
-export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox }: SetupScreenProps) {
+export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, currentPsn }: SetupScreenProps) {
   const [inputKey, setInputKey] = useState(currentKey || "");
   const [raUser, setRaUser] = useState(currentRa?.user || "");
   const [raKey, setRaKey] = useState(currentRa?.key || "");
   const [xboxKey, setXboxKey] = useState(currentXbox?.apiKey || "");
+  const [psnNpsso, setPsnNpsso] = useState(currentPsn?.npsso || "");
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(false);
 
@@ -24,7 +27,8 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox }: 
     const trimmedRaK = raKey.trim();
     const trimmedXbox = xboxKey.trim();
 
-    if (!trimmedSteam && !trimmedRaU && !trimmedXbox) { setError("Please enter credentials for at least one platform (Steam, RetroAchievements, or Xbox)."); return; }
+    const trimmedNpsso = psnNpsso.trim();
+    if (!trimmedSteam && !trimmedRaU && !trimmedXbox && !trimmedNpsso) { setError("Please enter credentials for at least one platform (Steam, RA, Xbox, or PSN)."); return; }
     if (trimmedSteam && trimmedSteam.length !== 32) { setError("Steam API keys are exactly 32 characters."); return; }
     if (trimmedRaU && !trimmedRaK) { setError("RetroAchievements Web API Key is missing."); return; }
 
@@ -58,9 +62,24 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox }: 
         await invoke("save_xbox_credentials", { data: JSON.stringify(xboxResult) });
       }
 
-      onKeySaved(trimmedSteam, { user: trimmedRaU, key: trimmedRaK }, xboxResult);
-    } catch (e) {
-      setError("Failed to save keys. Please try again.");
+      let psnResult = { accessToken: "", accountId: "", npsso: "" };
+      if (trimmedNpsso) {
+        const authStr = await invoke<string>("authenticate_psn", { npsso: trimmedNpsso });
+        const parsedAuth = JSON.parse(authStr);
+        if (parsedAuth.accessToken && parsedAuth.accountId) {
+          psnResult = { accessToken: parsedAuth.accessToken, accountId: parsedAuth.accountId, npsso: trimmedNpsso };
+          await invoke("save_psn_credentials", { data: JSON.stringify(psnResult) });
+        } else {
+          setError("Failed to verify NPSSO token.");
+          setIsValidating(false);
+          return;
+        }
+      }
+
+      onKeySaved(trimmedSteam, { user: trimmedRaU, key: trimmedRaK }, xboxResult, psnResult);
+    } catch (e: any) {
+      console.error("Setup Error:", e);
+      setError(typeof e === "string" ? e : "Failed to save keys. Please try again.");
       setIsValidating(false);
     }
   };
@@ -76,14 +95,14 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox }: 
         
         {/* Steam Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>🎮 Steam Tracking</h2>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}><SteamIcon size={22} /> Steam Tracking</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Get a free key from <a href="#" onClick={(e) => { e.preventDefault(); open("https://steamcommunity.com/dev/apikey"); }}>steamcommunity.com/dev/apikey</a>.</p>
           <input type="password" placeholder="Steam API Key (32 Chars)..." value={inputKey} onChange={e => { setInputKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
         </div>
 
         {/* RA Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#f59e0b" }}>🕹️ RetroAchievements</h2>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#f59e0b" }}><RAIcon size={24} /> RetroAchievements</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Find your "Web API Key" in your <a href="#" onClick={(e) => { e.preventDefault(); open("https://retroachievements.org/controlpanel.php"); }}>RA Control Panel</a> settings.</p>
           <div style={{ display: "flex", gap: "8px" }}>
             <input type="text" placeholder="RA Username..." value={raUser} onChange={e => { setRaUser(e.target.value); setError(""); }} style={{ flex: 1, padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", minWidth: "0" }} />
@@ -92,10 +111,17 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox }: 
         </div>
 
         {/* Xbox Block */}
-        <div>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#107c10" }}>🎮 Xbox Live</h2>
+        <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#107c10" }}><XboxIcon size={22} /> Xbox Live</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Get a free API key from <a href="#" onClick={(e) => { e.preventDefault(); open("https://xbl.io"); }}>xbl.io</a> (sign in with your Microsoft account).</p>
           <input type="password" placeholder="OpenXBL API Key..." value={xboxKey} onChange={e => { setXboxKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
+        </div>
+
+        {/* PSN Block */}
+        <div>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#00439c" }}><PSNIcon size={20} /> PlayStation Network</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Login to <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }}>PlayStation.com</a>, then open <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }}>this link</a>. Copy the `npsso` value (exactly 64 chars) here.</p>
+          <input type="password" placeholder="NPSSO Token..." value={psnNpsso} onChange={e => { setPsnNpsso(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
         </div>
 
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: 0 }}>⚠ {error}</p>}
