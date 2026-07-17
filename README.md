@@ -10,11 +10,12 @@ Built with **Tauri (Rust + React/TypeScript)**.
 
 ### Multi-Platform Tracking
 - **Steam**: Auto-detects running games via the Windows registry, pulls live achievement status and global unlock percentages from the Steam Web API.
-- **RetroAchievements**: Tracks your recently played retro titles and syncs achievement progress, points, and TrueRatio.
+- **PlayStation Network (PSN)**: Connects securely via an NPSSO token to track PS4/PS5 trophies, game progress, and global rarity directly from Sony's servers.
 - **Xbox Live**: Connects via OpenXBL to track Xbox titles, gamerscore, and achievement rarity.
+- **RetroAchievements**: Tracks your recently played retro titles and syncs achievement progress, points, and TrueRatio.
 
 ### Live Game Detection
-- Automatically switches to a game's tab the moment it launches (Steam, RA, or Xbox).
+- Automatically switches to a game's tab the moment it launches (Steam, RA, Xbox, or PSN).
 - Polls for new unlocks in real time while you play and shows toast notifications the instant an achievement pops.
 - Automatically takes a desktop screenshot with the achievement icon overlaid the moment you unlock something.
 
@@ -50,7 +51,7 @@ Download the latest installer from the [Releases](../../releases) page and run t
 
 **Requirements:**
 - Windows 10/11 (Steam status detection relies on the Windows registry)
-- A [Steam Web API key](https://steamcommunity.com/dev/apikey) and/or RetroAchievements account and/or an [OpenXBL](https://xbl.io) API key, depending on which platforms you want to track
+- A [Steam Web API key](https://steamcommunity.com/dev/apikey), a PlayStation Network account (NPSSO token), an [OpenXBL](https://xbl.io) API key, and/or a RetroAchievements account, depending on which platforms you want to track.
 
 ---
 
