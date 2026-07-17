@@ -1,11 +1,11 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "notes": "Check related version on releases",
   "pub_date": "2026-07-15T12:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc3F3OGdjT3d6cHFSVXpyU2RYcDRGTlFuclZUYXZqQm5pdnZpQjJtRFRkaHI5bmsrcHlaQW8vVktGQkc4NGtzTThPZlg2YUh3WWcyVGtua2FIK1l3eHc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MjgzMjEyCWZpbGU6QWNoaWV2ZW1lbnQgU2NhdmVuZ2VyIC0gVHJhY2tlciAmIEd1aWRlc18wLjEuMl94NjQtc2V0dXAuZXhlClhvRGlZTU5CQkszWTFKbjJmYTFMS0ZyNGducUdoU0w0S2ovYldHWGtESTFpaUQvTUdWOXZrckVSa2JwZ0xwQml0QUUzVE5oNE02ZFNLZnl6L0plZEFRPT0K",
-      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.2/Achievement.Scavenger.-.Tracker.Guides_0.1.2_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc3JPRldwd0NQcDcyVFBtNVRFQmdtU3pvcUxPWXpuK0VpSk9XUEpNdWpGSS8yV0pWbmh5emtORTQwSGUxT21EeGJlcW5tbzkyYVQveEl1bm1HU0wwS0FRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0Mjk1MTY3CWZpbGU6QWNoaWV2ZW1lbnQgU2NhdmVuZ2VyIC0gVHJhY2tlciAmIEd1aWRlc18wLjEuM194NjQtc2V0dXAuZXhlCmhqdG1uYWNQby9neEpkVnVlcTZLZHAxTHRvd1VUa04yZjVlM2xiUUZta1YzNE9wOU1VZmFaVTNmbFZBaTUwaTcyMEd2N1g0WTJrT0FVZTNld0Z6Q0RBPT0K",
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.3/Achievement.Scavenger.-.Tracker.Guides_0.1.3_x64-setup.exe"
     }
   }
 }
