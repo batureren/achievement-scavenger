@@ -5,11 +5,11 @@
   "platforms": {
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc3RHU2NzOEUvV2lkS2Vud2UrR1ltSVptVDVtSkdVcklqYnA3SUg4c0RlSmh5SmkxNU8xZGVEcklta1NpYTZzd2hOK2RTUEhTbzkvZHVsTFFxOFVRV2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MTI2ODMxCWZpbGU6QWNoaWV2ZW1lbnQgU2NhdmVuZ2VyIC0gVHJhY2tlciAmIEd1aWRlc18wLjEuMF94NjQtc2V0dXAuZXhlCkM3TUxUd1FSbVBPZWdGKzBuclkyVkhSUjJ1Si9mMmc0MzEwVVVrZWh0UWRFQ2lsaDluV3dVOXhLemI1Z3ZZa284cGlNTC9zc2x4VTF6aktPZGRBdkJnPT0K",
-      "url": "https://github.com/batureren/achievement-scavenger/releases/download/Main/Achievement.Scavenger.-.Tracker.Guides_0.1.2_x64-setup.exe"
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.2/Achievement.Scavenger.-.Tracker.Guides_0.1.2_x64-setup.exe"
     },
     "linux-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc2xvNkdOVkFZeE5NenM0S3Vmb2RVTHIxU3BQamw0UW9ua1FNNUdGb054OEg0Zzh5RUNUWkdodGhCcTdOcHExMXNodGVaS1YwUWErVnRnSWVYQ1ZyZmcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MjA4NjI5CWZpbGU6QWNoaWV2ZW1lbnQgU2NhdmVuZ2VyIC0gVHJhY2tlciAmIEd1aWRlc18wLjEuMF9hbWQ2NC5BcHBJbWFnZQpHL2FxQWRsVmFsZEQxOFhZQ3NzMTlDR3BHQWxXQzdZaEZPaW92SnZxaTRBUUFHSVpKNkcrSWIxeHcvRU9ZemRuVGtnQXpOb21vNlFaeHZ6ajhCVkpEUT09Cg==",
-      "url": "https://github.com/batureren/achievement-scavenger/releases/download/Main/Achievement.Scavenger.-.Tracker.Guides_0.1.2_amd64.AppImage"
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.2/Achievement.Scavenger.-.Tracker.Guides_0.1.2_amd64.AppImage"
     }
   }
 }
