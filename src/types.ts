@@ -48,6 +48,9 @@ export interface ChecklistItem {
   imageUrl: string;
   videoUrl: string;
   completed: boolean;
+  category?: string;
+  location?: string;
+  chapter?: string;
 }
 
 export interface CustomChecklist {

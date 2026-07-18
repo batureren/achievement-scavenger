@@ -12,13 +12,14 @@ import { MenuBar } from "./components/MenuBar";
 import { SetupScreen } from "./components/SetupScreen";
 import { LibraryDashboard } from "./components/LibraryDashboard";
 import { AchievementCard } from "./components/AchievementCard";
+import { ChecklistsPanel } from "./components/ChecklistsPanel";
 import { PlatformIcon, GitHubIcon } from "./components/Icons";
 
 import { 
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, ChecklistItem
+  CustomChecklist
 } from "./types";
 import { 
   BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
@@ -59,10 +60,6 @@ function App() {
 
   const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS">("ACHIEVEMENTS");
   const [allChecklists, setAllChecklists] = useState<Record<string, CustomChecklist[]>>({});
-  const [activeChecklistId, setActiveChecklistId] = useState<string | null>(null);
-  const [newChecklistName, setNewChecklistName] = useState("");
-  const [newItemForm, setNewItemForm] = useState<Partial<ChecklistItem>>({});
-  const [isEditingChecklist, setIsEditingChecklist] = useState(false);
 
   useEffect(() => {
     const appId = selectedAppIdRef.current;
@@ -1054,7 +1051,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
     saveGameChapters(newChapters);
   };
 
-  const generateUnifiedExportJSON = () => {
+  const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) => {
     const cData = communityDbCacheRef.current[selectedAppIdRef.current]?.db || [];
     const gameEdits = allLocalEdits[selectedAppIdRef.current] || {};
 
@@ -1068,17 +1065,29 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
       };
     });
 
-    return JSON.stringify({ chapters: currentGameChapters, links: currentGameLinks.map(l => ({ title: l.title, url: l.url })), achievements: unifiedAchievements }, null, 2);
+    const payload: Record<string, unknown> = { chapters: currentGameChapters, links: currentGameLinks.map(l => ({ title: l.title, url: l.url })), achievements: unifiedAchievements };
+    if (opts.includeChecklists) {
+      payload.checklists = allChecklists[selectedAppIdRef.current] || [];
+    }
+    return JSON.stringify(payload, null, 2);
   };
 
   const handleExportJSON = async () => { 
-    try { await invoke<string>("save_file_dialog", { filename: `${selectedAppIdRef.current}.json`, content: generateUnifiedExportJSON() }); toast.success("JSON saved successfully!"); } 
+    try { await invoke<string>("save_file_dialog", { filename: `${selectedAppIdRef.current}.json`, content: generateUnifiedExportJSON({ includeChecklists: true }) }); toast.success("JSON saved successfully!"); } 
     catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
   const handleExportHTML = async () => { 
     try { 
-      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${gameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${gameName} - Checklist</h1>${achievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}</body></html>`; 
+      const gameChecklistsForExport = allChecklists[selectedAppIdRef.current] || [];
+      const checklistsHtml = gameChecklistsForExport.length === 0 ? "" : `
+        <h1 style="margin-top: 2.5rem;">${gameName} - Checklists</h1>
+        ${gameChecklistsForExport.map(list => `
+          <h2 style="color: #f4f4f5; border-bottom: 1px solid #3f3f46; padding-bottom: 6px; margin-top: 1.5rem;">${list.title} <span style="color: #a1a1aa; font-size: 0.8rem; font-weight: normal;">(${list.items.filter(i => i.completed).length}/${list.items.length})</span></h2>
+          ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
+        `).join('')}
+      `;
+      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${gameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${gameName} - Checklist</h1>${achievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
       await invoke<string>("save_file_dialog", { filename: `${gameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); toast.success("HTML Checklist saved successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
@@ -1456,12 +1465,12 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
             >
               Achievements
             </button>
-            {/* <button 
+            <button 
               className={`inner-tab ${innerTab === "CHECKLISTS" ? "active" : ""}`} 
               onClick={() => setInnerTab("CHECKLISTS")}
             >
               Checklists
-            </button> */}
+            </button>
           </div>
 
           {innerTab === "ACHIEVEMENTS" && (
@@ -1606,142 +1615,18 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
             </>
           )}
 
-          {innerTab === "CHECKLISTS" && (() => {
-            const gameChecklists = allChecklists[selectedAppId] || [];
-            const activeChecklist = gameChecklists.find(c => c.id === activeChecklistId) || gameChecklists[0];
-
-            const saveGameChecklists = async (newList: CustomChecklist[]) => {
-              const updated = { ...allChecklists, [selectedAppId]: newList };
-              setAllChecklists(updated);
-              await invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
-            };
-
-            const handleCreateChecklist = (e: React.FormEvent) => {
-              e.preventDefault();
-              if (!newChecklistName.trim()) return;
-              const newList = [...gameChecklists, { id: Date.now().toString(), title: newChecklistName, items: [] }];
-              saveGameChecklists(newList);
-              setNewChecklistName("");
-              setActiveChecklistId(newList[newList.length - 1].id);
-            };
-
-            const handleAddItem = (e: React.FormEvent) => {
-              e.preventDefault();
-              if (!activeChecklist || !newItemForm.name) return;
-              const newItem: ChecklistItem = {
-                id: Date.now().toString(),
-                name: newItemForm.name,
-                desc: newItemForm.desc || "",
-                imageUrl: newItemForm.imageUrl || "",
-                videoUrl: newItemForm.videoUrl || "",
-                completed: false
-              };
-              
-              const updatedList = gameChecklists.map(c => 
-                c.id === activeChecklist.id ? { ...c, items: [...c.items, newItem] } : c
-              );
-              saveGameChecklists(updatedList);
-              setNewItemForm({});
-              setIsEditingChecklist(false);
-            };
-
-            const toggleItemComplete = (itemId: string) => {
-              const updatedList = gameChecklists.map(c => 
-                c.id === activeChecklist.id ? {
-                  ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
-                } : c
-              );
-              saveGameChecklists(updatedList);
-            };
-
-            return (
-              <div className="checklists-layout">
-                <div className="checklists-sidebar">
-                  {gameChecklists.map(list => (
-                    <button 
-                      key={list.id} 
-                      className={`checklist-tab-btn ${activeChecklist?.id === list.id ? "active" : ""}`}
-                      onClick={() => setActiveChecklistId(list.id)}
-                    >
-                      {list.title}
-                      <span style={{fontSize: "0.75rem", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "10px"}}>
-                        {list.items.filter(i => i.completed).length}/{list.items.length}
-                      </span>
-                    </button>
-                  ))}
-                  
-                  <form onSubmit={handleCreateChecklist} className="add-link-form" style={{marginTop: "10px"}}>
-                    <input 
-                      type="text" 
-                      placeholder="New checklist topic..." 
-                      value={newChecklistName} 
-                      onChange={e => setNewChecklistName(e.target.value)} 
-                    />
-                    <button type="submit" className="btn-add-link">+</button>
-                  </form>
-                </div>
-
-                <div className="checklists-content">
-                  {!activeChecklist ? (
-                     <div className="empty-state">Select or create a checklist to start hunting.</div>
-                  ) : (
-                    <>
-                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center"}}>
-                        <h2 style={{fontSize: "1.4rem", color: "var(--accent-green)"}}>{activeChecklist.title}</h2>
-                        <button className="btn-small btn-small-success" onClick={() => setIsEditingChecklist(!isEditingChecklist)}>
-                          {isEditingChecklist ? "Cancel" : "+ Add Item"}
-                        </button>
-                      </div>
-
-                      {isEditingChecklist && (
-                        <form className="cl-form-container" onSubmit={handleAddItem}>
-                          <input type="text" className="edit-input" placeholder="Item Name (e.g. Can #12)" required 
-                                 value={newItemForm.name || ""} onChange={e => setNewItemForm({...newItemForm, name: e.target.value})} />
-                          <textarea className="edit-input edit-textarea" placeholder="Description / Location details..." 
-                                    value={newItemForm.desc || ""} onChange={e => setNewItemForm({...newItemForm, desc: e.target.value})} />
-                          <div style={{display: "flex", gap: "10px"}}>
-                            <input type="url" className="edit-input" placeholder="Image URL (optional)" 
-                                   value={newItemForm.imageUrl || ""} onChange={e => setNewItemForm({...newItemForm, imageUrl: e.target.value})} />
-                            <input type="url" className="edit-input" placeholder="Video URL (optional)" 
-                                   value={newItemForm.videoUrl || ""} onChange={e => setNewItemForm({...newItemForm, videoUrl: e.target.value})} />
-                          </div>
-                          <button type="submit" className="btn-primary" style={{alignSelf: "flex-end"}}>Save Item</button>
-                        </form>
-                      )}
-
-                      {activeChecklist.items.length === 0 && !isEditingChecklist && (
-                        <div className="empty-state">No items added to this checklist yet.</div>
-                      )}
-                      {activeChecklist.items.map(item => (
-                        <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
-                          <div className="cl-item-checkbox">
-                            <input type="checkbox" checked={item.completed} onChange={() => toggleItemComplete(item.id)} />
-                          </div>
-                          
-                          {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="cl-item-img" />}
-                          
-                          <div className="cl-item-info">
-                            <div className="cl-item-header">
-                              <h3 className="cl-item-title">{item.name}</h3>
-                            </div>
-                            {item.desc && <p className="cl-item-desc">{item.desc}</p>}
-                            
-                            <div className="cl-item-actions">
-                              {item.videoUrl && (
-                                <button className="btn-small" onClick={() => open(item.videoUrl)}>
-                                  ▶ Watch Video
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          {innerTab === "CHECKLISTS" && (
+            <ChecklistsPanel
+              key={selectedAppId}
+              checklists={allChecklists[selectedAppId] || []}
+              knownChapters={allKnownChaptersForDropdown}
+              onChange={(newList) => {
+                const updated = { ...allChecklists, [selectedAppId]: newList };
+                setAllChecklists(updated);
+                invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+              }}
+            />
+          )}
         </div>
       )}
 
