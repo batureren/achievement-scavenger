@@ -10,6 +10,13 @@ export interface MergedAchievement {
 
 export interface UserLink { id: string; appId: string; title: string; url: string; }
 export interface CommunityLink { title: string; url: string; }
+export interface PsnCredentials {
+  accessToken: string;
+  accountId: string;
+  npsso: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}
 export interface LocalEdit {
   chapter?: string; hint?: string; video_url?: string;
   is_missable?: boolean; is_spoiler?: boolean; notes?: string; requires?: string[];

@@ -52,6 +52,20 @@ function App() {
   const [isProfilePrivate, setIsProfilePrivate] = useState(false);
   const [psnAuthError, setPsnAuthError] = useState(false);
   const [showPsnReauthModal, setShowPsnReauthModal] = useState(false);
+
+  const showPsnExpiredToast = () => {
+    toast.error(
+      (tObj) => (
+        <span
+          onClick={() => { toast.dismiss(tObj.id); setShowPsnReauthModal(true); }}
+          style={{ cursor: "pointer" }}
+        >
+          Your PSN session has expired. Click here to reconnect.
+        </span>
+      ),
+      { id: "psn-auth-error", duration: 8000 }
+    );
+  };
   
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
@@ -512,7 +526,7 @@ function App() {
               if (recentData.error === "INVALID_TOKEN") {
                 psnAuthErrorRef.current = true;
                 setPsnAuthError(true);
-                toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                showPsnExpiredToast();
                 throw new Error("PSN_AUTH_EXPIRED");
               }
 
@@ -658,7 +672,7 @@ function App() {
                 if (psnData.error === "INVALID_TOKEN") {
                   psnAuthErrorRef.current = true;
                   setPsnAuthError(true);
-                  toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                  showPsnExpiredToast();
                   return;
                 }
 
@@ -822,7 +836,7 @@ function App() {
                 if (psnData.error === "INVALID_TOKEN") {
                   psnAuthErrorRef.current = true;
                   setPsnAuthError(true);
-                  toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                  showPsnExpiredToast();
                   return;
                 }
 
@@ -1257,8 +1271,6 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
         onOpenScreenshots={handleOpenScreenshots}
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
         onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
-        psnAuthError={psnAuthError}
-        onReauthPsn={() => setShowPsnReauthModal(true)}
       />
 
       <PsnReauthModal

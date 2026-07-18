@@ -21,8 +21,6 @@ interface MenuBarProps {
   onOpenScreenshots: () => void;
   onToggleDiscordRPC: () => void;
   onToggleMinimizeToTray: () => void;
-  psnAuthError?: boolean;
-  onReauthPsn?: () => void;
 }
 
 export function MenuBar({
@@ -30,7 +28,6 @@ export function MenuBar({
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
   onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray,
-  psnAuthError, onReauthPsn
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -280,19 +277,6 @@ export function MenuBar({
           </div>
         )}
       </div>
-
-      {psnAuthError && (
-        <div className="menu-item">
-          <button
-            className="menu-trigger"
-            onClick={onReauthPsn}
-            title="Your PSN session has expired — click to reconnect"
-            style={{ color: "#ef4444", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}
-          >
-            ⚠️ PSN Expired
-          </button>
-        </div>
-      )}
 
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("version")} style={{ color: "var(--text-muted)", fontWeight: "normal" }}>

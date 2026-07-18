@@ -6,6 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -27,6 +28,13 @@ pub enum RpcCommand {
         hunting: String,
     },
     Clear,
+}
+
+fn now_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 fn spawn_discord_thread(rx: mpsc::Receiver<RpcCommand>) {
@@ -486,8 +494,57 @@ async fn authenticate_psn(npsso: String) -> Result<String, String> {
 
     let token_json: serde_json::Value = token_res.json().await.map_err(|e| format!("Failed to parse token JSON: {}", e))?;
     let access_token = token_json["access_token"].as_str().ok_or("No access token returned in JSON.")?;
+    let refresh_token = token_json["refresh_token"].as_str().unwrap_or("");
+    let expires_in = token_json["expires_in"].as_u64().unwrap_or(3600);
+    let expires_at = now_millis() + expires_in.saturating_mul(1000);
 
-    Ok(serde_json::json!({ "accessToken": access_token, "accountId": "me" }).to_string())
+    Ok(serde_json::json!({
+        "accessToken": access_token,
+        "accountId": "me",
+        "refreshToken": refresh_token,
+        "expiresAt": expires_at
+    }).to_string())
+}
+
+#[tauri::command]
+async fn refresh_psn_token(refresh_token: String) -> Result<String, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|e| format!("Client build error: {}", e))?;
+
+    let token_url = "https://ca.account.sony.com/api/authz/v3/oauth/token";
+    let trimmed_refresh = refresh_token.trim();
+    let mut params = std::collections::HashMap::new();
+    params.insert("refresh_token", trimmed_refresh);
+    params.insert("grant_type", "refresh_token");
+    params.insert("scope", "psn:mobile.v2.core psn:clientapp");
+    params.insert("token_format", "jwt");
+
+    let token_res = client.post(token_url)
+        .header("Authorization", "Basic MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A=")
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Token refresh request failed: {}", e))?;
+
+    if !token_res.status().is_success() {
+        let err_body = token_res.text().await.unwrap_or_default();
+        return Err(format!("Failed to refresh access token: {}", err_body));
+    }
+
+    let token_json: serde_json::Value = token_res.json().await.map_err(|e| format!("Failed to parse refresh token JSON: {}", e))?;
+    let access_token = token_json["access_token"].as_str().ok_or("No access token returned in refresh response.")?;
+    let new_refresh_token = token_json["refresh_token"].as_str().unwrap_or(trimmed_refresh);
+    let expires_in = token_json["expires_in"].as_u64().unwrap_or(3600);
+    let expires_at = now_millis() + expires_in.saturating_mul(1000);
+
+    Ok(serde_json::json!({
+        "accessToken": access_token,
+        "accountId": "me",
+        "refreshToken": new_refresh_token,
+        "expiresAt": expires_at
+    }).to_string())
 }
 
 #[tauri::command]
@@ -1057,7 +1114,7 @@ pub fn run() {
             load_chapters, save_chapters, save_file_dialog, load_history, save_history, set_custom_window_size,
             load_ra_credentials, save_ra_credentials, get_ra_recent_game, get_ra_achievements, set_window_mode, get_steam_header_image,
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
-            load_psn_credentials, save_psn_credentials, authenticate_psn, get_psn_recent_games, get_psn_trophies,
+            load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
             load_checklists, save_checklists, load_checklist_progress, save_checklist_progress
         ])
