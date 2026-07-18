@@ -45,6 +45,10 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
   const [activeChecklistId, setActiveChecklistId] = useState<string | null>(checklists[0]?.id ?? null);
   const activeChecklist = checklists.find(c => c.id === activeChecklistId) || checklists[0] || null;
 
+  const [finderChapter, setFinderChapter] = useState("");
+  const [finderLocation, setFinderLocation] = useState("");
+  const isFinderActive = !!finderChapter || !!finderLocation;
+
   const [newChecklistName, setNewChecklistName] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -126,11 +130,15 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
     closeForm();
   };
 
-  const toggleItemComplete = (itemId: string) => {
-    if (!activeChecklist) return;
-    persist(checklists.map(c => (c.id === activeChecklist.id
+  const toggleItemInList = (checklistId: string, itemId: string) => {
+    persist(checklists.map(c => (c.id === checklistId
       ? { ...c, items: c.items.map(i => (i.id === itemId ? { ...i, completed: !i.completed } : i)) }
       : c)));
+  };
+
+  const toggleItemComplete = (itemId: string) => {
+    if (!activeChecklist) return;
+    toggleItemInList(activeChecklist.id, itemId);
   };
 
   const confirmDeleteItem = () => {
@@ -185,6 +193,32 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
     () => Array.from(new Set((activeChecklist?.items || []).map(i => i.category).filter(Boolean))) as string[],
     [activeChecklist]
   );
+
+  const finderChapterOptions = useMemo(() => {
+    const set = new Set<string>(knownChapters);
+    checklists.forEach(c => c.items.forEach(i => { if (i.chapter?.trim()) set.add(i.chapter.trim()); }));
+    return Array.from(set).sort();
+  }, [checklists, knownChapters]);
+
+  const finderLocationOptions = useMemo(() => {
+    const set = new Set<string>();
+    checklists.forEach(c => c.items.forEach(i => { if (i.location?.trim()) set.add(i.location.trim()); }));
+    return Array.from(set).sort();
+  }, [checklists]);
+
+  const finderResults = useMemo(() => {
+    if (!isFinderActive) return [];
+    return checklists
+      .map(c => ({
+        checklist: c,
+        items: c.items.filter(i => {
+          if (finderChapter && i.chapter !== finderChapter) return false;
+          if (finderLocation && i.location !== finderLocation) return false;
+          return true;
+        }),
+      }))
+      .filter(group => group.items.length > 0);
+  }, [checklists, isFinderActive, finderChapter, finderLocation]);
 
   const totalCount = activeChecklist?.items.length || 0;
   const completedCount = activeChecklist?.items.filter(i => i.completed).length || 0;
@@ -287,6 +321,22 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                   </div>
                 </div>
               )}
+
+              {(finderChapterOptions.length > 0 || finderLocationOptions.length > 0) && (
+                <div className="checklist-toolbar" style={{ marginTop: "8px" }}>
+                  <select className="edit-input control-select" style={{ maxWidth: "220px" }} value={finderChapter} onChange={e => setFinderChapter(e.target.value)}>
+                    <option value="">Find by Chapter (all checklists)</option>
+                    {finderChapterOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <select className="edit-input control-select" style={{ maxWidth: "220px" }} value={finderLocation} onChange={e => setFinderLocation(e.target.value)}>
+                    <option value="">Find by Location (all checklists)</option>
+                    {finderLocationOptions.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                  {isFinderActive && (
+                    <button className="btn-small" onClick={() => { setFinderChapter(""); setFinderLocation(""); }}>Clear</button>
+                  )}
+                </div>
+              )}
             </div>
 
             {showItemForm && (
@@ -330,92 +380,151 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
               </form>
             )}
 
-            {totalCount === 0 && !showItemForm && (
-              <div className="empty-state">No items added to this checklist yet.</div>
-            )}
-            {totalCount > 0 && filteredItems.length === 0 && (
-              <div className="empty-state">No items match your search/filter.</div>
-            )}
-
-            {groupedItems.map(([category, items]) => (
-              <div key={category} className="accordion-section">
-                <div className="accordion-header" onClick={() => toggleCategory(category)}>
-                  <span className="accordion-title">
-                    {hasCategories ? category : "Items"}
-                    <span className="checklist-category-count">{items.filter(i => i.completed).length}/{items.length}</span>
-                  </span>
-                  <span className={`accordion-chevron ${!collapsedCategories[category] ? "open" : ""}`}>▼</span>
-                </div>
-                {!collapsedCategories[category] && (
-                  <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {items.map(item => {
-                      const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
-                      const isVideoOpen = expandedVideoId === item.id;
-                      return (
-                        <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
-                          <div className="cl-item-hover-actions">
-                            <button className="icon-btn hint-visible" title="Edit item" onClick={() => openEditForm(item)}>
-                              <PencilIcon />
-                            </button>
-                            <button className="icon-btn hint-visible" title="Delete item" onClick={() => setPendingDeleteItem(item)}>
-                              <TrashIcon />
-                            </button>
-                          </div>
-
-                          <span className="cl-item-number">{numberByItemId.get(item.id)}</span>
-
-                          <div className="cl-item-checkbox">
-                            <input type="checkbox" checked={item.completed} onChange={() => toggleItemComplete(item.id)} />
-                          </div>
-
-                          {item.imageUrl ? (
-                            <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
-                              <img src={item.imageUrl} alt={item.name} className="cl-item-img" />
+            {isFinderActive ? (
+              <>
+                {finderResults.length === 0 && (
+                  <div className="empty-state">No items match that chapter/location across your checklists.</div>
+                )}
+                {finderResults.map(group => (
+                  <div key={group.checklist.id} className="accordion-section">
+                    <div className="accordion-header" onClick={() => toggleCategory(group.checklist.id)}>
+                      <span className="accordion-title">
+                        {group.checklist.title}
+                        <span className="checklist-category-count">{group.items.filter(i => i.completed).length}/{group.items.length}</span>
+                      </span>
+                      <span className={`accordion-chevron ${!collapsedCategories[group.checklist.id] ? "open" : ""}`}>▼</span>
+                    </div>
+                    {!collapsedCategories[group.checklist.id] && (
+                      <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {group.items.map(item => (
+                          <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
+                            <div className="cl-item-hover-actions">
+                              <button className="icon-btn hint-visible" title="Edit item" onClick={() => { setActiveChecklistId(group.checklist.id); setFinderChapter(""); setFinderLocation(""); openEditForm(item); }}>
+                                <PencilIcon />
+                              </button>
                             </div>
-                          ) : (
-                            <div className="cl-item-img cl-item-img--placeholder">
-                              <ImagePlaceholderIcon />
-                            </div>
-                          )}
 
-                          <div className="cl-item-info">
-                            <div className="cl-item-header">
-                              <h3 className="cl-item-title">{item.name}</h3>
-                              {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                            <div className="cl-item-checkbox">
+                              <input type="checkbox" checked={item.completed} onChange={() => toggleItemInList(group.checklist.id, item.id)} />
                             </div>
-                            {item.location && (
-                              <span className="cl-item-location"><PinIcon /> {item.location}</span>
+
+                            {item.imageUrl ? (
+                              <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
+                                <img src={item.imageUrl} alt={item.name} className="cl-item-img" />
+                              </div>
+                            ) : (
+                              <div className="cl-item-img cl-item-img--placeholder">
+                                <ImagePlaceholderIcon />
+                              </div>
                             )}
-                            {item.desc && <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>}
 
-                            <div className="cl-item-actions">
-                              {item.videoUrl && (
-                                <button className="btn-small" onClick={() => setExpandedVideoId(isVideoOpen ? null : item.id)}>
-                                  {isVideoOpen ? "Hide Video" : "▶ Watch Video"}
-                                </button>
+                            <div className="cl-item-info">
+                              <div className="cl-item-header">
+                                <h3 className="cl-item-title">{item.name}</h3>
+                                {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                              </div>
+                              {item.location && (
+                                <span className="cl-item-location"><PinIcon /> {item.location}</span>
                               )}
+                              {item.desc && <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>}
                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                {totalCount === 0 && !showItemForm && (
+                  <div className="empty-state">No items added to this checklist yet.</div>
+                )}
+                {totalCount > 0 && filteredItems.length === 0 && (
+                  <div className="empty-state">No items match your search/filter.</div>
+                )}
 
-                            {item.videoUrl && isVideoOpen && (
-                              embedUrl ? (
-                                <div className="video-wrapper" style={{ marginTop: "10px" }}>
-                                  <iframe src={embedUrl} title="Item video" frameBorder="0" allowFullScreen></iframe>
+                {groupedItems.map(([category, items]) => (
+                  <div key={category} className="accordion-section">
+                    <div className="accordion-header" onClick={() => toggleCategory(category)}>
+                      <span className="accordion-title">
+                        {hasCategories ? category : "Items"}
+                        <span className="checklist-category-count">{items.filter(i => i.completed).length}/{items.length}</span>
+                      </span>
+                      <span className={`accordion-chevron ${!collapsedCategories[category] ? "open" : ""}`}>▼</span>
+                    </div>
+                    {!collapsedCategories[category] && (
+                      <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {items.map(item => {
+                          const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
+                          const isVideoOpen = expandedVideoId === item.id;
+                          return (
+                            <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
+                              <div className="cl-item-hover-actions">
+                                <button className="icon-btn hint-visible" title="Edit item" onClick={() => openEditForm(item)}>
+                                  <PencilIcon />
+                                </button>
+                                <button className="icon-btn hint-visible" title="Delete item" onClick={() => setPendingDeleteItem(item)}>
+                                  <TrashIcon />
+                                </button>
+                              </div>
+
+                              <span className="cl-item-number">{numberByItemId.get(item.id)}</span>
+
+                              <div className="cl-item-checkbox">
+                                <input type="checkbox" checked={item.completed} onChange={() => toggleItemComplete(item.id)} />
+                              </div>
+
+                              {item.imageUrl ? (
+                                <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
+                                  <img src={item.imageUrl} alt={item.name} className="cl-item-img" />
                                 </div>
                               ) : (
-                                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "6px" }}>
-                                  Couldn't embed this link —{" "}
-                                  <a href="#" onClick={e => { e.preventDefault(); open(item.videoUrl); }}>open externally</a>.
-                                </p>
-                              )
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                                <div className="cl-item-img cl-item-img--placeholder">
+                                  <ImagePlaceholderIcon />
+                                </div>
+                              )}
+
+                              <div className="cl-item-info">
+                                <div className="cl-item-header">
+                                  <h3 className="cl-item-title">{item.name}</h3>
+                                  {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                                </div>
+                                {item.location && (
+                                  <span className="cl-item-location"><PinIcon /> {item.location}</span>
+                                )}
+                                {item.desc && <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>}
+
+                                <div className="cl-item-actions">
+                                  {item.videoUrl && (
+                                    <button className="btn-small" onClick={() => setExpandedVideoId(isVideoOpen ? null : item.id)}>
+                                      {isVideoOpen ? "Hide Video" : "▶ Watch Video"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {item.videoUrl && isVideoOpen && (
+                                  embedUrl ? (
+                                    <div className="video-wrapper" style={{ marginTop: "10px" }}>
+                                      <iframe src={embedUrl} title="Item video" frameBorder="0" allowFullScreen></iframe>
+                                    </div>
+                                  ) : (
+                                    <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "6px" }}>
+                                      Couldn't embed this link —{" "}
+                                      <a href="#" onClick={e => { e.preventDefault(); open(item.videoUrl); }}>open externally</a>.
+                                    </p>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                ))}
+              </>
+            )}
           </>
         )}
       </div>

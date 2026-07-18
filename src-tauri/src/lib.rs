@@ -229,6 +229,41 @@ fn get_data_path(app_handle: &tauri::AppHandle, filename: &str) -> Result<PathBu
     Ok(path)
 }
 
+fn is_valid_json(data: &str) -> bool {
+    !data.trim().is_empty() && serde_json::from_str::<Value>(data).is_ok()
+}
+
+fn read_json_with_fallback(path: &PathBuf) -> String {
+    if let Ok(data) = fs::read_to_string(path) {
+        if is_valid_json(&data) {
+            return data;
+        }
+    }
+    let backup_path = PathBuf::from(format!("{}.bak", path.to_string_lossy()));
+    if let Ok(data) = fs::read_to_string(&backup_path) {
+        if is_valid_json(&data) {
+            return data;
+        }
+    }
+    "{}".to_string()
+}
+
+fn write_json_atomic(path: &PathBuf, data: &str) -> Result<(), String> {
+    if !is_valid_json(data) {
+        return Err("Refusing to save invalid JSON".to_string());
+    }
+    if let Ok(existing) = fs::read_to_string(path) {
+        if is_valid_json(&existing) {
+            let backup_path = PathBuf::from(format!("{}.bak", path.to_string_lossy()));
+            let _ = fs::write(backup_path, &existing);
+        }
+    }
+    let tmp_path = PathBuf::from(format!("{}.tmp", path.to_string_lossy()));
+    fs::write(&tmp_path, data).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 async fn save_file_dialog(filename: String, content: String) -> Result<String, String> {
     if let Some(file_path) = rfd::AsyncFileDialog::new()
@@ -921,16 +956,25 @@ fn set_window_transparent(window: tauri::Window, transparent: bool) {
 #[tauri::command]
 fn load_checklists(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "checklists.json")?;
-    match std::fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path))
 }
 
 #[tauri::command]
 fn save_checklists(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "checklists.json")?;
-    std::fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
+}
+
+#[tauri::command]
+fn load_checklist_progress(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = get_data_path(&app_handle, "checklist_progress.json")?;
+    Ok(read_json_with_fallback(&path))
+}
+
+#[tauri::command]
+fn save_checklist_progress(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = get_data_path(&app_handle, "checklist_progress.json")?;
+    write_json_atomic(&path, &data)
 }
 
 // --- Entry Point ---
@@ -1014,7 +1058,8 @@ pub fn run() {
             load_ra_credentials, save_ra_credentials, get_ra_recent_game, get_ra_achievements, set_window_mode, get_steam_header_image,
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, get_psn_recent_games, get_psn_trophies,
-            update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder
+            update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

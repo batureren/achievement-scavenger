@@ -60,6 +60,9 @@ function App() {
 
   const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS">("ACHIEVEMENTS");
   const [allChecklists, setAllChecklists] = useState<Record<string, CustomChecklist[]>>({});
+  const [checklistProgress, setChecklistProgress] = useState<Record<string, Record<string, Record<string, boolean>>>>({});
+  const checklistProgressRef = useRef(checklistProgress);
+  checklistProgressRef.current = checklistProgress;
 
   useEffect(() => {
     const appId = selectedAppIdRef.current;
@@ -292,7 +295,19 @@ function App() {
         allLocalEditsRef.current = editsData;
         
         const checklistsStr = await invoke<string>("load_checklists").catch(() => "{}");
-        setAllChecklists(safeParseJSON(checklistsStr, {}));
+        const loadedChecklists = safeParseJSON(checklistsStr, {});
+        const progressStr = await invoke<string>("load_checklist_progress").catch(() => "{}");
+        const loadedProgress = safeParseJSON(progressStr, {});
+        setChecklistProgress(loadedProgress);
+        const mergedChecklists: Record<string, CustomChecklist[]> = {};
+        Object.keys(loadedChecklists).forEach(gameId => {
+          const gameProgress = loadedProgress[gameId] || {};
+          mergedChecklists[gameId] = (loadedChecklists[gameId] || []).map((list: CustomChecklist) => ({
+            ...list,
+            items: list.items.map(item => ({ ...item, completed: gameProgress[list.id]?.[item.id] ?? item.completed ?? false })),
+          }));
+        });
+        setAllChecklists(mergedChecklists);
 
         let initialTab = savedSettings.lastSelectedTab || "";
 
@@ -1067,7 +1082,12 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
 
     const payload: Record<string, unknown> = { chapters: currentGameChapters, links: currentGameLinks.map(l => ({ title: l.title, url: l.url })), achievements: unifiedAchievements };
     if (opts.includeChecklists) {
-      payload.checklists = allChecklists[selectedAppIdRef.current] || [];
+      const gameChecklists = allChecklists[selectedAppIdRef.current] || [];
+      payload.checklists = gameChecklists.map(list => ({
+        id: list.id,
+        title: list.title,
+        items: list.items.map(({ completed, ...contentOnly }) => contentOnly),
+      }));
     }
     return JSON.stringify(payload, null, 2);
   };
@@ -1094,7 +1114,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
   
   const handleCreatePR = async () => { 
     try { 
-      await navigator.clipboard.writeText(generateUnifiedExportJSON()); 
+      await navigator.clipboard.writeText(generateUnifiedExportJSON({ includeChecklists: true })); 
       const fileExists = (communityDbCacheRef.current[selectedAppIdRef.current]?.db?.length || 0) > 0;
       await open(fileExists ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${selectedAppIdRef.current}.json` : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${selectedAppIdRef.current}.json`); 
       toast.success("Data copied to clipboard! Paste it on GitHub.", { duration: 5000 }); 
@@ -1624,6 +1644,16 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
                 const updated = { ...allChecklists, [selectedAppId]: newList };
                 setAllChecklists(updated);
                 invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+
+                const gameProgress: Record<string, Record<string, boolean>> = { ...(checklistProgressRef.current[selectedAppId] || {}) };
+                newList.forEach(list => {
+                  const itemProgress: Record<string, boolean> = {};
+                  list.items.forEach(item => { itemProgress[item.id] = item.completed; });
+                  gameProgress[list.id] = itemProgress;
+                });
+                const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
+                setChecklistProgress(updatedProgress);
+                invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
               }}
             />
           )}
