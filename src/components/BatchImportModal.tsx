@@ -144,6 +144,15 @@ export function BatchImportModal(props: BatchImportModalProps) {
     setSearch("");
   };
 
+  const handleClose = () => {
+    setItems([]);
+    setSelected(new Set());
+    setLoadedTab(null);
+    setError("");
+    setSearch("");
+    onClose();
+  };
+
   const fetchTab = async (tab: Platform) => {
     setLoading(true);
     setError("");
@@ -390,7 +399,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
       toast(`${missedCount} Steam game${missedCount === 1 ? "" : "s"} had no achievement data (private profile or no stats) and imported as 0/0.`, { icon: "⚠️", duration: 5000 });
     }
     setSelected(new Set());
-    onClose();
+    handleClose();
   };
 
   const currentTabInfo = TABS.find(t => t.id === activeTab)!;
@@ -401,7 +410,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
   const selectableCount = filteredItems.filter(i => !gameHistory[i.appId]).length;
 
   return (
-    <div className="confirm-dialog-overlay" onClick={onClose}>
+    <div className="confirm-dialog-overlay" onClick={handleClose}>
       <div className="batch-import-modal" onClick={e => e.stopPropagation()}>
         <h3 className="confirm-dialog-title">Batch Import Games</h3>
 
@@ -502,7 +511,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: "8px 0 0" }}>⚠ {error}</p>}
 
         <div className="confirm-dialog-actions">
-          <button className="confirm-dialog-btn cancel" onClick={onClose} disabled={!!importProgress}>Close</button>
+          <button className="confirm-dialog-btn cancel" onClick={handleClose} disabled={!!importProgress}>Close</button>
           <button
             className="confirm-dialog-btn"
             style={{ background: "var(--accent-green)", color: "#000", borderColor: "var(--accent-green)", opacity: (selected.size === 0 || importProgress) ? 0.5 : 1 }}
