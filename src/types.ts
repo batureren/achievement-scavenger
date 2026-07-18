@@ -5,7 +5,7 @@ export interface MergedAchievement {
   chapter?: string; hint?: string; video_url?: string;
   is_spoiler?: boolean; globalPercent?: number; notes?: string;
   ra_points?: number; ra_trueratio?: number; requires?: string[];
-  xbox_gamerscore?: number;
+  xbox_gamerscore?: number; ra_type?: string;
 }
 
 export interface UserLink { id: string; appId: string; title: string; url: string; }

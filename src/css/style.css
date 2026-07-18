@@ -758,7 +758,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 20px 8px 14px 8px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -855,6 +855,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   gap: 8px;
   margin-bottom: 5px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .ach-title {
@@ -901,54 +902,59 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   flex-shrink: 0;
 }
 
-.icon-btn {
-  background: none;
-  border: none;
-  padding: 4px;
+.icon-btn,
+.track-btn,
+.ra-type-badge {
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
   cursor: pointer;
-  display: flex;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background-color var(--transition), color var(--transition);
-}
-
-.icon-btn.hint-visible {
-  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background-color var(--transition), color var(--transition), border-color var(--transition);
 }
 
 .icon-btn.hint-visible:hover {
   background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-muted);
   color: var(--text-main);
 }
 
 .icon-btn.hint-hidden {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.55);
   color: var(--accent-yellow);
 }
 
 .icon-btn.hint-hidden:hover {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: rgba(245, 158, 11, 0.28);
 }
 
-.track-btn {
-  background: none;
-  border: none;
-  color: var(--border-color);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition), background-color var(--transition);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.icon-btn--ra-link {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.55);
+  color: #f59e0b;
+}
+
+.icon-btn--ra-link:hover {
+  background: rgba(245, 158, 11, 0.28);
 }
 
 .track-btn:hover {
   color: var(--text-main);
   background-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-muted);
 }
 
 .track-btn.tracked {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.55);
   color: var(--accent-yellow);
 }
 
@@ -2302,6 +2308,18 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 
 .chain-highlight {
   animation: chainHighlight 1.5s ease-out forwards;
+}
+
+.ra-type-badge--progression {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #60a5fa;
+}
+
+.ra-type-badge--win-condition {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.55);
+  color: #c084fc;
 }
 
 /* ============================================================

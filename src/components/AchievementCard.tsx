@@ -1,4 +1,5 @@
 import React from "react";
+import { open } from "@tauri-apps/plugin-shell";
 import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
 import { renderHintWithLinks, getYouTubeEmbedUrl } from "../utils";
@@ -81,6 +82,22 @@ function AchievementCardBase({
               )}
             </h3>
             {ach.chapter && !editMode && <span className="chapter-tag">{ach.chapter}</span>}
+            {ach.ra_type === "progression" && (
+              <span
+                className="ra-type-badge ra-type-badge--progression"
+                title="Official RetroAchievements type: Progression"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+            )}
+            {ach.ra_type === "win_condition" && (
+              <span
+                className="ra-type-badge ra-type-badge--win-condition"
+                title="Official RetroAchievements type: Win Condition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </span>
+            )}
             
             <div className="card-actions">
               {ach.hint && !editMode && (
@@ -95,6 +112,16 @@ function AchievementCardBase({
               <button className={`track-btn ${isTracked ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname)}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isTracked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
               </button>
+
+              {ach.ra_points !== undefined && !editMode && (
+                <button
+                  className="icon-btn icon-btn--ra-link"
+                  onClick={() => open(`https://retroachievements.org/achievement/${ach.apiname}`)}
+                  title="Open achievement page on RetroAchievements"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+              )}
               
               {!editMode && ach.globalPercent !== undefined && <div className="ach-global-percent" style={{ color: pColor }}>{ach.globalPercent.toFixed(1)} %</div>}
             </div>

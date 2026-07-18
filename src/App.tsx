@@ -770,6 +770,7 @@ function App() {
                         hint: localEdit.hint ?? communityAch.hint ?? "", video_url: localEdit.video_url ?? communityAch.video_url ?? "",
                         notes: localEdit.notes || "", globalPercent: Math.min(calcPercent, 100), 
                         ra_points: a.Points != null ? Number(a.Points) : undefined, ra_trueratio: a.TrueRatio != null ? Number(a.TrueRatio) : undefined,
+                        ra_type: typeof rawType === "string" && rawType ? rawType.toLowerCase() : undefined,
                         requires: localEdit.requires ?? communityAch.requires ?? [],
                     };
                 });
