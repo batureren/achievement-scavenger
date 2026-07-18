@@ -17,6 +17,7 @@ interface ImportItem {
   platform: Platform;
   totalAch: number;
   unlockedAch: number;
+  lastPlayed?: number;
 }
 
 interface BatchImportModalProps {
@@ -178,6 +179,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "PSN" as Platform,
             totalAch: totalT,
             unlockedAch: earnedT,
+            lastPlayed: g.lastUpdatedDateTime ? new Date(g.lastUpdatedDateTime).getTime() : undefined,
           };
         });
       }
@@ -189,6 +191,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
         list = titles.map((g: any) => {
           const totalA = g.achievement?.totalAchievements ?? 0;
           const currentA = g.achievement?.currentAchievements ?? 0;
+          const lastPlayedRaw = g.lastPlayed || g.lastModified || g.titleHistory?.lastTimePlayed;
           return {
             appId: `XBOX_${g.titleId}`,
             name: g.name || g.titleName || `Title ${g.titleId}`,
@@ -197,6 +200,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "XBOX" as Platform,
             totalAch: totalA,
             unlockedAch: currentA,
+            lastPlayed: lastPlayedRaw ? new Date(lastPlayedRaw).getTime() : undefined,
           };
         });
       }
@@ -216,6 +220,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "RA" as Platform,
             totalAch: totalA,
             unlockedAch: earnedA,
+            lastPlayed: g.LastPlayed ? new Date(g.LastPlayed + "Z").getTime() : undefined,
           };
         });
       }
@@ -242,6 +247,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
           platform: "STEAM" as Platform,
           totalAch: 0,
           unlockedAch: 0,
+          lastPlayed: g.rtime_last_played ? g.rtime_last_played * 1000 : undefined,
         }));
       }
 
@@ -369,7 +375,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
           name: item.name,
           totalAch: steamCounts ? steamCounts.total : item.totalAch,
           unlockedAch: steamCounts ? steamCounts.unlocked : item.unlockedAch,
-          lastPlayed: Date.now(),
+          lastPlayed: item.lastPlayed ?? Date.now(),
           platform: item.platform,
           raImageIcon: cachedIcon,
         } as GameHistory;

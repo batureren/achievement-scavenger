@@ -7,6 +7,7 @@ import "./css/style.css";
 
 import { useUnlockSound } from "./components/UseUnlockSound";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { PsnReauthModal } from "./components/PsnReauthModal";
 import { MenuBar } from "./components/MenuBar";
 import { SetupScreen } from "./components/SetupScreen";
 import { LibraryDashboard } from "./components/LibraryDashboard";
@@ -48,6 +49,8 @@ function App() {
   const [gameName, setGameName] = useState("Loading...");
   const [achievements, setAchievements] = useState<MergedAchievement[]>([]);
   const [isProfilePrivate, setIsProfilePrivate] = useState(false);
+  const [psnAuthError, setPsnAuthError] = useState(false);
+  const [showPsnReauthModal, setShowPsnReauthModal] = useState(false);
   
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
@@ -133,6 +136,7 @@ function App() {
   const activeXboxIdRef = useRef<string | null>(null);
   const lastPsnPollTimeRef = useRef<number>(0);
   const activePsnIdRef = useRef<string | null>(null);
+  const psnAuthErrorRef = useRef<boolean>(false);
   const gameHistoryRef = useRef<Record<string, GameHistory>>({});
 
   const tabsBarRef = useRef<HTMLDivElement>(null);
@@ -487,11 +491,19 @@ function App() {
             } catch (e) {}
           }
 
-          if (psn.accessToken && psn.accountId && now - lastPsnPollTimeRef.current > 60000) {
+          if (psn.accessToken && psn.accountId && !psnAuthErrorRef.current && now - lastPsnPollTimeRef.current > 60000) {
             lastPsnPollTimeRef.current = now;
             try {
               const recentStr = await invoke<string>("get_psn_recent_games", { accessToken: psn.accessToken, accountId: psn.accountId });
               const recentData = safeParseJSON(recentStr, { trophyTitles: [] });
+
+              if (recentData.error === "INVALID_TOKEN") {
+                psnAuthErrorRef.current = true;
+                setPsnAuthError(true);
+                toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                throw new Error("PSN_AUTH_EXPIRED");
+              }
+
               const titles = Array.isArray(recentData.trophyTitles) ? recentData.trophyTitles : [];
 
               if (titles.length > 0) {
@@ -582,6 +594,8 @@ function App() {
         const currentLang = settingsRef.current.language || "en";
         const steamLang = STEAM_LANG_MAP[currentLang] || "english";
 
+        if (isTargetPSN && psnAuthErrorRef.current) { return; }
+
         let schemaJustLoaded = false;
         if (!schemaCacheRef.current[targetAppId]) {
           schemaJustLoaded = true;
@@ -628,6 +642,14 @@ function App() {
                 const pureId = targetAppId.replace("PSN_", "");
                 const psnDataStr = await invoke<string>("get_psn_trophies", { accessToken: psn.accessToken, accountId: psn.accountId, npCommunicationId: pureId });
                 const psnData = safeParseJSON(psnDataStr, { schema: { trophies: [] }, progress: { trophies: [] } });
+
+                if (psnData.error === "INVALID_TOKEN") {
+                  psnAuthErrorRef.current = true;
+                  setPsnAuthError(true);
+                  toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                  return;
+                }
+
                 const schemaAchs = Array.isArray(psnData.schema.trophies) ? psnData.schema.trophies : [];
 
                 const cachedName = gameHistoryRef.current[targetAppId]?.name;
@@ -783,6 +805,14 @@ function App() {
                 const pureId = targetAppId.replace("PSN_", "");
                 const psnDataStr = await invoke<string>("get_psn_trophies", { accessToken: psn.accessToken, accountId: psn.accountId, npCommunicationId: pureId });
                 const psnData = safeParseJSON(psnDataStr, { schema: { trophies: [] }, progress: { trophies: [] } });
+
+                if (psnData.error === "INVALID_TOKEN") {
+                  psnAuthErrorRef.current = true;
+                  setPsnAuthError(true);
+                  toast.error("Your PSN session has expired. Re-enter your NPSSO token in Accounts to resume tracking.", { id: "psn-auth-error", duration: 8000 });
+                  return;
+                }
+
                 const schemaAchs = Array.isArray(psnData.schema.trophies) ? psnData.schema.trophies : [];
                 const progAchs = Array.isArray(psnData.progress.trophies) ? psnData.progress.trophies : [];
 
@@ -1177,7 +1207,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
   }, []);
 
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
-  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
+  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
 
   return (
     <div id="app-container" className={isMiniMode ? "mini-mode-active" : ""}>
@@ -1197,6 +1227,21 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
         onOpenScreenshots={handleOpenScreenshots}
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
         onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
+        psnAuthError={psnAuthError}
+        onReauthPsn={() => setShowPsnReauthModal(true)}
+      />
+
+      <PsnReauthModal
+        isOpen={showPsnReauthModal}
+        onClose={() => setShowPsnReauthModal(false)}
+        onSaved={(psn) => {
+          setPsnCreds(psn);
+          psnCredsRef.current = psn;
+          psnAuthErrorRef.current = false;
+          setPsnAuthError(false);
+          setShowPsnReauthModal(false);
+          toast.success("PSN reconnected!");
+        }}
       />
 
       {!isMiniMode && (
@@ -1469,6 +1514,15 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
               )}
 
               {isProfilePrivate && <div className="privacy-warning">⚠️ Cannot check unlocks: Your Steam "Game Details" are private.</div>}
+
+              {isSelectedGamePSN && psnAuthError && (
+                <div className="privacy-warning">
+                  ⚠️ Your PSN session has expired. Showing your last saved progress — nothing will update until you{" "}
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowPsnReauthModal(true); }} style={{ color: "inherit", textDecoration: "underline" }}>
+                    reconnect your PSN account
+                  </a>.
+                </div>
+              )}
 
               <div className="controls-container">
                 <div className="filter-bar">

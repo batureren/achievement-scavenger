@@ -470,50 +470,63 @@ async fn get_psn_recent_games(
         account_id, limit, offset
     );
     let res = client.get(&url).header("Authorization", format!("Bearer {}", access_token)).send().await.map_err(|e| e.to_string())?;
+
+    if res.status() == reqwest::StatusCode::UNAUTHORIZED {
+        return Ok("{\"error\": \"INVALID_TOKEN\"}".to_string());
+    }
     if !res.status().is_success() { return Ok("{\"error\": \"API_ERROR\"}".to_string()); }
+
     let text = res.text().await.map_err(|e| e.to_string())?;
     Ok(text)
+}
+
+async fn fetch_for_service(
+    client: &reqwest::Client,
+    access_token: &str,
+    account_id: &str,
+    np_communication_id: &str,
+    service: &str,
+) -> (serde_json::Value, serde_json::Value, bool) {
+    let mut unauthorized = false;
+
+    let schema_url = format!(
+        "https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
+        np_communication_id, service
+    );
+    let schema_json = match client.get(&schema_url)
+        .header("Authorization", format!("Bearer {}", access_token))
+        .send().await
+    {
+        Ok(res) => {
+            if res.status() == reqwest::StatusCode::UNAUTHORIZED { unauthorized = true; }
+            res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({}))
+        }
+        Err(_) => serde_json::json!({}),
+    };
+
+    let progress_url = format!(
+        "https://m.np.playstation.com/api/trophy/v1/users/{}/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
+        account_id, np_communication_id, service
+    );
+    let progress_json = match client.get(&progress_url)
+        .header("Authorization", format!("Bearer {}", access_token))
+        .send().await
+    {
+        Ok(res) => {
+            if res.status() == reqwest::StatusCode::UNAUTHORIZED { unauthorized = true; }
+            res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({}))
+        }
+        Err(_) => serde_json::json!({}),
+    };
+
+    (schema_json, progress_json, unauthorized)
 }
 
 #[tauri::command]
 async fn get_psn_trophies(access_token: String, account_id: String, np_communication_id: String) -> Result<String, String> {
     let client = reqwest::Client::new();
 
-    async fn fetch_for_service(
-        client: &reqwest::Client,
-        access_token: &str,
-        account_id: &str,
-        np_communication_id: &str,
-        service: &str,
-    ) -> (serde_json::Value, serde_json::Value) {
-        let schema_url = format!(
-            "https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
-            np_communication_id, service
-        );
-        let schema_json = match client.get(&schema_url)
-            .header("Authorization", format!("Bearer {}", access_token))
-            .send().await
-        {
-            Ok(res) => res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({})),
-            Err(_) => serde_json::json!({}),
-        };
-
-        let progress_url = format!(
-            "https://m.np.playstation.com/api/trophy/v1/users/{}/npCommunicationIds/{}/trophyGroups/all/trophies?npServiceName={}",
-            account_id, np_communication_id, service
-        );
-        let progress_json = match client.get(&progress_url)
-            .header("Authorization", format!("Bearer {}", access_token))
-            .send().await
-        {
-            Ok(res) => res.json::<serde_json::Value>().await.unwrap_or(serde_json::json!({})),
-            Err(_) => serde_json::json!({}),
-        };
-
-        (schema_json, progress_json)
-    }
-
-    let (mut schema_json, mut progress_json) =
+    let (mut schema_json, mut progress_json, mut unauthorized) =
         fetch_for_service(&client, &access_token, &account_id, &np_communication_id, "trophy2").await;
 
     let has_trophies = schema_json.get("trophies")
@@ -522,8 +535,9 @@ async fn get_psn_trophies(access_token: String, account_id: String, np_communica
         .unwrap_or(false);
 
     if !has_trophies {
-        let (fb_schema, fb_progress) =
+        let (fb_schema, fb_progress, fb_unauthorized) =
             fetch_for_service(&client, &access_token, &account_id, &np_communication_id, "trophy").await;
+        unauthorized = unauthorized || fb_unauthorized;
         let fb_has_trophies = fb_schema.get("trophies")
             .and_then(|t| t.as_array())
             .map(|a| !a.is_empty())
@@ -534,7 +548,12 @@ async fn get_psn_trophies(access_token: String, account_id: String, np_communica
         }
     }
 
-    Ok(serde_json::json!({ "schema": schema_json, "progress": progress_json }).to_string())
+    let mut payload = serde_json::json!({ "schema": schema_json, "progress": progress_json });
+    if unauthorized {
+        payload["error"] = serde_json::Value::String("INVALID_TOKEN".to_string());
+    }
+
+    Ok(payload.to_string())
 }
 
 #[tauri::command]

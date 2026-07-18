@@ -11,7 +11,9 @@ export function timeAgo(ts: number): string {
   if (mins  < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days  <  7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const date = new Date(ts);
+  const includeYear = date.getFullYear() !== new Date().getFullYear();
+  return date.toLocaleDateString(undefined, includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
 }
 
 export function unwrapXboxData(data: any) {

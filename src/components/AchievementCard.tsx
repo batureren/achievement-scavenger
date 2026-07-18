@@ -99,7 +99,7 @@ function AchievementCardBase({
               {!editMode && ach.globalPercent !== undefined && <div className="ach-global-percent" style={{ color: pColor }}>{ach.globalPercent.toFixed(1)} %</div>}
             </div>
           </div>
-          <p className="ach-desc">{ach.description}</p>
+          <p className="ach-desc" style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>{ach.description}</p>
         </div>
       </div>
 
