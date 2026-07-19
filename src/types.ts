@@ -6,6 +6,7 @@ export interface MergedAchievement {
   is_spoiler?: boolean; globalPercent?: number; notes?: string;
   ra_points?: number; ra_trueratio?: number; requires?: string[];
   xbox_gamerscore?: number; ra_type?: string;
+  _appId?: string; _setName?: string;
 }
 
 export interface UserLink { id: string; appId: string; title: string; url: string; }
@@ -64,4 +65,10 @@ export interface CustomChecklist {
   id: string;
   title: string;
   items: ChecklistItem[];
+}
+
+export interface GameLink {
+  id: string;
+  appIds: string[];
+  name?: string;
 }

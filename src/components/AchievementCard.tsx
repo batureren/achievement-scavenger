@@ -56,6 +56,11 @@ function AchievementCardBase({
       {isTracked && (
         <span className="hunt-tracked-badge">Active</span>
       )}
+      {ach._setName && (
+        <span className="chapter-tag" style={{ position: "absolute", top: "8px", right: ach.is_missable || isTracked ? "90px" : "8px", opacity: 0.85 }} title="This achievement belongs to a linked set">
+          {ach._setName}
+        </span>
+      )}
       
       <div className="card-top" style={{ alignItems: "center" }}>
         <div style={{ position: "relative" }}>

@@ -13,13 +13,14 @@ import { SetupScreen } from "./components/SetupScreen";
 import { LibraryDashboard } from "./components/LibraryDashboard";
 import { AchievementCard } from "./components/AchievementCard";
 import { ChecklistsPanel } from "./components/ChecklistsPanel";
+import { GameLinkModal } from "./components/GameLinkModal";
 import { PlatformIcon, GitHubIcon } from "./components/Icons";
 
 import { 
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist
+  CustomChecklist, GameLink
 } from "./types";
 import { 
   BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
@@ -69,6 +70,7 @@ function App() {
   
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
+  const [selectedSetFilter, setSelectedSetFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DEFAULT");
 
@@ -144,7 +146,7 @@ function App() {
   const tickRef = useRef<(options?: { forceTabSwitch?: boolean }) => Promise<void>>(async () => {});
   const cachedRunningAppIdsRef = useRef<string[]>([]);
   const cachedSteamIdRef = useRef<string>("");
-  const activeRaIdRef = useRef<string | null>(null); 
+  const activeRaIdsRef = useRef<Set<string>>(new Set()); 
   const lastXboxPollTimeRef = useRef<number>(0);
   const lastXboxNetworkFetchRef = useRef<number>(0); 
   const activeXboxIdRef = useRef<string | null>(null);
@@ -156,6 +158,63 @@ function App() {
   const tabsBarRef = useRef<HTMLDivElement>(null);
   const [tabsCanScrollLeft, setTabsCanScrollLeft] = useState(false);
   const [tabsCanScrollRight, setTabsCanScrollRight] = useState(false);
+
+  const [gameLinks, setGameLinks] = useState<Record<string, GameLink>>({});
+  const gameLinksRef = useRef<Record<string, GameLink>>({});
+  gameLinksRef.current = gameLinks;
+
+  const [linkModalForAppId, setLinkModalForAppId] = useState<string | null>(null);
+  const [groupFetchTick, setGroupFetchTick] = useState(0);
+
+  const linkForAppId = (appId: string): GameLink | null =>
+    Object.values(gameLinksRef.current).find(l => l.appIds.includes(appId)) || null;
+
+  const getGroupAppIds = (appId: string): string[] =>
+    linkForAppId(appId)?.appIds ?? [appId];
+
+  const getGroupKey = (appId: string): string =>
+    linkForAppId(appId)?.id ?? appId;
+
+  const saveGameLinks = async (updated: Record<string, GameLink>) => {
+    setGameLinks(updated);
+    gameLinksRef.current = updated;
+    await invoke("save_game_links", { data: JSON.stringify(updated) }).catch(console.error);
+  };
+
+  const handleCreateGameLink = (appIdA: string, appIdB: string) => {
+    const linkA = linkForAppId(appIdA);
+    const linkB = linkForAppId(appIdB);
+    let updated: Record<string, GameLink>;
+
+    if (linkA && linkB) {
+      if (linkA.id === linkB.id) return;
+      const mergedIds = Array.from(new Set([...linkA.appIds, ...linkB.appIds]));
+      updated = { ...gameLinksRef.current, [linkA.id]: { ...linkA, appIds: mergedIds } };
+      delete updated[linkB.id];
+    } else if (linkA) {
+      updated = { ...gameLinksRef.current, [linkA.id]: { ...linkA, appIds: linkA.appIds.includes(appIdB) ? linkA.appIds : [...linkA.appIds, appIdB] } };
+    } else if (linkB) {
+      updated = { ...gameLinksRef.current, [linkB.id]: { ...linkB, appIds: linkB.appIds.includes(appIdA) ? linkB.appIds : [...linkB.appIds, appIdA] } };
+    } else {
+      const id = `link_${Date.now()}`;
+      updated = { ...gameLinksRef.current, [id]: { id, appIds: [appIdA, appIdB] } };
+    }
+    saveGameLinks(updated);
+    toast.success("Games linked! They'll now share one tab.");
+  };
+
+  const handleUnlinkGame = (appId: string) => {
+    const link = linkForAppId(appId);
+    if (!link) return;
+    const remainingIds = link.appIds.filter(id => id !== appId);
+    const updated = { ...gameLinksRef.current };
+    if (remainingIds.length <= 1) {
+      delete updated[link.id];
+    } else {
+      updated[link.id] = { ...link, appIds: remainingIds };
+    }
+    saveGameLinks(updated);
+  };
 
   const updateTabsScrollState = () => {
     const el = tabsBarRef.current;
@@ -314,6 +373,11 @@ function App() {
         setAllLocalEdits(editsData); 
         allLocalEditsRef.current = editsData;
         
+        const gameLinksStr = await invoke<string>("load_game_links").catch(() => "{}");
+        const loadedGameLinks = safeParseJSON(gameLinksStr, {});
+        setGameLinks(loadedGameLinks);
+        gameLinksRef.current = loadedGameLinks;
+
         const checklistsStr = await invoke<string>("load_checklists").catch(() => "{}");
         const loadedChecklists = safeParseJSON(checklistsStr, {});
         const progressStr = await invoke<string>("load_checklist_progress").catch(() => "{}");
@@ -445,7 +509,7 @@ function App() {
     applyOverlayStyle(style, isTrans);
   }, [settings.overlayStyle, settings.enableTransparency]);
 
-  const handleToggleHint = (apiname: string) => { const appId = selectedAppIdRef.current; if (!appId) return; const current = settingsRef.current.hiddenHints[appId] || []; const isHidden = current.includes(apiname); saveSettings({ ...settingsRef.current, hiddenHints: { ...settingsRef.current.hiddenHints, [appId]: isHidden ? current.filter(n => n !== apiname) : [...current, apiname] } }); };
+  const handleToggleHint = (apiname: string, sourceAppId?: string) => { const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; const current = settingsRef.current.hiddenHints[appId] || []; const isHidden = current.includes(apiname); saveSettings({ ...settingsRef.current, hiddenHints: { ...settingsRef.current.hiddenHints, [appId]: isHidden ? current.filter(n => n !== apiname) : [...current, apiname] } }); };
   const handleChangeOpacity = async (opacity: number) => { setSettings(prev => ({ ...prev, opacity })); settingsRef.current.opacity = opacity; await invoke("set_window_opacity", { opacity }).catch(console.error); };
   const handleSaveOpacity = () => { saveSettings({ ...settingsRef.current, opacity: settings.opacity }); };
 
@@ -470,24 +534,36 @@ function App() {
           if (ra.user && ra.key && now - lastRaPollTimeRef.current > 15000) {
             lastRaPollTimeRef.current = now;
             try {
-              const recentStr = await invoke<string>("get_ra_recent_game", { user: ra.user, apiKey: ra.key });
+              const recentStr = await invoke<string>("get_ra_recent_game", { user: ra.user, apiKey: ra.key, count: 10 });
               const recentArr = safeParseJSON(recentStr, []);
               if (Array.isArray(recentArr) && recentArr.length > 0) {
-                const recentGame = recentArr[0];
-                const gameIdStr = `RA_${recentGame.GameID}`;
-                const lastPlayedUTC = new Date(recentGame.LastPlayed + "Z").getTime();
-                const isLive = (Date.now() - lastPlayedUTC) < 4 * 60 * 1000;
-                
-                if (isLive) activeRaIdRef.current = gameIdStr; else activeRaIdRef.current = null;
-                
-                setGameHistory(prev => {
-                  const existing = prev[gameIdStr];
+                const nextLiveIds = new Set<string>();
+                let historyUpdated: Record<string, GameHistory> | null = null;
+
+                for (const recentGame of recentArr) {
+                  const gameIdStr = `RA_${recentGame.GameID}`;
+                  const lastPlayedUTC = new Date(recentGame.LastPlayed + "Z").getTime();
+                  const isLive = (Date.now() - lastPlayedUTC) < 4 * 60 * 1000;
+                  if (isLive) nextLiveIds.add(gameIdStr);
+
+                  const base = historyUpdated || gameHistoryRef.current;
+                  const existing = base[gameIdStr];
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
-                  if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.Title) return prev;
-                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.Title, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "RA" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: recentGame.ImageBoxArt || recentGame.ImageTitle || recentGame.ImageIcon || existing?.raImageIcon } };
-                  invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
-                  return updated;
-                });
+                  if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.Title) continue;
+
+                  historyUpdated = {
+                    ...base,
+                    [gameIdStr]: { appId: gameIdStr, name: recentGame.Title, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "RA" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: recentGame.ImageBoxArt || recentGame.ImageTitle || recentGame.ImageIcon || existing?.raImageIcon }
+                  };
+                }
+
+                activeRaIdsRef.current = nextLiveIds;
+
+                if (historyUpdated) {
+                  const finalHistory = historyUpdated;
+                  setGameHistory(finalHistory);
+                  invoke("save_history", { data: JSON.stringify(finalHistory) }).catch(console.error);
+                }
               }
             } catch (e) {}
           }
@@ -578,14 +654,16 @@ function App() {
         let actualRunningAppIds = cachedRunningAppIdsRef.current;
         let steamId = cachedSteamIdRef.current;
 
-        if (activeRaIdRef.current && !actualRunningAppIds.includes(activeRaIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activeRaIdRef.current];
+        for (const liveRaId of activeRaIdsRef.current) {
+          if (!actualRunningAppIds.includes(liveRaId)) actualRunningAppIds = [...actualRunningAppIds, liveRaId];
+        }
         if (activeXboxIdRef.current && !actualRunningAppIds.includes(activeXboxIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activeXboxIdRef.current];
         if (activePsnIdRef.current && !actualRunningAppIds.includes(activePsnIdRef.current)) actualRunningAppIds = [...actualRunningAppIds, activePsnIdRef.current];
 
         setRunningAppIds(actualRunningAppIds);
 
-        const prevSet = new Set(prevRunningAppIdsRef.current);
-        const newlyLaunched = actualRunningAppIds.filter(id => !prevSet.has(id));
+        const prevGroupSet = new Set(prevRunningAppIdsRef.current.map(getGroupKey));
+        const newlyLaunched = actualRunningAppIds.filter(id => !prevGroupSet.has(getGroupKey(id)));
 
         if (newlyLaunched.length > 0) {
           const newestId = newlyLaunched[newlyLaunched.length - 1];
@@ -961,6 +1039,181 @@ function App() {
     return () => clearInterval(interval);
   }, [appState]);
 
+  const fetchAchievementsForAppId = async (appId: string): Promise<MergedAchievement[]> => {
+    const ra = raCredsRef.current;
+    const xbox = xboxCredsRef.current;
+    const psn = psnCredsRef.current;
+    const key = apiKeyRef.current;
+    const steamId = cachedSteamIdRef.current;
+    const isRA = appId.startsWith("RA_");
+    const isXbox = appId.startsWith("XBOX_");
+    const isPSN = appId.startsWith("PSN_");
+    const currentLang = settingsRef.current.language || "en";
+    const steamLang = STEAM_LANG_MAP[currentLang] || "english";
+    const gameEdits = allLocalEditsRef.current[appId] || {};
+
+    if (!communityDbCacheRef.current[appId]) {
+      try {
+        const dbUrl = `${GITHUB_DB_BASE_URL}/${appId}.json?t=${Date.now()}`;
+        const dbRes = await fetch(dbUrl);
+        if (dbRes && dbRes.ok) {
+          const communityData = await dbRes.json();
+          let cDb = [], cLinks = [], cChapters = [];
+          if (Array.isArray(communityData)) { cDb = communityData; }
+          else { cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; cLinks = Array.isArray(communityData.links) ? communityData.links : []; cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; }
+          communityDbCacheRef.current[appId] = { db: cDb, links: cLinks, chapters: cChapters };
+        } else {
+          communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] };
+        }
+      } catch { communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] }; }
+    }
+    const cData = communityDbCacheRef.current[appId] || { db: [], links: [], chapters: [] };
+
+    let merged: MergedAchievement[] = [];
+
+    if (isRA) {
+      const pureId = appId.replace("RA_", "");
+      const raGameStr = await invoke<string>("get_ra_achievements", { user: ra.user, apiKey: ra.key, gameId: pureId });
+      const raData = safeParseJSON(raGameStr, {});
+      const raAch = Object.values(raData.Achievements || {}) as any[];
+      const totalPlayers = Math.max(Number(raData.NumDistinctPlayersCasual || raData.NumDistinctPlayers || raData.NumPlayers || 1), 1);
+
+      merged = raAch.map(a => {
+        const apiname = a.ID.toString();
+        const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
+        const localEdit = gameEdits[apiname] || {};
+        const rawType = a.type || a.Type || "";
+        const isOfficialMissable = typeof rawType === "string" && rawType.toLowerCase() === "missable";
+        const calcPercent = (Number(a.NumAwarded || 0) / totalPlayers) * 100;
+        return {
+          apiname, display_name: communityAch.display_name || a.Title, description: communityAch.description || a.Description,
+          icon: `https://media.retroachievements.org/Badge/${a.BadgeName}.png`, icongray: `https://media.retroachievements.org/Badge/${a.BadgeName}_lock.png`,
+          unlocked: !!a.DateEarned, is_official_missable: isOfficialMissable,
+          is_missable: isOfficialMissable ? true : (localEdit.is_missable ?? communityAch.is_missable ?? false),
+          is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false, chapter: localEdit.chapter ?? communityAch.chapter ?? "",
+          hint: localEdit.hint ?? communityAch.hint ?? "", video_url: localEdit.video_url ?? communityAch.video_url ?? "",
+          notes: localEdit.notes || "", globalPercent: Math.min(calcPercent, 100),
+          ra_points: a.Points != null ? Number(a.Points) : undefined, ra_trueratio: a.TrueRatio != null ? Number(a.TrueRatio) : undefined,
+          ra_type: typeof rawType === "string" && rawType ? rawType.toLowerCase() : undefined,
+          requires: localEdit.requires ?? communityAch.requires ?? [],
+        };
+      });
+    } else if (isXbox) {
+      const pureId = appId.replace("XBOX_", "");
+      const xboxGameStr = await invoke<string>("get_xbox_achievements", { apiKey: xbox.apiKey, xuid: xbox.xuid, titleId: pureId });
+      const xboxData = unwrapXboxData(safeParseJSON(xboxGameStr, {}));
+      const xboxAch = Array.isArray(xboxData.achievements) ? xboxData.achievements : [];
+
+      merged = xboxAch.map((a: any) => {
+        const apiname = (a.id ?? a.achievementId ?? "").toString();
+        const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
+        const localEdit = gameEdits[apiname] || {};
+        const isUnlocked = a.progressState === "Achieved" || a.unlocked === true;
+        const icon = Array.isArray(a.mediaAssets) ? a.mediaAssets.find((m: any) => m.type === "Icon")?.url : undefined;
+        const rarityPct = a.rarity?.currentPercentage ?? a.progression?.requirements?.[0]?.rarity?.currentPercentage;
+        const baseDesc = isUnlocked ? a.description : (a.lockedDescription || a.description);
+        return {
+          apiname, display_name: communityAch.display_name || a.name, description: communityAch.description || baseDesc,
+          icon: icon || "", icongray: icon || "", unlocked: isUnlocked,
+          is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false,
+          chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
+          video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
+          globalPercent: typeof rarityPct === "number" ? rarityPct : undefined,
+          xbox_gamerscore: a.rewards?.find((r: any) => r.type === "Gamerscore")?.value != null ? Number(a.rewards.find((r: any) => r.type === "Gamerscore").value) : undefined,
+          requires: localEdit.requires ?? communityAch.requires ?? [],
+        };
+      }).filter((a: MergedAchievement) => a.apiname);
+    } else if (isPSN) {
+      const pureId = appId.replace("PSN_", "");
+      const psnDataStr = await invoke<string>("get_psn_trophies", { accessToken: psn.accessToken, accountId: psn.accountId, npCommunicationId: pureId });
+      const psnData = safeParseJSON(psnDataStr, { schema: { trophies: [] }, progress: { trophies: [] } });
+      if (psnData.error === "INVALID_TOKEN") return [];
+
+      const schemaAchs = Array.isArray(psnData.schema.trophies) ? psnData.schema.trophies : [];
+      const progAchs = Array.isArray(psnData.progress.trophies) ? psnData.progress.trophies : [];
+
+      merged = schemaAchs.map((a: any) => {
+        const apiname = (a.trophyId ?? "").toString();
+        const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
+        const localEdit = gameEdits[apiname] || {};
+        const prog = progAchs.find((p: any) => p.trophyId === a.trophyId) || {};
+        const isUnlocked = prog.earned === true;
+        const rarityPct = prog.trophyEarnedRate ? Number(prog.trophyEarnedRate) : undefined;
+        return {
+          apiname, display_name: communityAch.display_name || a.trophyName, description: communityAch.description || a.trophyDetail,
+          icon: a.trophyIconUrl || "", icongray: a.trophyIconUrl || "", unlocked: isUnlocked,
+          is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? (a.trophyHidden || false),
+          chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
+          video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
+          globalPercent: rarityPct, requires: localEdit.requires ?? communityAch.requires ?? [],
+        };
+      }).filter((a: MergedAchievement) => a.apiname);
+    } else {
+      if (!schemaCacheRef.current[appId]) {
+        try {
+          const [schemaRes, pctRes] = await Promise.all([
+            invoke<string>("get_game_schema", { appId, apiKey: key, lang: steamLang }),
+            invoke<string>("get_global_achievement_percentages", { appId })
+          ]);
+          const parsedSchema = safeParseJSON(schemaRes);
+          let newSchema = [{ appIdMarker: appId }];
+          if (parsedSchema.game) { const achs = parsedSchema.game?.availableGameStats?.achievements || []; newSchema = [{ appIdMarker: appId }, ...achs]; }
+          schemaCacheRef.current[appId] = newSchema;
+
+          const parsedPct = safeParseJSON(pctRes);
+          const pctMap = new Map<string, number>();
+          if (parsedPct.achievementpercentages?.achievements) { for (const a of parsedPct.achievementpercentages.achievements) { pctMap.set(a.name, Number(a.percent)); } }
+          percentagesCacheRef.current[appId] = pctMap;
+        } catch { schemaCacheRef.current[appId] = [{ appIdMarker: appId }]; }
+      }
+
+      const achRes = await invoke<string>("get_achievements", { steamId, appId, apiKey: key, lang: steamLang });
+      const liveData = safeParseJSON(achRes);
+      const currentSchema = schemaCacheRef.current[appId] || [];
+      const currentPcts = percentagesCacheRef.current[appId] || new Map();
+      const playerAchievements = liveData.playerstats?.achievements || [];
+
+      merged = currentSchema.map((schemaAch) => {
+        if (schemaAch.appIdMarker) return schemaAch;
+        const liveAch = playerAchievements.find((a: any) => a.apiname === schemaAch.name);
+        const communityAch = cData.db.find((m: any) => m.apiname === schemaAch.name) || {};
+        const localEdit = gameEdits[schemaAch.name] || {};
+        return {
+          apiname: schemaAch.name, display_name: schemaAch.displayName || communityAch.display_name, description: schemaAch.description || communityAch.description,
+          icon: schemaAch.icon, icongray: schemaAch.icongray, unlocked: liveAch ? liveAch.achieved === 1 : false,
+          is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false,
+          chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
+          video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
+          globalPercent: currentPcts.get(schemaAch.name), requires: localEdit.requires ?? communityAch.requires ?? [],
+        };
+      }).filter(a => a.apiname);
+    }
+
+    return merged.filter(a => a.apiname);
+  };
+
+  useEffect(() => {
+    if (!selectedAppId) return;
+    const group = getGroupAppIds(selectedAppId);
+    if (group.length <= 1) return;
+    const siblings = group.filter(id => id !== selectedAppId);
+    let cancelled = false;
+
+    (async () => {
+      for (const sib of siblings) {
+        try {
+          const merged = await fetchAchievementsForAppId(sib);
+          if (cancelled) return;
+          achievementsCacheRef.current[sib] = merged;
+          updateHistorySafely(sib, gameHistoryRef.current[sib]?.name || sib, merged, sib.startsWith("RA_"));
+          setGroupFetchTick(t => t + 1);
+        } catch {}
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [selectedAppId, gameLinks]);
+
   const resolvePlatform = (appId: string): GameHistory["platform"] => {
     if (appId.startsWith("RA_")) return "RA";
     if (appId.startsWith("XBOX_")) return "XBOX";
@@ -1023,14 +1276,15 @@ function App() {
 
     const savedSort = settingsRef.current.gameSortOrders?.[id];
     setSortOrder(savedSort ?? "DEFAULT");
+    setSelectedSetFilter("ALL");
     saveSettings({ ...settingsRef.current, lastSelectedTab: id });
     
     lastNetworkFetchRef.current = 0; lastXboxNetworkFetchRef.current = 0;
     tickRef.current({ forceTabSwitch: true });
   };
   
-  const handleToggleTrack = async (apiname: string) => { 
-    const appId = selectedAppIdRef.current; if (!appId) return; 
+  const handleToggleTrack = async (apiname: string, sourceAppId?: string) => { 
+    const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; 
     setTrackedData(prev => { 
       const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {}; 
       const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : []; 
@@ -1042,15 +1296,21 @@ function App() {
     }); 
   };
   
-const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => { 
-  const appId = selectedAppIdRef.current; if (!appId) return; 
+const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceAppId?: string) => { 
+  const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; 
   const gameEdits = allLocalEditsRef.current[appId] || {}; 
   const updatedGameEdits = { ...gameEdits, [apiname]: { ...(gameEdits[apiname] || {}), [field]: value } }; 
   const newAllEdits = { ...allLocalEditsRef.current, [appId]: updatedGameEdits }; 
   
   setAllLocalEdits(newAllEdits); 
   allLocalEditsRef.current = newAllEdits; 
-  setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a)); 
+
+  if (appId === selectedAppIdRef.current) {
+    setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a)); 
+  } else {
+    achievementsCacheRef.current[appId] = (achievementsCacheRef.current[appId] || []).map(a => a.apiname === apiname ? { ...a, [field]: value } : a);
+    setGroupFetchTick(t => t + 1);
+  }
 
   if (saveEditsTimeoutRef.current) window.clearTimeout(saveEditsTimeoutRef.current);
   saveEditsTimeoutRef.current = window.setTimeout(() => {
@@ -1059,14 +1319,16 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
 };
 
   const currentGameChapters = useMemo(() => {
-    const local = allLocalChapters[selectedAppId];
+    const groupKey = getGroupKey(selectedAppId);
+    const local = allLocalChapters[groupKey];
     if (Array.isArray(local) && local.length > 0) return local;
     return communityDbCacheRef.current[selectedAppId]?.chapters ?? [];
-  }, [allLocalChapters, selectedAppId, hasCommunityDb]);
+  }, [allLocalChapters, selectedAppId, hasCommunityDb, gameLinks]);
 
   const saveGameChapters = async (newChapters: string[]) => {
     if (!selectedAppId) return;
-    const updated = { ...allLocalChapters, [selectedAppId]: newChapters };
+    const groupKey = getGroupKey(selectedAppId);
+    const updated = { ...allLocalChapters, [groupKey]: newChapters };
     setAllLocalChapters(updated);
     await invoke("save_chapters", { data: JSON.stringify(updated) }).catch(console.error);
   };
@@ -1142,8 +1404,29 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
   };
 
   const currentGameTracked = useMemo(() => Array.isArray(trackedData[selectedAppId]) ? trackedData[selectedAppId] : [], [trackedData, selectedAppId]);
-  
-  const chapterCounts = useMemo(() => { const counts: Record<string, number> = {}; achievements.forEach(a => { const c = a.chapter?.trim() || "No Chapter"; counts[c] = (counts[c] || 0) + 1; }); return counts; }, [achievements]);
+
+  const displayedAchievements: MergedAchievement[] = useMemo(() => {
+    const group = getGroupAppIds(selectedAppId);
+    if (group.length <= 1) return achievements.map(a => ({ ...a, _appId: selectedAppId }));
+    return group.flatMap(id => {
+      const list = id === selectedAppId ? achievements : (achievementsCacheRef.current[id] || []);
+      const setName = gameHistory[id]?.name;
+      return list.map(a => ({ ...a, _appId: id, _setName: setName }));
+    });
+  }, [achievements, selectedAppId, gameLinks, gameHistory, groupFetchTick]);
+
+  const isAchievementTracked = (ach: MergedAchievement) => {
+    const appId = ach._appId || selectedAppId;
+    const list = trackedData[appId];
+    return Array.isArray(list) && list.includes(ach.apiname);
+  };
+
+  const isAchievementHintHidden = (ach: MergedAchievement) => {
+    const appId = ach._appId || selectedAppId;
+    return (settings.hiddenHints[appId] || []).includes(ach.apiname);
+  };
+
+  const chapterCounts = useMemo(() => { const counts: Record<string, number> = {}; displayedAchievements.forEach(a => { const c = a.chapter?.trim() || "No Chapter"; counts[c] = (counts[c] || 0) + 1; }); return counts; }, [displayedAchievements]);
 
   const allKnownChaptersForDropdown = useMemo(() => {
     const list = [...currentGameChapters];
@@ -1151,21 +1434,23 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
     return list;
   }, [currentGameChapters, chapterCounts]);
   
-  const totalAch = achievements.length; const unlockedAch = achievements.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch; 
-  const trackedAchCount = achievements.filter(a => currentGameTracked.includes(a.apiname)).length;
-  const missableAchCount = achievements.filter(a => a.is_missable && !a.unlocked).length;
-  const spoilerAchCount = achievements.filter(a => a.is_spoiler).length;
+  const totalAch = displayedAchievements.length; const unlockedAch = displayedAchievements.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch; 
+  const trackedAchCount = displayedAchievements.filter(a => isAchievementTracked(a)).length;
+  const missableAchCount = displayedAchievements.filter(a => a.is_missable && !a.unlocked).length;
+  const spoilerAchCount = displayedAchievements.filter(a => a.is_spoiler).length;
 
   const missableAlertAchs = useMemo(() => {
-    if (!runningAppIds.includes(selectedAppId)) return [];
+    if (!runningAppIds.includes(selectedAppId) && !getGroupAppIds(selectedAppId).some(id => runningAppIds.includes(id))) return [];
     if (selectedChapter === "ALL") return [];
-    return achievements.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
-  }, [achievements, runningAppIds, selectedAppId, selectedChapter]);
+    return displayedAchievements.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
+  }, [displayedAchievements, runningAppIds, selectedAppId, selectedChapter, gameLinks]);
   
   const filteredAchievements = useMemo(() => {
-    let result = achievements.filter(ach => {
-      const isTracked = currentGameTracked.includes(ach.apiname);
+    let result = displayedAchievements.filter(ach => {
+      const isTracked = isAchievementTracked(ach);
       const achChapter = ach.chapter?.trim() || "No Chapter";
+
+      if (selectedSetFilter !== "ALL" && ach._appId !== selectedSetFilter) return false;
 
       if (selectedChapter !== "ALL" && achChapter !== selectedChapter) {
         return false;
@@ -1208,7 +1493,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
       });
     }
     return result;
-  }, [achievements, currentGameTracked, filter, selectedChapter, searchQuery, sortOrder, guidedMode, currentGameChapters]);
+  }, [displayedAchievements, trackedData, filter, selectedChapter, selectedSetFilter, searchQuery, sortOrder, guidedMode, currentGameChapters]);
 
   const currentGameLinks = userLinks.filter(l => l.appId === selectedAppId);
   const hiddenHintsForGame = settings.hiddenHints[selectedAppId] || [];
@@ -1293,6 +1578,16 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
         }}
       />
 
+      <GameLinkModal
+        isOpen={!!linkModalForAppId}
+        appId={linkModalForAppId || ""}
+        gameHistory={gameHistory}
+        currentLink={linkModalForAppId ? linkForAppId(linkModalForAppId) : null}
+        onLink={(otherAppId) => { if (linkModalForAppId) handleCreateGameLink(linkModalForAppId, otherAppId); setLinkModalForAppId(null); }}
+        onUnlink={() => { if (linkModalForAppId) handleUnlinkGame(linkModalForAppId); setLinkModalForAppId(null); }}
+        onClose={() => setLinkModalForAppId(null)}
+      />
+
       {!isMiniMode && (
         <div className="game-tabs-bar-outer">
             <button className={`game-tab ${!selectedAppId ? "active" : ""}`} onClick={() => handleSelectTab("")}>
@@ -1303,21 +1598,37 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
             <button className="tabs-scroll-btn tabs-scroll-btn--left" onClick={() => scrollTabsBy(-1)} aria-label="Scroll tabs left">‹</button>
           )}
           <div className="game-tabs-bar" ref={tabsBarRef} onScroll={updateTabsScrollState}>
-            {Object.entries(gameHistory)
-              .sort(([, a], [, b]) => b.lastPlayed - a.lastPlayed)
-              .map(([dictKey, game]) => {
-                const safeAppId = game.appId || dictKey; 
-                return (
-                  <div key={dictKey} className={`game-tab-wrapper ${selectedAppId === safeAppId ? "active" : ""}`}>
-                    <button className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
-                      {runningAppIds.includes(safeAppId) && <span className="live-dot" title="Game is currently running"></span>}
-                      <PlatformIcon platform={game.platform} size={16}/>
-                      {game.name}
-                    </button>
-                    <button className="game-tab-remove" title={runningAppIds.includes(safeAppId) ? "Can't remove a game that's currently running" : `Remove "${game.name}" from history`} disabled={runningAppIds.includes(safeAppId)} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
-                  </div>
-                );
-            })}
+            {(() => {
+              const seenGroups = new Set<string>();
+              return Object.entries(gameHistory)
+                .sort(([, a], [, b]) => b.lastPlayed - a.lastPlayed)
+                .filter(([dictKey, game]) => {
+                  const safeAppId = game.appId || dictKey;
+                  const groupKey = getGroupKey(safeAppId);
+                  if (seenGroups.has(groupKey)) return false;
+                  seenGroups.add(groupKey);
+                  return true;
+                })
+                .map(([dictKey, game]) => {
+                  const safeAppId = game.appId || dictKey;
+                  const link = linkForAppId(safeAppId);
+                  const isGrouped = !!link && link.appIds.length > 1;
+                  const groupTabName = isGrouped ? (link!.name || game.name) : game.name;
+                  const isGroupLive = isGrouped ? link!.appIds.some(id => runningAppIds.includes(id)) : runningAppIds.includes(safeAppId);
+                  const isGroupRunning = isGrouped ? link!.appIds.some(id => runningAppIds.includes(id)) : runningAppIds.includes(safeAppId);
+                  return (
+                    <div key={dictKey} className={`game-tab-wrapper ${selectedAppId === safeAppId ? "active" : ""}`}>
+                      <button className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
+                        {isGroupLive && <span className="live-dot" title="Game is currently running"></span>}
+                        <PlatformIcon platform={game.platform} size={16}/>
+                        {groupTabName}
+                        {isGrouped && <span title={`Linked set: ${link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ")}`} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
+                      </button>
+                      <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
+                    </div>
+                  );
+              });
+            })()}
           </div>
           {tabsCanScrollRight && (
             <button className="tabs-scroll-btn tabs-scroll-btn--right" onClick={() => scrollTabsBy(1)} aria-label="Scroll tabs right">›</button>
@@ -1389,7 +1700,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
               <p className="game-label" style={{ borderColor: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : isSelectedGamePSN ? "#00439c" : "var(--border-color)", color: isSelectedGameRA ? "#f59e0b" : isSelectedGameXbox ? "#107c10" : isSelectedGamePSN ? "#00439c" : "var(--text-muted)" }}>
                 {isSelectedGameRA ? "RetroAchievements" : isSelectedGameXbox ? "Xbox Live" : isSelectedGamePSN ? "PlayStation Network" : (isSelectedGameLive ? t("status.live") : t("status.offline"))}
               </p>
-              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+              <div className="game-name-wrapper">
                 <h1 className="game-title" style={{ marginTop: 4 }}>{gameName}</h1>
                 {!isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN && hasCommunityDb !== null && (
                   hasCommunityDb ? (
@@ -1402,6 +1713,19 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
                     </span>
                   )
                 )}
+                {isSelectedGameRA && (() => {
+                  const currentLink = linkForAppId(selectedAppId);
+                  const isGrouped = !!currentLink && currentLink.appIds.length > 1;
+                  return (
+                    <button
+                      className={`game-link-header-btn${isGrouped ? " linked" : ""}`}
+                      title={isGrouped ? "Manage linked RetroAchievements sets" : "Link with another RetroAchievements set"}
+                      onClick={() => setLinkModalForAppId(selectedAppId)}
+                    >
+                      🔗 {isGrouped ? "Linked Set" : "Link Set"}
+                    </button>
+                  );
+                })()}
               </div>
             </div>
             <div className="header-right">
@@ -1573,6 +1897,17 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
                 </div>
               )}
 
+              {getGroupAppIds(selectedAppId).length > 1 && (
+                <div className="filter-btns" style={{ marginBottom: "8px" }}>
+                  <button className={`filter-btn ${selectedSetFilter === "ALL" ? "active" : ""}`} onClick={() => setSelectedSetFilter("ALL")}>All Sets</button>
+                  {getGroupAppIds(selectedAppId).map(id => (
+                    <button key={id} className={`filter-btn ${selectedSetFilter === id ? "active" : ""}`} onClick={() => setSelectedSetFilter(id)}>
+                      {gameHistory[id]?.name || id}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="controls-container">
                 <div className="filter-bar">
                   <div className="filter-btns">
@@ -1627,17 +1962,17 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
               <div className="achievement-list">
                 {filteredAchievements.map((ach) => (
                   <AchievementCard 
-                    key={ach.apiname}
+                    key={`${ach._appId || selectedAppId}-${ach.apiname}`}
                     ach={ach}
-                    achievements={achievements}
-                    isTracked={currentGameTracked.includes(ach.apiname)}
-                    isHintHidden={hiddenHintsForGame.includes(ach.apiname)}
+                    achievements={displayedAchievements}
+                    isTracked={isAchievementTracked(ach)}
+                    isHintHidden={isAchievementHintHidden(ach)}
                     editMode={editMode}
-                    localOrOfficialEditData={allLocalEdits[selectedAppId]?.[ach.apiname] || {}}
+                    localOrOfficialEditData={allLocalEdits[ach._appId || selectedAppId]?.[ach.apiname] || {}}
                     allKnownChaptersForDropdown={allKnownChaptersForDropdown}
-                    handleToggleTrack={handleToggleTrack}
-                    handleToggleHint={handleToggleHint}
-                    handleEdit={handleEdit}
+                    handleToggleTrack={(apiname) => handleToggleTrack(apiname, ach._appId)}
+                    handleToggleHint={(apiname) => handleToggleHint(apiname, ach._appId)}
+                    handleEdit={(apiname, field, value) => handleEdit(apiname, field, value, ach._appId)}
                     t={t}
                   />
                 ))}
@@ -1650,7 +1985,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
                     </div>
                   : <p className="empty-state">Loading Achievements...</p>
               )}
-              {achievements.length > 0 && filteredAchievements.length === 0 && <p className="empty-state">No achievements match your filters.</p>}
+              {displayedAchievements.length > 0 && filteredAchievements.length === 0 && <p className="empty-state">No achievements match your filters.</p>}
             </>
           )}
 

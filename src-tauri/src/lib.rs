@@ -1034,6 +1034,17 @@ fn save_checklist_progress(app_handle: tauri::AppHandle, data: String) -> Result
     write_json_atomic(&path, &data)
 }
 
+#[tauri::command]
+fn load_game_links(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = get_data_path(&app_handle, "game_links.json")?;
+    Ok(read_json_with_fallback(&path))
+}
+#[tauri::command]
+fn save_game_links(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let path = get_data_path(&app_handle, "game_links.json")?;
+    write_json_atomic(&path, &data)
+}
+
 // --- Entry Point ---
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -1116,7 +1127,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
