@@ -758,7 +758,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 20px 14px 14px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -2823,148 +2823,27 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 /* ============================================================
    CUSTOM CHECKLISTS
    ============================================================ */
+
 .checklists-layout {
   display: flex;
   gap: 20px;
   align-items: flex-start;
 }
 
+/* --- Sidebar: checklist switcher --- */
+
 .checklists-sidebar {
-  width: 240px;
+  width: 250px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.checklist-tab-btn {
-  background: var(--card-bg);
+  gap: 6px;
+  background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  text-align: left;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  border-radius: var(--radius-lg);
+  padding: 10px;
+  box-shadow: var(--shadow-card);
 }
-
-.checklist-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-}
-
-.checklist-tab-btn.active {
-  background: rgba(52, 211, 153, 0.1);
-  border-color: var(--accent-green);
-  color: var(--accent-green);
-}
-
-.checklists-content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Checklist Item Card */
-.cl-item-card {
-  display: flex;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  gap: 16px;
-  transition: border-color var(--transition), opacity var(--transition);
-}
-
-.cl-item-card.completed {
-  opacity: 0.6;
-  background: rgba(52, 211, 153, 0.04);
-  border-color: rgba(52, 211, 153, 0.2);
-}
-
-.cl-item-checkbox {
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.cl-item-checkbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--accent-green);
-  cursor: pointer;
-}
-
-.cl-item-img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(0,0,0,0.5);
-  background: #111;
-  flex-shrink: 0;
-}
-
-.cl-item-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.cl-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 6px;
-}
-
-.cl-item-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin: 0;
-}
-
-.cl-item-card.completed .cl-item-title {
-  text-decoration: line-through;
-  color: var(--accent-green);
-}
-
-.cl-item-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin-bottom: 10px;
-}
-
-.cl-item-actions {
-  margin-top: auto;
-  display: flex;
-  gap: 8px;
-}
-
-/* Form Styles */
-.cl-form-container {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px dashed var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-/* ============================================================
-   CHECKLISTS
-   ============================================================ */
 
 .checklist-sidebar-item {
   position: relative;
@@ -2972,10 +2851,49 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 
 .checklist-tab-btn {
   width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 9px 50px 9px 13px;
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+  display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
-  padding: 8px 44px 8px 14px;
+  gap: 7px;
+  position: relative;
+  overflow: hidden;
+}
+
+.checklist-tab-btn::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 3px;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color var(--transition);
+}
+
+.checklist-tab-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.checklist-tab-btn.active {
+  background-color: rgba(52, 211, 153, 0.09);
+  border-color: rgba(52, 211, 153, 0.25);
+  color: var(--accent-green);
+}
+
+.checklist-tab-btn.active::before {
+  background-color: var(--accent-green);
 }
 
 .checklist-tab-btn-row {
@@ -2986,33 +2904,38 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .checklist-tab-count {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  font-weight: 700;
   color: var(--text-muted);
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 1px 7px;
+  border-radius: 999px;
   flex-shrink: 0;
 }
 
 .checklist-tab-btn.active .checklist-tab-count {
   color: var(--accent-green);
+  background-color: rgba(52, 211, 153, 0.16);
 }
 
 .checklist-tab-progress-track {
   height: 4px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.08);
   overflow: hidden;
 }
 
 .checklist-tab-progress-fill {
   height: 100%;
-  background: var(--accent-green);
   border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent-green), color-mix(in srgb, var(--accent-green) 65%, var(--accent-yellow)));
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .checklist-tab-actions {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 7px;
+  right: 7px;
   display: flex;
   gap: 2px;
   opacity: 0;
@@ -3027,15 +2950,32 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 .checklist-tab-actions .icon-btn {
   width: 22px;
   height: 22px;
+  background-color: var(--card-bg);
 }
 
-/* --- Content header: title, progress bar, toolbar --- */
+.checklists-sidebar .add-link-form {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+
+/* --- Content: header, progress, toolbar --- */
+
+.checklists-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .checklist-header {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .checklist-header-top {
@@ -3047,15 +2987,16 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .checklist-title-input {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: var(--accent-green);
+  color: var(--text-main);
   background: none;
   border: none;
   border-bottom: 1px dashed transparent;
   padding: 2px 0;
   min-width: 80px;
   font-family: inherit;
+  border-radius: 0;
 }
 
 .checklist-title-input:hover,
@@ -3070,7 +3011,8 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .checklist-progress-summary strong {
-  color: var(--text-main);
+  color: var(--accent-green);
+  font-size: 0.95rem;
 }
 
 .checklist-toolbar {
@@ -3087,30 +3029,74 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .checklist-category-count {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  font-weight: 700;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.06);
-  padding: 1px 7px;
+  background-color: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
   border-radius: 999px;
   margin-left: 8px;
 }
 
-/* --- Item cards: numbering, hover actions, location, placeholders --- */
+/* --- Item add/edit form --- */
+
+.cl-form-container {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+  transition: border-color var(--transition);
+  animation: fadeIn 0.15s ease;
+}
+
+.cl-form-container:focus-within {
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+/* --- Item cards --- */
 
 .cl-item-card {
   position: relative;
+  display: flex;
   align-items: flex-start;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  gap: 14px;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition), opacity var(--transition);
+}
+
+.cl-item-card:hover {
+  border-color: color-mix(in srgb, var(--accent-green) 35%, var(--border-color));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.cl-item-card.completed {
+  opacity: 0.62;
+  background-color: rgba(52, 211, 153, 0.05);
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.cl-item-card.completed:hover {
+  transform: none;
 }
 
 .cl-item-number {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -3119,9 +3105,66 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .cl-item-card.completed .cl-item-number {
-  background: rgba(52, 211, 153, 0.15);
+  background-color: rgba(52, 211, 153, 0.16);
   border-color: rgba(52, 211, 153, 0.4);
   color: var(--accent-green);
+}
+
+/* Custom circular checkbox with checkmark */
+.cl-item-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cl-item-checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: border-color var(--transition), background-color var(--transition), transform 0.1s ease;
+}
+
+.cl-item-checkbox input[type="checkbox"]::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  background-color: #0b2e22;
+  transform: scale(0);
+  transition: transform 0.15s ease-in-out;
+}
+
+.cl-item-checkbox input[type="checkbox"]:hover {
+  border-color: var(--accent-green);
+}
+
+.cl-item-checkbox input[type="checkbox"]:checked {
+  background-color: var(--accent-green);
+  border-color: var(--accent-green);
+}
+
+.cl-item-checkbox input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.cl-item-checkbox input[type="checkbox"]:active {
+  transform: scale(0.9);
+}
+
+.cl-item-img,
+.cl-item-img--placeholder {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  background-color: #111;
 }
 
 .cl-item-img-wrapper {
@@ -3129,6 +3172,18 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   cursor: zoom-in;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition), border-color var(--transition);
+}
+
+.cl-item-img-wrapper:hover {
+  transform: scale(1.03);
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.cl-item-img-wrapper .cl-item-img {
+  border: none;
+  display: block;
 }
 
 .cl-item-img--placeholder {
@@ -3137,17 +3192,59 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   justify-content: center;
   color: var(--text-muted);
   border: 1px dashed var(--border-color);
-  background: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.cl-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cl-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.cl-item-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.cl-item-card.completed .cl-item-title {
+  text-decoration: line-through;
+  color: var(--accent-green);
 }
 
 .cl-item-location {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: var(--accent-yellow);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+}
+
+.cl-item-desc {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 3px 0 0;
+}
+
+.cl-item-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .cl-item-hover-actions {
@@ -3157,11 +3254,13 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   display: flex;
   gap: 4px;
   opacity: 0;
-  transition: opacity var(--transition);
+  transform: translateY(-2px);
+  transition: opacity var(--transition), transform var(--transition);
 }
 
 .cl-item-card:hover .cl-item-hover-actions {
   opacity: 1;
+  transform: translateY(0);
 }
 
 /* --- Lightbox for enlarged item images --- */
@@ -3169,7 +3268,7 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 .cl-lightbox-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3191,6 +3290,8 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   .checklist-tab-btn { white-space: normal; }
   .cl-item-card { flex-direction: column; }
   .cl-item-img,
-  .cl-item-img--placeholder { width: 100%; height: 160px; }
-  .cl-item-hover-actions { position: static; opacity: 1; justify-content: flex-end; width: 100%; }
+  .cl-item-img--placeholder,
+  .cl-item-img-wrapper { width: 100%; height: 160px; }
+  .cl-item-img-wrapper .cl-item-img { width: 100%; height: 160px; }
+  .cl-item-hover-actions { position: static; opacity: 1; transform: none; justify-content: flex-end; width: 100%; }
 }
