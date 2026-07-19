@@ -1,19 +1,69 @@
 // components/PsnReauthModal.tsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
 import { PSNIcon } from "./Icons";
 
+interface PsnCredsLike {
+  accessToken: string;
+  accountId: string;
+  npsso: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}
+
 interface PsnReauthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaved: (psn: { accessToken: string; accountId: string; npsso: string }) => void;
+  onSaved: (psn: PsnCredsLike) => void;
+  currentPsn?: PsnCredsLike;
 }
 
-export function PsnReauthModal({ isOpen, onClose, onSaved }: PsnReauthModalProps) {
+export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReauthModalProps) {
   const [npsso, setNpsso] = useState("");
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(false);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "trying" | "failed">("idle");
+  const attemptedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      attemptedRef.current = false;
+      setAutoStatus("idle");
+      return;
+    }
+    if (attemptedRef.current) return;
+    attemptedRef.current = true;
+
+    const refreshToken = currentPsn?.refreshToken;
+    if (!refreshToken) return;
+
+    setAutoStatus("trying");
+    (async () => {
+      try {
+        const authStr = await invoke<string>("refresh_psn_token", { refreshToken });
+        const parsedAuth = JSON.parse(authStr);
+        if (parsedAuth.accessToken && parsedAuth.accountId) {
+          const psnResult: PsnCredsLike = {
+            accessToken: parsedAuth.accessToken,
+            accountId: parsedAuth.accountId,
+            npsso: currentPsn?.npsso || "",
+            refreshToken: parsedAuth.refreshToken || refreshToken,
+            expiresAt: parsedAuth.expiresAt,
+          };
+          await invoke("save_psn_credentials", { data: JSON.stringify(psnResult) });
+          setAutoStatus("idle");
+          onSaved(psnResult);
+        } else {
+          setAutoStatus("failed");
+        }
+      } catch (e) {
+        console.warn("PSN silent refresh failed, falling back to manual reconnect:", e);
+        setAutoStatus("failed");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -28,7 +78,13 @@ export function PsnReauthModal({ isOpen, onClose, onSaved }: PsnReauthModalProps
       const authStr = await invoke<string>("authenticate_psn", { npsso: trimmed });
       const parsedAuth = JSON.parse(authStr);
       if (parsedAuth.accessToken && parsedAuth.accountId) {
-        const psnResult = { accessToken: parsedAuth.accessToken, accountId: parsedAuth.accountId, npsso: trimmed };
+        const psnResult: PsnCredsLike = {
+          accessToken: parsedAuth.accessToken,
+          accountId: parsedAuth.accountId,
+          npsso: trimmed,
+          refreshToken: parsedAuth.refreshToken,
+          expiresAt: parsedAuth.expiresAt,
+        };
         await invoke("save_psn_credentials", { data: JSON.stringify(psnResult) });
         setNpsso("");
         setIsValidating(false);
@@ -44,6 +100,28 @@ export function PsnReauthModal({ isOpen, onClose, onSaved }: PsnReauthModalProps
     }
   };
 
+  if (autoStatus === "trying") {
+    return (
+      <div className="confirm-dialog-overlay">
+        <div
+          className="confirm-dialog"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="psn-reauth-title"
+          style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}
+        >
+          <h3 id="psn-reauth-title" className="confirm-dialog-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <PSNIcon size={20} /> Reconnecting to PlayStation Network
+          </h3>
+          <p className="confirm-dialog-message" style={{ textAlign: "left" }}>
+            Trying to restore your session using your saved credentials — no need to log in again if this works.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="confirm-dialog-overlay" onClick={onClose}>
       <div
@@ -58,7 +136,9 @@ export function PsnReauthModal({ isOpen, onClose, onSaved }: PsnReauthModalProps
           <PSNIcon size={20} /> Reconnect PlayStation Network
         </h3>
         <p className="confirm-dialog-message" style={{ textAlign: "left" }}>
-          Your PSN session has expired. Log in to{" "}
+          {autoStatus === "failed"
+            ? "Your saved session couldn't be restored automatically, so you'll need to reconnect manually. Log in to"
+            : "Your PSN session has expired. Log in to"}{" "}
           <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
             PlayStation.com
           </a>, then open{" "}

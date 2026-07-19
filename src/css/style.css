@@ -3158,7 +3158,8 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 }
 
 .cl-item-img,
-.cl-item-img--placeholder {
+.cl-item-img--placeholder,
+video.cl-item-img {
   width: 84px;
   height: 84px;
   object-fit: cover;
@@ -3277,7 +3278,8 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   animation: fadeIn 0.12s ease;
 }
 
-.cl-lightbox-overlay img {
+.cl-lightbox-overlay img,
+.cl-lightbox-overlay video {
   max-width: 90vw;
   max-height: 90vh;
   border-radius: var(--radius-md);

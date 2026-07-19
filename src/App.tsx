@@ -45,7 +45,7 @@ function App() {
   const [apiKey, setApiKey] = useState<string>("");
   const [raCreds, setRaCreds] = useState<{ user: string; key: string }>({ user: "", key: "" });
   const [xboxCreds, setXboxCreds] = useState<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
-  const [psnCreds, setPsnCreds] = useState<{ accessToken: string; accountId: string; npsso: string }>({ accessToken: "", accountId: "", npsso: "" });
+  const [psnCreds, setPsnCreds] = useState<{ accessToken: string; accountId: string; npsso: string; refreshToken?: string; expiresAt?: number }>({ accessToken: "", accountId: "", npsso: "" });
 
   const [gameName, setGameName] = useState("Loading...");
   const [achievements, setAchievements] = useState<MergedAchievement[]>([]);
@@ -124,7 +124,7 @@ function App() {
   const apiKeyRef = useRef<string>("");
   const raCredsRef = useRef<{ user: string; key: string }>({ user: "", key: "" });
   const xboxCredsRef = useRef<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
-  const psnCredsRef = useRef<{ accessToken: string; accountId: string; npsso: string }>({ accessToken: "", accountId: "", npsso: "" });
+  const psnCredsRef = useRef<{ accessToken: string; accountId: string; npsso: string; refreshToken?: string; expiresAt?: number }>({ accessToken: "", accountId: "", npsso: "" });
   const selectedAppIdRef = useRef<string>("");
   const prevRunningAppIdsRef = useRef<string[]>([]);
   const gameNameRef = useRef<string>("Unknown Game");
@@ -283,7 +283,13 @@ function App() {
         xboxCredsRef.current = parsedXbox;
 
         const rawPsn = safeParseJSON(savedPsn, {});
-        const parsedPsn = { accessToken: rawPsn.accessToken || "", accountId: rawPsn.accountId || "", npsso: rawPsn.npsso || "" };
+        const parsedPsn = {
+          accessToken: rawPsn.accessToken || "",
+          accountId: rawPsn.accountId || "",
+          npsso: rawPsn.npsso || "",
+          refreshToken: rawPsn.refreshToken || undefined,
+          expiresAt: rawPsn.expiresAt || undefined,
+        };
         setPsnCreds(parsedPsn);
         psnCredsRef.current = parsedPsn;
 
@@ -1275,6 +1281,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any) => {
 
       <PsnReauthModal
         isOpen={showPsnReauthModal}
+        currentPsn={psnCreds}
         onClose={() => setShowPsnReauthModal(false)}
         onSaved={(psn) => {
           setPsnCreds(psn);

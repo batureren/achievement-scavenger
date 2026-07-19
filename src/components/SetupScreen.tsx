@@ -4,12 +4,14 @@ import { open } from "@tauri-apps/plugin-shell";
 import { unwrapXboxData } from "../utils";
 import { SteamIcon, RAIcon, XboxIcon, PSNIcon } from "./Icons";
 
+interface PsnSetupResult { accessToken: string; accountId: string; npsso: string; refreshToken?: string; expiresAt?: number; }
+
 interface SetupScreenProps {
-  onKeySaved: (k: string, ra: {user: string, key: string}, xbox: {apiKey: string, xuid: string, gamertag: string}, psn: {accessToken: string, accountId: string, npsso: string}) => void;
+  onKeySaved: (k: string, ra: {user: string, key: string}, xbox: {apiKey: string, xuid: string, gamertag: string}, psn: PsnSetupResult) => void;
   currentKey: string;
   currentRa: {user: string, key: string};
   currentXbox: {apiKey: string, xuid: string, gamertag: string};
-  currentPsn?: {accessToken: string, accountId: string, npsso: string};
+  currentPsn?: PsnSetupResult;
 }
 
 export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, currentPsn }: SetupScreenProps) {
@@ -62,12 +64,12 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, cu
         await invoke("save_xbox_credentials", { data: JSON.stringify(xboxResult) });
       }
 
-      let psnResult = { accessToken: "", accountId: "", npsso: "" };
+      let psnResult: PsnSetupResult = { accessToken: "", accountId: "", npsso: "" };
       if (trimmedNpsso) {
         const authStr = await invoke<string>("authenticate_psn", { npsso: trimmedNpsso });
         const parsedAuth = JSON.parse(authStr);
         if (parsedAuth.accessToken && parsedAuth.accountId) {
-          psnResult = { accessToken: parsedAuth.accessToken, accountId: parsedAuth.accountId, npsso: trimmedNpsso };
+          psnResult = { accessToken: parsedAuth.accessToken, accountId: parsedAuth.accountId, npsso: trimmedNpsso, refreshToken: parsedAuth.refreshToken, expiresAt: parsedAuth.expiresAt };
           await invoke("save_psn_credentials", { data: JSON.stringify(psnResult) });
         } else {
           setError("Failed to verify NPSSO token.");

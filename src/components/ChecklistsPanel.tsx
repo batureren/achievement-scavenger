@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import { CustomChecklist, ChecklistItem } from "../types";
-import { getYouTubeEmbedUrl, renderHintWithLinks } from "../utils";
+import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface ChecklistsPanelProps {
@@ -40,6 +40,13 @@ const ImagePlaceholderIcon = () => (
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
   </svg>
 );
+
+function ChecklistThumb({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  if (getMediaKind(src) === "video") {
+    return <video src={src} className={className} muted loop autoPlay playsInline />;
+  }
+  return <img src={src} alt={alt} className={className} />;
+}
 
 export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: ChecklistsPanelProps) {
   const [activeChecklistId, setActiveChecklistId] = useState<string | null>(checklists[0]?.id ?? null);
@@ -366,7 +373,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                 <textarea className="edit-input edit-textarea" placeholder="Description / notes..."
                   value={itemForm.desc || ""} onChange={e => setItemForm({ ...itemForm, desc: e.target.value })} />
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <input type="url" className="edit-input" placeholder="Image URL (optional)"
+                  <input type="url" className="edit-input" placeholder="Image/GIF/WebM URL (optional)"
                     value={itemForm.imageUrl || ""} onChange={e => setItemForm({ ...itemForm, imageUrl: e.target.value })} />
                   <input type="url" className="edit-input" placeholder="Video URL (optional)"
                     value={itemForm.videoUrl || ""} onChange={e => setItemForm({ ...itemForm, videoUrl: e.target.value })} />
@@ -410,7 +417,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
 
                             {item.imageUrl ? (
                               <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
-                                <img src={item.imageUrl} alt={item.name} className="cl-item-img" />
+                                <ChecklistThumb src={item.imageUrl} alt={item.name} className="cl-item-img" />
                               </div>
                             ) : (
                               <div className="cl-item-img cl-item-img--placeholder">
@@ -477,7 +484,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
 
                               {item.imageUrl ? (
                                 <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
-                                  <img src={item.imageUrl} alt={item.name} className="cl-item-img" />
+                                  <ChecklistThumb src={item.imageUrl} alt={item.name} className="cl-item-img" />
                                 </div>
                               ) : (
                                 <div className="cl-item-img cl-item-img--placeholder">
@@ -531,7 +538,11 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
 
       {lightboxSrc && (
         <div className="cl-lightbox-overlay" onClick={() => setLightboxSrc(null)}>
-          <img src={lightboxSrc} alt="Preview" />
+          {getMediaKind(lightboxSrc) === "video" ? (
+            <video src={lightboxSrc} controls autoPlay loop onClick={e => e.stopPropagation()} />
+          ) : (
+            <img src={lightboxSrc} alt="Preview" />
+          )}
         </div>
       )}
 
