@@ -81,7 +81,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "DB Düzenle", "btn.close_edit": "✕ Kapat", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "PR Oluştur", "btn.add": "Ekle", "btn.add_chapter": "Bölüm Ekle",
     "input.title": "Başlık", "input.url": "https://...", "input.new_chapter": "Yeni Bölüm Adı...",
     "sec.shortcuts": "Kısayollarım", "sec.chapters": "📑 Bölüm Dizini Yöneticisi", "sec.no_chapters": "Bölüm tanımlanmadı.", "sec.session": "⏱ Oturum Başarımları", "sec.guides": "📚 Topluluk Rehberleri",
-    "db.available": "✓ Topluluk Veritabanı mevcut", "db.missing": "⚠ Topluluk Veritabanı yok — ilk katkıda bulunan siz olun"
+    "db.available": "✓ Topluluk Veritabanı mevcut", "db.missing": "⚠ Topluluk Veritabanı yok — ilk katkıda bulunan siz olun", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Kapatınca Sistem Tepsisine Küçült",
   },
   "de": {
     "menu.view": "Ansicht", "menu.themes": "Designs", "menu.accounts": "Konten", "menu.alwaysOnTop": "Immer im Vordergrund", "menu.overlayWarning": "⚠️ Für Overlay-Nutzung Rahmenlosen Fenstermodus nutzen", "menu.miniMode": "Mini-Modus", "menu.windowMode": "Fenstermodus", "menu.opacity": "Transparenz", "menu.uiScale": "UI-Skalierung", "menu.language": "Sprache", "menu.sound": "Freischalt-Sound", "menu.keys": "🔑 API-Schlüssel verwalten", "menu.startup": "Beim Systemstart ausführen", "menu.screenshots": "Screenshots-Ordner",
@@ -97,7 +97,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "DB bearbeiten", "btn.close_edit": "✕ Schließen", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "PR erstellen", "btn.add": "Hinzufügen", "btn.add_chapter": "Kapitel hinzufügen",
     "input.title": "Titel", "input.url": "https://...", "input.new_chapter": "Neuer Kapitelname...",
     "sec.shortcuts": "Verknüpfungen", "sec.chapters": "📑 Kapitel-Manager", "sec.no_chapters": "Keine Kapitel.", "sec.session": "⏱ Sitzungserfolge", "sec.guides": "📚 Leitfäden",
-    "db.available": "✓ Community-DB verfügbar", "db.missing": "⚠ Keine Community-DB"
+    "db.available": "✓ Community-DB verfügbar", "db.missing": "⚠ Keine Community-DB", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Beim Schließen in die Taskleiste minimieren",
   },
   "fr": {
     "menu.view": "Affichage", "menu.themes": "Thèmes", "menu.accounts": "Comptes", "menu.alwaysOnTop": "Toujours au premier plan", "menu.overlayWarning": "⚠️ Utilisez le mode Fenêtré sans bordure pour l'overlay", "menu.miniMode": "Mode Mini Compact", "menu.windowMode": "Mode Fenêtre", "menu.opacity": "Opacité", "menu.uiScale": "Échelle UI", "menu.language": "Langue", "menu.sound": "Son de déverrouillage", "menu.keys": "🔑 Gérer les clés API", "menu.startup": "Lancer au démarrage du système", "menu.screenshots": "Dossier Captures d'écran",
@@ -113,7 +113,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Modifier BD", "btn.close_edit": "✕ Fermer", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Créer PR", "btn.add": "Ajouter", "btn.add_chapter": "Ajouter Chapitre",
     "input.title": "Titel", "input.url": "https://...", "input.new_chapter": "Nouveau nom de chapitre...",
     "sec.shortcuts": "Mes Raccourcis", "sec.chapters": "📑 Gestionnaire de chapitres", "sec.no_chapters": "Aucun chapitre défini.", "sec.session": "⏱ Succès de session", "sec.guides": "📚 Guides communautaires",
-    "db.available": "✓ BD communautaire disponible", "db.missing": "⚠ Pas de BD communautaire"
+    "db.available": "✓ BD communautaire disponible", "db.missing": "⚠ Pas de BD communautaire", "menu.discordRPC": "Présence enrichie Discord", "menu.minimizeToTray": "Réduire dans la barre d'état système à la fermeture",
   },
   "es": {
     "menu.view": "Ver", "menu.themes": "Temas", "menu.accounts": "Cuentas", "menu.alwaysOnTop": "Siempre visible", "menu.overlayWarning": "⚠️ Configura tu juego en Modo Ventana sin Bordes para overlay", "menu.miniMode": "Modo Mini", "menu.windowMode": "Modo Ventana", "menu.opacity": "Opacidad", "menu.uiScale": "Escala UI", "menu.language": "Idioma", "menu.sound": "Sonido de logro", "menu.keys": "🔑 Gestionar claves API", "menu.startup": "Ejecutar al inicio del sistema", "menu.screenshots": "Carpeta de Capturas",
@@ -129,7 +129,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Editar BD", "btn.close_edit": "✕ Cerrar", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Crear PR", "btn.add": "Añadir", "btn.add_chapter": "Añadir capítulo",
     "input.title": "Título", "input.url": "https://...", "input.new_chapter": "Nombre de capítulo...",
     "sec.shortcuts": "Mis Atajos", "sec.chapters": "📑 Gestor de capítulos", "sec.no_chapters": "Sin capítulos.", "sec.session": "⏱ Logros de sesión", "sec.guides": "📚 Guías de comunidad",
-    "db.available": "✓ BD comunitaria disponible", "db.missing": "⚠ Sin BD comunitaria"
+    "db.available": "✓ BD comunitaria disponible", "db.missing": "⚠ Sin BD comunitaria", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimizar a la bandeja al cerrar",
   },
   "es-419": {
     "menu.view": "Ver", "menu.themes": "Temas", "menu.accounts": "Cuentas", "menu.alwaysOnTop": "Siempre visible", "menu.overlayWarning": "⚠️ Configura el juego en Ventana sin Bordes para overlay", "menu.miniMode": "Modo Mini", "menu.windowMode": "Modo Ventana", "menu.opacity": "Opacidad", "menu.uiScale": "Escala UI", "menu.language": "Idioma", "menu.sound": "Sonido de logro", "menu.keys": "🔑 Administrar API", "menu.startup": "Ejecutar al iniciar el sistema", "menu.screenshots": "Carpeta de Capturas",
@@ -145,7 +145,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Editar BD", "btn.close_edit": "✕ Cerrar", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Crear PR", "btn.add": "Agregar", "btn.add_chapter": "Agregar capítulo",
     "input.title": "Título", "input.url": "https://...", "input.new_chapter": "Nombre de capítulo...",
     "sec.shortcuts": "Mis Atajos", "sec.chapters": "📑 Gestor de capítulos", "sec.no_chapters": "Sin capítulos.", "sec.session": "⏱ Logros de sesión", "sec.guides": "📚 Guías de la comunidad",
-    "db.available": "✓ BD disponible", "db.missing": "⚠ Sin BD de la comunidad"
+    "db.available": "✓ BD disponible", "db.missing": "⚠ Sin BD de la comunidad", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimizar a la bandeja al cerrar",
   },
   "pt-BR": {
     "menu.view": "Exibir", "menu.themes": "Temas", "menu.accounts": "Contas", "menu.alwaysOnTop": "Sempre no topo", "menu.overlayWarning": "⚠️ Use o modo Janela sem Bordas para usar o overlay", "menu.miniMode": "Modo Mini", "menu.windowMode": "Modo Janela", "menu.opacity": "Opacidade", "menu.uiScale": "Escala UI", "menu.language": "Idioma", "menu.sound": "Som de Conquista", "menu.keys": "🔑 Gerenciar Chaves API", "menu.startup": "Iniciar com o sistema", "menu.screenshots": "Pasta de Capturas",
@@ -161,7 +161,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Editar BD", "btn.close_edit": "✕ Fechar", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Criar PR", "btn.add": "Adicionar", "btn.add_chapter": "Adicionar capítulo",
     "input.title": "Título", "input.url": "https://...", "input.new_chapter": "Nome do capítulo...",
     "sec.shortcuts": "Meus Atalhos", "sec.chapters": "📑 Gerenciador de capítulos", "sec.no_chapters": "Sem capítulos.", "sec.session": "⏱ Conquistas da sessão", "sec.guides": "📚 Guias da comunidade",
-    "db.available": "✓ BD da comunidade disponível", "db.missing": "⚠ Sem BD da comunidade"
+    "db.available": "✓ BD da comunidade disponível", "db.missing": "⚠ Sem BD da comunidade", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimizar para a bandeja ao fechar",
   },
   "pt-PT": {
     "menu.view": "Ver", "menu.themes": "Temas", "menu.accounts": "Contas", "menu.alwaysOnTop": "Sempre visível", "menu.overlayWarning": "⚠️ Usa o modo Janela sem Bordas para usar a sobreposição", "menu.miniMode": "Modo Mini", "menu.windowMode": "Modo de Janela", "menu.opacity": "Opacidade", "menu.uiScale": "Escala UI", "menu.language": "Idioma", "menu.sound": "Som de Conquista", "menu.keys": "🔑 Gerir Chaves API", "menu.startup": "Iniciar com o sistema", "menu.screenshots": "Pasta de Capturas",
@@ -177,7 +177,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Editar BD", "btn.close_edit": "✕ Fechar", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Criar PR", "btn.add": "Adicionar", "btn.add_chapter": "Adicionar capítulo",
     "input.title": "Título", "input.url": "https://...", "input.new_chapter": "Nome do capítulo...",
     "sec.shortcuts": "Os Meus Atalhos", "sec.chapters": "📑 Gestor de capítulos", "sec.no_chapters": "Sem capítulos definidos.", "sec.session": "⏱ Conquistas da sessão", "sec.guides": "📚 Guias da comunidade",
-    "db.available": "✓ BD da comunidade disponível", "db.missing": "⚠ Sem BD da comunidade"
+    "db.available": "✓ BD da comunidade disponível", "db.missing": "⚠ Sem BD da comunidade", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimizar para o tabuleiro do sistema ao fechar",
   },
   "it": {
     "menu.view": "Visualizza", "menu.themes": "Temi", "menu.accounts": "Account", "menu.alwaysOnTop": "Sempre in primo piano", "menu.overlayWarning": "⚠️ Imposta il gioco su Finestra senza bordi per l'overlay", "menu.miniMode": "Modalità Mini", "menu.windowMode": "Modalità Finestra", "menu.opacity": "Opacità", "menu.uiScale": "Scala UI", "menu.language": "Lingua", "menu.sound": "Suono di sblocco", "menu.keys": "🔑 Gestisci chiavi API", "menu.startup": "Esegui all'avvio del sistema", "menu.screenshots": "Cartella Screenshot",
@@ -193,7 +193,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Modifica DB", "btn.close_edit": "✕ Chiudi", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Crea PR", "btn.add": "Aggiungi", "btn.add_chapter": "Aggiungi Capitolo",
     "input.title": "Titolo", "input.url": "https://...", "input.new_chapter": "Nome capitolo...",
     "sec.shortcuts": "Le mie Scorciatoie", "sec.chapters": "📑 Gestore Capitoli", "sec.no_chapters": "Nessun capitolo.", "sec.session": "⏱ Obiettivi della sessione", "sec.guides": "📚 Guide della community",
-    "db.available": "✓ DB community disponibile", "db.missing": "⚠ Nessun DB community"
+    "db.available": "✓ DB community disponibile", "db.missing": "⚠ Nessun DB community", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Riduci a icona nella barra delle applicazioni alla chiusura",
   },
   "pl": {
     "menu.view": "Widok", "menu.themes": "Motywy", "menu.accounts": "Konta", "menu.alwaysOnTop": "Zawsze na wierzchu", "menu.overlayWarning": "⚠️ Aby użyć nakładki, ustaw grę w trybie okna bez ramek", "menu.miniMode": "Tryb Mini", "menu.windowMode": "Tryb okna", "menu.opacity": "Krycie", "menu.uiScale": "Skala interfejsu", "menu.language": "Język", "menu.sound": "Dźwięk odblokowania", "menu.keys": "🔑 Zarządzaj kluczami API", "menu.startup": "Uruchamiaj przy starcie systemu", "menu.screenshots": "Folder Zrzutów Ekranu",
@@ -209,7 +209,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Edytuj DB", "btn.close_edit": "✕ Zamknij", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Utwórz PR", "btn.add": "Dodaj", "btn.add_chapter": "Dodaj rozdział",
     "input.title": "Tytuł", "input.url": "https://...", "input.new_chapter": "Nazwa rozdziału...",
     "sec.shortcuts": "Moje Skróty", "sec.chapters": "📑 Menedżer Rozdziałów", "sec.no_chapters": "Brak rozdziałów.", "sec.session": "⏱ Osiągnięcia sesji", "sec.guides": "📚 Poradniki społeczności",
-    "db.available": "✓ Baza społeczności dostępna", "db.missing": "⚠ Brak bazy społeczności"
+    "db.available": "✓ Baza społeczności dostępna", "db.missing": "⚠ Brak bazy społeczności", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimalizuj do zasobnika przy zamknięciu",
   },
   "ru": {
     "menu.view": "Вид", "menu.themes": "Темы", "menu.accounts": "Аккаунты", "menu.alwaysOnTop": "Поверх всех окон", "menu.overlayWarning": "⚠️ Для работы оверлея включите Оконный режим без рамок в игре", "menu.miniMode": "Компактный режим", "menu.windowMode": "Режим окна", "menu.opacity": "Прозрачность", "menu.uiScale": "Масштаб интерфейса", "menu.language": "Язык", "menu.sound": "Звук разблокировки", "menu.keys": "🔑 Управление API-ключами", "menu.startup": "Запускать при старте системы", "menu.screenshots": "Папка со скриншотами",
@@ -225,7 +225,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Ред. БД", "btn.close_edit": "✕ Закрыть", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Создать PR", "btn.add": "Добавить", "btn.add_chapter": "Добавить главу",
     "input.title": "Название", "input.url": "https://...", "input.new_chapter": "Название главы...",
     "sec.shortcuts": "Мои ярлыки", "sec.chapters": "📑 Менеджер глав", "sec.no_chapters": "Главы не заданы.", "sec.session": "⏱ Достижения за сеанс", "sec.guides": "📚 Руководства",
-    "db.available": "✓ База сообщества доступна", "db.missing": "⚠ Нет базы сообщества"
+    "db.available": "✓ База сообщества доступна", "db.missing": "⚠ Нет базы сообщества", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Сворачивать в трей при закрытии",
   },
   "uk": {
     "menu.view": "Вигляд", "menu.themes": "Теми", "menu.accounts": "Акаунти", "menu.alwaysOnTop": "Поверх усіх вікон", "menu.overlayWarning": "⚠️ Для використання оверлею увімкніть Віконний режим без рамок у грі", "menu.miniMode": "Компактний режим", "menu.windowMode": "Режим вікна", "menu.opacity": "Прозорість", "menu.uiScale": "Масштаб інтерфейсу", "menu.language": "Мова", "menu.sound": "Звук розблокування", "menu.keys": "🔑 Керування ключами API", "menu.startup": "Запускати під час старту системи", "menu.screenshots": "Папка зі скріншотами",
@@ -241,7 +241,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Ред. БД", "btn.close_edit": "✕ Закрити", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Створити PR", "btn.add": "Додати", "btn.add_chapter": "Додати главу",
     "input.title": "Назва", "input.url": "https://...", "input.new_chapter": "Назва глави...",
     "sec.shortcuts": "Мої ярлики", "sec.chapters": "📑 Менеджер глав", "sec.no_chapters": "Глави не задані.", "sec.session": "⏱ Досягнення за сеанс", "sec.guides": "📚 Посібники",
-    "db.available": "✓ База спільноти доступна", "db.missing": "⚠ Немає бази спільноти"
+    "db.available": "✓ База спільноти доступна", "db.missing": "⚠ Немає бази спільноти", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Згортати в трей при закритті",
   },
   "zh-CN": {
     "menu.view": "视图", "menu.themes": "主题", "menu.accounts": "账户", "menu.alwaysOnTop": "总在最前", "menu.overlayWarning": "⚠️ 若要使用覆盖，请将游戏设为无边框窗口模式", "menu.miniMode": "迷你模式", "menu.windowMode": "窗口模式", "menu.opacity": "窗口透明度", "menu.uiScale": "界面缩放", "menu.language": "语言", "menu.sound": "解锁音效", "menu.keys": "🔑 管理 API 密钥",
@@ -257,7 +257,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "编辑数据库", "btn.close_edit": "✕ 关闭", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "创建 PR", "btn.add": "添加", "btn.add_chapter": "添加章节",
     "input.title": "标题", "input.url": "https://...", "input.new_chapter": "新章节名称...",
     "sec.shortcuts": "我的快捷方式", "sec.chapters": "📑 章节管理器", "sec.no_chapters": "未定义章节。", "sec.session": "⏱ 本次游玩解锁", "sec.guides": "📚 社区指南",
-    "db.available": "✓ 社区数据库可用", "db.missing": "⚠ 暂无社区数据库"
+    "db.available": "✓ 社区数据库可用", "db.missing": "⚠ 暂无社区数据库", "menu.discordRPC": "Discord 状态展示", "menu.minimizeToTray": "关闭时最小化到托盘",
   },
   "zh-TW": {
     "menu.view": "檢視", "menu.themes": "主題", "menu.accounts": "帳戶", "menu.alwaysOnTop": "總在最前", "menu.overlayWarning": "⚠️ 若要使用覆疊，請將遊戲設為無邊框視窗模式", "menu.miniMode": "迷你模式", "menu.windowMode": "視窗模式", "menu.opacity": "視窗透明度", "menu.uiScale": "介面縮放", "menu.language": "語言", "menu.sound": "解鎖音效", "menu.keys": "🔑 管理 API 金鑰",
@@ -273,7 +273,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "編輯資料庫", "btn.close_edit": "✕ 關閉", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "建立 PR", "btn.add": "新增", "btn.add_chapter": "新增章節",
     "input.title": "標題", "input.url": "https://...", "input.new_chapter": "新章節名稱...",
     "sec.shortcuts": "我的捷徑", "sec.chapters": "📑 章節管理員", "sec.no_chapters": "未定義章節。", "sec.session": "⏱ 本次遊玩解鎖", "sec.guides": "📚 社群指南",
-    "db.available": "✓ 社群資料庫可用", "db.missing": "⚠ 暫無社群資料庫"
+    "db.available": "✓ 社群資料庫可用", "db.missing": "⚠ 暫無社群資料庫", "menu.discordRPC": "Discord 狀態展示", "menu.minimizeToTray": "關閉時最小化至系統匣",
   },
   "ja": {
     "menu.view": "表示", "menu.themes": "テーマ", "menu.accounts": "アカウント", "menu.alwaysOnTop": "常に手前に表示", "menu.overlayWarning": "⚠️ オーバーレイを使用するにはゲームをボーダーレスウィンドウに設定してください", "menu.miniMode": "ミニモード", "menu.windowMode": "ウィンドウモード", "menu.opacity": "透明度", "menu.uiScale": "UIスケール", "menu.language": "言語", "menu.sound": "解除サウンド", "menu.keys": "🔑 APIキー管理", "menu.startup": "システム起動時に実行", "menu.screenshots": "スクリーンショット フォルダ",
@@ -289,7 +289,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "DB編集", "btn.close_edit": "✕ 閉じる", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "PR作成", "btn.add": "追加", "btn.add_chapter": "チャプター追加",
     "input.title": "タイトル", "input.url": "https://...", "input.new_chapter": "新しいチャプター名...",
     "sec.shortcuts": "ショートカット", "sec.chapters": "📑 チャプター管理", "sec.no_chapters": "チャプターがありません", "sec.session": "⏱ 今回の解除実績", "sec.guides": "📚 コミュニティガイド",
-    "db.available": "✓ コミュニティDB利用可能", "db.missing": "⚠ コミュニティDBなし"
+    "db.available": "✓ コミュニティDB利用可能", "db.missing": "⚠ コミュニティDBなし", "menu.discordRPC": "Discordリッチプレゼンス", "menu.minimizeToTray": "閉じるときにトレイに最小化",
   },
   "ko": {
     "menu.view": "보기", "menu.themes": "테마", "menu.accounts": "계정", "menu.alwaysOnTop": "항상 위", "menu.overlayWarning": "⚠️ 오버레이를 사용하려면 게임을 테두리 없는 창 모드로 설정하세요", "menu.miniMode": "미니 모드", "menu.windowMode": "창 모드", "menu.opacity": "투명도", "menu.uiScale": "UI 크기", "menu.language": "언어", "menu.sound": "잠금 해제 사운드", "menu.keys": "🔑 API 키 관리", "menu.screenshots": "스크린샷 폴더", "menu.links": "링크",
@@ -305,7 +305,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "DB 편집", "btn.close_edit": "✕ 닫기", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "PR 생성", "btn.add": "추가", "btn.add_chapter": "챕터 추가",
     "input.title": "제목", "input.url": "https://...", "input.new_chapter": "새 챕터 이름...",
     "sec.shortcuts": "내 바로 가기", "sec.chapters": "📑 챕터 관리자", "sec.no_chapters": "챕터가 없습니다.", "sec.session": "⏱ 이번 세션 잠금 해제", "sec.guides": "📚 커뮤니티 가이드",
-    "db.available": "✓ 커뮤니티 DB 있음", "db.missing": "⚠ 커뮤니티 DB 없음"
+    "db.available": "✓ 커뮤니티 DB 있음", "db.missing": "⚠ 커뮤니티 DB 없음", "menu.discordRPC": "Discord 리치 프레즌스", "menu.minimizeToTray": "닫을 때 트레이로 최소화",
   },
   "cs": {
     "menu.view": "Zobrazit", "menu.themes": "Motivy", "menu.accounts": "Účty", "menu.alwaysOnTop": "Vždy navrchu", "menu.overlayWarning": "⚠️ Pro použití překrytí nastavte hru do okna bez okrajů", "menu.miniMode": "Mini režim", "menu.windowMode": "Režim okna", "menu.opacity": "Krytí", "menu.uiScale": "Měřítko UI", "menu.language": "Jazyk", "menu.sound": "Zvuk odemčení", "menu.keys": "🔑 Spravovat klíče API", "menu.startup": "Spustit při startu systému", "menu.screenshots": "Složka Snímků Obrazovky",
@@ -321,7 +321,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Upravit DB", "btn.close_edit": "✕ Zavřít", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Vytvořit PR", "btn.add": "Přidat", "btn.add_chapter": "Přidat kapitolu",
     "input.title": "Název", "input.url": "https://...", "input.new_chapter": "Název nové kapitoly...",
     "sec.shortcuts": "Moje Zkratky", "sec.chapters": "📑 Správce kapitol", "sec.no_chapters": "Žádné kapitoly.", "sec.session": "⏱ Odemčeno v relaci", "sec.guides": "📚 Komunitní návody",
-    "db.available": "✓ Komunitní DB k dispozici", "db.missing": "⚠ Chybí komunitní DB"
+    "db.available": "✓ Komunitní DB k dispozici", "db.missing": "⚠ Chybí komunitní DB", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimalizovat do systémové lišty při zavření",
   },
   "nl": {
     "menu.view": "Weergave", "menu.themes": "Thema's", "menu.accounts": "Accounts", "menu.alwaysOnTop": "Altijd op de voorgrond", "menu.overlayWarning": "⚠️ Gebruik Randloos Venster voor overlay-ondersteuning", "menu.miniMode": "Minimodus", "menu.windowMode": "Venstermodus", "menu.opacity": "Transparantie", "menu.uiScale": "UI-schaal", "menu.language": "Taal", "menu.sound": "Ontgrendelgeluid", "menu.keys": "🔑 API-sleutels beheren", "menu.startup": "Starten bij opstarten van systeem", "menu.screenshots": "Screenshotsmap",
@@ -337,7 +337,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "DB bewerken", "btn.close_edit": "✕ Sluiten", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "PR Aanmaken", "btn.add": "Toevoegen", "btn.add_chapter": "Hoofdstuk toevoegen",
     "input.title": "Titel", "input.url": "https://...", "input.new_chapter": "Nieuwe hoofdstuknaam...",
     "sec.shortcuts": "Mijn Snelkoppelingen", "sec.chapters": "📑 Hoofdstukbeheerder", "sec.no_chapters": "Geen hoofdstukken.", "sec.session": "⏱ Sessie-ontgrendelingen", "sec.guides": "📚 Communitygidsen",
-    "db.available": "✓ Community-DB beschikbaar", "db.missing": "⚠ Geen community-DB"
+    "db.available": "✓ Community-DB beschikbaar", "db.missing": "⚠ Geen community-DB", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimaliseren naar systeemvak bij sluiten",
   },
   "th": {
     "menu.view": "มุมมอง", "menu.themes": "ธีม", "menu.accounts": "บัญชี", "menu.alwaysOnTop": "แสดงบนสุดเสมอ", "menu.overlayWarning": "⚠️ เพื่อใช้งานโอเวอร์เลย์ โปรดตั้งค่าเกมเป็นโหมดหน้าต่างไร้ขอบ", "menu.miniMode": "โหมดมินิ", "menu.windowMode": "โหมดหน้าต่าง", "menu.opacity": "ความทึบ", "menu.uiScale": "ขนาด UI", "menu.language": "ภาษา", "menu.sound": "เสียงปลดล็อก", "menu.keys": "🔑 จัดการ API Keys", "menu.startup": "เรียกใช้เมื่อเริ่มระบบ", "menu.screenshots": "โฟลเดอร์ภาพหน้าจอ",
@@ -353,7 +353,7 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "แก้ไข DB", "btn.close_edit": "✕ ปิด", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "สร้าง PR", "btn.add": "เพิ่ม", "btn.add_chapter": "เพิ่มบท",
     "input.title": "ชื่อ", "input.url": "https://...", "input.new_chapter": "ชื่อบทใหม่...",
     "sec.shortcuts": "ทางลัดของฉัน", "sec.chapters": "📑 ตัวจัดการบท", "sec.no_chapters": "ไม่ได้กำหนดบท", "sec.session": "⏱ ปลดล็อกในเซสชันนี้", "sec.guides": "📚 คู่มือชุมชน",
-    "db.available": "✓ มี DB ของชุมชน", "db.missing": "⚠ ไม่มี DB ของชุมชน"
+    "db.available": "✓ มี DB ของชุมชน", "db.missing": "⚠ ไม่มี DB ของชุมชน", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "ย่อไปที่ถาดระบบเมื่อปิด",
   },
   "vi": {
     "menu.view": "Hiển thị", "menu.themes": "Giao diện", "menu.accounts": "Tài khoản", "menu.alwaysOnTop": "Luôn trên cùng", "menu.overlayWarning": "⚠️ Để dùng overlay, hãy đặt game ở chế độ Cửa sổ không viền", "menu.miniMode": "Chế độ Mini", "menu.windowMode": "Chế độ cửa sổ", "menu.opacity": "Độ mờ", "menu.uiScale": "Kích thước UI", "menu.language": "Ngôn ngữ", "menu.sound": "Âm thanh mở khóa", "menu.keys": "🔑 Quản lý API Key", "menu.startup": "Chạy khi khởi động hệ thống", "menu.screenshots": "Thư mục Ảnh chụp màn hình",
@@ -369,6 +369,6 @@ export const TRANSLATIONS: Record<string, Record<string, string>> = {
     "btn.edit_db": "Sửa DB", "btn.close_edit": "✕ Đóng", "btn.json": "⬇ JSON", "btn.html": "⬇ HTML", "btn.pr": "Tạo PR", "btn.add": "Thêm", "btn.add_chapter": "Thêm chương",
     "input.title": "Tiêu đề", "input.url": "https://...", "input.new_chapter": "Tên chương mới...",
     "sec.shortcuts": "Lối tắt", "sec.chapters": "📑 Quản lý chương", "sec.no_chapters": "Chưa có chương nào.", "sec.session": "⏱ Đã mở khóa", "sec.guides": "📚 Hướng dẫn cộng đồng",
-    "db.available": "✓ Có sẵn DB cộng đồng", "db.missing": "⚠ Không có DB cộng đồng"
+    "db.available": "✓ Có sẵn DB cộng đồng", "db.missing": "⚠ Không có DB cộng đồng", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Thu nhỏ xuống khay hệ thống khi đóng",
   }
 };
