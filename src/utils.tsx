@@ -2,18 +2,19 @@ import React from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import { Theme } from "./types";
 
-export function timeAgo(ts: number): string {
+export function timeAgo(ts: number, t: (key: string) => string, lang: string = "en"): string {
   const diff = Date.now() - ts;
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days  = Math.floor(diff / 86_400_000);
-  if (mins  <  1) return "just now";
-  if (mins  < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days  <  7) return `${days}d ago`;
+  if (mins  <  1) return t("time.just_now");
+  if (mins  < 60) return t("time.minutes_ago").replace("{n}", String(mins));
+  if (hours < 24) return t("time.hours_ago").replace("{n}", String(hours));
+  if (days  <  7) return t("time.days_ago").replace("{n}", String(days));
   const date = new Date(ts);
   const includeYear = date.getFullYear() !== new Date().getFullYear();
-  return date.toLocaleDateString(undefined, includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
+  
+  return date.toLocaleDateString(lang, includeYear ? { month: "short", day: "numeric", year: "numeric" } : { month: "short", day: "numeric" });
 }
 
 export function unwrapXboxData(data: any) {

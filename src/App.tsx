@@ -1683,7 +1683,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
         </div>
       )}
 
-      {appState === "WAITING" && !selectedAppId ? (
+{appState === "WAITING" && !selectedAppId ? (
         <div className="tracking-screen">
           <LibraryDashboard
             gameHistory={gameHistory}
@@ -1703,6 +1703,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
             xboxCreds={xboxCreds}
             psnCreds={psnCreds}
             t={t}
+            language={settings.language}
           />
         </div>
       ) : isMiniMode ? (

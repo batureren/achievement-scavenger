@@ -33,6 +33,7 @@ interface LibraryDashboardProps {
   handleRemoveGame: (g: GameHistory) => void;
   setGameHistory: React.Dispatch<React.SetStateAction<Record<string, GameHistory>>>;
   t: (key: string) => string;
+  language: string;
   steamApiKey: string;
   raCreds: { user: string; key: string };
   xboxCreds: { apiKey: string; xuid: string; gamertag: string };
@@ -44,7 +45,7 @@ let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
 export function LibraryDashboard({
   gameHistory, runningAppIds, libraryFilter, setLibraryFilter,
   librarySort, setLibrarySort, librarySearch, setLibrarySearch,
-  handleSelectTab, onSelectAchievement, handleRemoveGame, setGameHistory, t,
+  handleSelectTab, onSelectAchievement, handleRemoveGame, setGameHistory, t, language,
   steamApiKey, raCreds, xboxCreds, psnCreds
 }: LibraryDashboardProps) {
 
@@ -283,7 +284,7 @@ export function LibraryDashboard({
                     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                       <span>{game.unlockedAch} / {game.totalAch} {t("card.achievements")}</span>
                       {!isRunning && (
-                        <span style={{ fontSize: "0.72rem", opacity: 0.7 }}>🕐 {timeAgo(game.lastPlayed)}</span>
+                        <span style={{ fontSize: "0.72rem", opacity: 0.7 }}>🕐 {timeAgo(game.lastPlayed, t, language)}</span>
                       )}
                     </div>
                     {!isRunning && game.platform === "STEAM" && (
