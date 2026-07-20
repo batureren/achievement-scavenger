@@ -29,13 +29,14 @@ interface BatchImportModalProps {
   raCreds: { user: string; key: string };
   xboxCreds: { apiKey: string; xuid: string };
   psnCreds: { accessToken: string; accountId: string };
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-const TABS: { id: Platform; label: string; color: string; available: (p: BatchImportModalProps) => boolean }[] = [
-  { id: "PSN",   label: "PlayStation",        color: "#00439c", available: p => !!(p.psnCreds.accessToken && p.psnCreds.accountId) },
-  { id: "XBOX",  label: "Xbox",               color: "#107c10", available: p => !!(p.xboxCreds.apiKey && p.xboxCreds.xuid) },
-  { id: "RA",    label: "RetroAchievements",  color: "#f59e0b", available: p => !!(p.raCreds.user && p.raCreds.key) },
-  { id: "STEAM", label: "Steam",              color: "#66c0f4", available: p => !!p.steamApiKey },
+const TABS: { id: Platform; labelKey: string; color: string; available: (p: BatchImportModalProps) => boolean }[] = [
+  { id: "PSN",   labelKey: "platform.psn",   color: "#00439c", available: p => !!(p.psnCreds.accessToken && p.psnCreds.accountId) },
+  { id: "XBOX",  labelKey: "platform.xbox",  color: "#107c10", available: p => !!(p.xboxCreds.apiKey && p.xboxCreds.xuid) },
+  { id: "RA",    labelKey: "platform.ra",    color: "#f59e0b", available: p => !!(p.raCreds.user && p.raCreds.key) },
+  { id: "STEAM", labelKey: "platform.steam", color: "#66c0f4", available: p => !!p.steamApiKey },
 ];
 
 // Fetches a single Steam game's achievement progress via the same command
@@ -107,7 +108,7 @@ async function mapWithConcurrency<T, R>(
 }
 
 export function BatchImportModal(props: BatchImportModalProps) {
-  const { isOpen, onClose, gameHistory, setGameHistory, steamApiKey, raCreds, xboxCreds, psnCreds } = props;
+  const { isOpen, onClose, gameHistory, setGameHistory, steamApiKey, raCreds, xboxCreds, psnCreds, t } = props;
   const [activeTab, setActiveTab] = useState<Platform>("PSN");
   const [steamIdInput, setSteamIdInput] = useState("");
   const [items, setItems] = useState<ImportItem[]>([]);
@@ -236,14 +237,14 @@ export function BatchImportModal(props: BatchImportModalProps) {
 
       if (tab === "STEAM") {
         if (!steamIdInput.trim()) {
-          setError("Enter your SteamID64 to fetch your owned games.");
+          setError(t("batch.err_steamid_required"));
           setLoading(false);
           return;
         }
         const str = await invoke<string>("get_steam_owned_games", { steamId: steamIdInput.trim(), apiKey: steamApiKey });
         const data = safeParseJSON(str, { response: { games: [] } });
         if (data.error) {
-          setError("Could not fetch Steam library. Check your SteamID64 and API key.");
+          setError(t("batch.err_steam_lib"));
           setLoading(false);
           return;
         }
@@ -263,9 +264,9 @@ export function BatchImportModal(props: BatchImportModalProps) {
       list.sort((a, b) => a.name.localeCompare(b.name));
       setItems(list);
       setLoadedTab(tab);
-      if (list.length === 0) setError("No games found for this account.");
+      if (list.length === 0) setError(t("batch.err_no_games"));
     } catch (e: any) {
-      setError(typeof e === "string" ? e : "Failed to fetch games.");
+      setError(typeof e === "string" ? e : t("batch.err_fetch_failed"));
     } finally {
       setLoading(false);
     }
@@ -394,15 +395,16 @@ export function BatchImportModal(props: BatchImportModalProps) {
     });
 
     const missedCount = steamItems.length - achCounts.size;
-    toast.success(`Imported ${selected.size} game${selected.size === 1 ? "" : "s"}`);
+    toast.success(t("batch.toast_imported", { count: selected.size }));
     if (missedCount > 0) {
-      toast(`${missedCount} Steam game${missedCount === 1 ? "" : "s"} had no achievement data (private profile or no stats) and imported as 0/0.`, { icon: "⚠️", duration: 5000 });
+      toast(t("batch.toast_missed", { count: missedCount }), { icon: "⚠️", duration: 5000 });
     }
     setSelected(new Set());
     handleClose();
   };
 
-  const currentTabInfo = TABS.find(t => t.id === activeTab)!;
+  const currentTabInfo = TABS.find(tb => tb.id === activeTab)!;
+  const currentTabLabel = t(currentTabInfo.labelKey);
   const isAvailable = currentTabInfo.available(props);
   const filteredItems = search.trim()
     ? items.filter(i => i.name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -412,7 +414,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
   return (
     <div className="confirm-dialog-overlay" onClick={handleClose}>
       <div className="batch-import-modal" onClick={e => e.stopPropagation()}>
-        <h3 className="confirm-dialog-title">Batch Import Games</h3>
+        <h3 className="confirm-dialog-title">{t("batch.title")}</h3>
 
         <div className="batch-import-tabs">
           {TABS.map(tab => (
@@ -422,20 +424,20 @@ export function BatchImportModal(props: BatchImportModalProps) {
               style={activeTab === tab.id ? { borderColor: tab.color, color: tab.color } : {}}
               onClick={() => switchTab(tab.id)}
             >
-              <PlatformIcon platform={tab.id} size={14} /> {tab.label}
+              <PlatformIcon platform={tab.id} size={14} /> {t(tab.labelKey)}
             </button>
           ))}
         </div>
 
         {!isAvailable ? (
-          <p className="batch-import-empty">Connect {currentTabInfo.label} in your account settings first.</p>
+          <p className="batch-import-empty">{t("batch.connect_first", { platform: currentTabLabel })}</p>
         ) : (
           <>
             {activeTab === "STEAM" && (
               <div className="batch-import-steamid-row" style={{ flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
                 <input
                   type="text"
-                  placeholder="Your SteamID64 (e.g. 7656119...)"
+                  placeholder={t("batch.steamid_placeholder")}
                   value={steamIdInput}
                   onChange={e => { setSteamIdInput(e.target.value); setDetectedSteamId(false); }}
                   className="edit-input"
@@ -443,43 +445,43 @@ export function BatchImportModal(props: BatchImportModalProps) {
                 />
                 <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: 0 }}>
                   {detectedSteamId
-                    ? "✓ Auto-detected from your running Steam client."
-                    : <>Steam's API doesn't let us look this up from your API key alone. Find yours at{" "}
+                    ? t("batch.steamid_detected")
+                    : <>{t("batch.steamid_help_pre")}{" "}
                         <a href="#" onClick={e => { e.preventDefault(); open("https://steamid.io/"); }}>steamid.io</a>{" "}
-                        or in Steam under Profile → Edit Profile.</>}
+                        {t("batch.steamid_help_post")}</>}
                 </p>
               </div>
             )}
 
             {loadedTab !== activeTab ? (
               <button className="library-play-btn" style={{ alignSelf: "flex-start" }} disabled={loading} onClick={() => fetchTab(activeTab)}>
-                {loading ? "Loading…" : `Fetch ${currentTabInfo.label} Games`}
+                {loading ? t("batch.loading") : t("batch.fetch_games", { platform: currentTabLabel })}
               </button>
             ) : (
               <>
                 <div className="batch-import-list-header" style={{ gap: "8px" }}>
                   <input
                     type="text"
-                    placeholder={`Search ${currentTabInfo.label} games…`}
+                    placeholder={t("batch.search_placeholder", { platform: currentTabLabel })}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="search-input"
                     style={{ flex: 1 }}
                   />
                   {selectableCount > 0 && (
-                    <button className="library-filter-chip" onClick={toggleAll} style={{ flexShrink: 0 }}>Select / Deselect All</button>
+                    <button className="library-filter-chip" onClick={toggleAll} style={{ flexShrink: 0 }}>{t("batch.select_all")}</button>
                   )}
                 </div>
                 <div className="batch-import-list-header" style={{ marginTop: "-2px" }}>
                   <span>
                     {search.trim()
-                      ? `${filteredItems.length} of ${items.length} games match "${search.trim()}"`
-                      : `${items.length} games found${selectableCount < items.length ? ` (${items.length - selectableCount} already in library)` : ""}`}
+                      ? t("batch.search_match_count", { filtered: filteredItems.length, total: items.length, query: search.trim() })
+                      : t("batch.games_found", { count: items.length }) + (selectableCount < items.length ? ` ${t("batch.already_in_library", { count: items.length - selectableCount })}` : "")}
                   </span>
                 </div>
                 <div className="batch-import-list">
                   {filteredItems.length === 0 && (
-                    <p className="batch-import-empty">No games match "{search.trim()}".</p>
+                    <p className="batch-import-empty">{t("batch.no_match", { query: search.trim() })}</p>
                   )}
                   {filteredItems.map(item => {
                     const alreadyImported = !!gameHistory[item.appId];
@@ -498,7 +500,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
                           <span className="batch-import-item-name">{item.name}</span>
                           {item.meta && <span className="batch-import-item-meta">{item.meta}</span>}
                         </div>
-                        {alreadyImported && <span className="batch-import-item-tag">In Library</span>}
+                        {alreadyImported && <span className="batch-import-item-tag">{t("batch.in_library_tag")}</span>}
                       </label>
                     );
                   })}
@@ -511,7 +513,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: "8px 0 0" }}>⚠ {error}</p>}
 
         <div className="confirm-dialog-actions">
-          <button className="confirm-dialog-btn cancel" onClick={handleClose} disabled={!!importProgress}>Close</button>
+          <button className="confirm-dialog-btn cancel" onClick={handleClose} disabled={!!importProgress}>{t("batch.close_btn")}</button>
           <button
             className="confirm-dialog-btn"
             style={{ background: "var(--accent-green)", color: "#000", borderColor: "var(--accent-green)", opacity: (selected.size === 0 || importProgress) ? 0.5 : 1 }}
@@ -519,8 +521,8 @@ export function BatchImportModal(props: BatchImportModalProps) {
             onClick={handleImport}
           >
             {importProgress
-              ? `Fetching achievements… (${importProgress.done}/${importProgress.total})`
-              : `Import ${selected.size > 0 ? `(${selected.size})` : ""}`}
+              ? t("batch.fetching_progress", { done: importProgress.done, total: importProgress.total })
+              : `${t("batch.import_btn")} ${selected.size > 0 ? `(${selected.size})` : ""}`}
           </button>
         </div>
       </div>

@@ -5,10 +5,10 @@ import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import toast from "react-hot-toast";
 import { AppSettings, Theme, OverlayStyle } from "../types";
-import { OVERLAY_STYLES, SUPPORTED_LANGUAGES } from "../constants";
+import { OVERLAY_STYLES, SUPPORTED_LANGUAGES, OVERLAY_STYLE_KEYS } from "../constants";
 
 interface MenuBarProps {
-  settings: AppSettings; themes: Theme[]; isMiniMode: boolean; t: (key: string) => string;
+  settings: AppSettings; themes: Theme[]; isMiniMode: boolean; t: (key: string, vars?: Record<string, string | number>) => string;
   onToggleAlwaysOnTop: () => void; onChangeTheme: (id: string) => void;
   onChangeApiKey: () => void; onToggleSound: () => void; onToggleMiniMode: () => void;
   onChangeOpacity: (op: number) => void; onSaveOpacity: () => void;
@@ -45,7 +45,7 @@ export function MenuBar({
 
   const handleCheckUpdate = async () => {
     try {
-      const toastId = toast.loading("Checking for updates...");
+      const toastId = toast.loading(t("update.checking"));
       const update = await check();
       
       if (update) {
@@ -56,28 +56,28 @@ export function MenuBar({
           switch (event.event) {
             case 'Started':
               contentLength = event.data.contentLength || 0;
-              toast.loading(`Downloading v${update.version}...`, { id: toastId });
+              toast.loading(t("update.downloading", { version: update.version }), { id: toastId });
               break;
             case 'Progress':
               downloaded += event.data.chunkLength;
               if (contentLength > 0) {
                 const pct = Math.round((downloaded / contentLength) * 100);
-                toast.loading(`Downloading v${update.version}... ${pct}%`, { id: toastId });
+                toast.loading(t("update.downloadingPct", { version: update.version, pct }), { id: toastId });
               }
               break;
             case 'Finished':
-              toast.loading(`Installing update...`, { id: toastId });
+              toast.loading(t("update.installing"), { id: toastId });
               break;
           }
         });
 
-        toast.success("Update installed! Restarting...", { id: toastId });
+        toast.success(t("update.installed"), { id: toastId });
         await relaunch();
       } else {
-        toast.success("You are on the latest version!", { id: toastId });
+        toast.success(t("update.latest"), { id: toastId });
       }
     } catch (error: any) {
-      toast.error(`Update failed: ${error.message || error}`);
+      toast.error(t("update.failed", { error: error.message || error }));
       console.error("Updater error:", error);
     }
   };
@@ -203,7 +203,7 @@ export function MenuBar({
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
           </svg>
-          Overlay
+          {t("menu.overlayBtn")}
         </button>
         {openMenu === "overlay" && (
           <div className="menu-dropdown overlay-dropdown" onClick={e => e.stopPropagation()}>
@@ -211,7 +211,7 @@ export function MenuBar({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
               </svg>
-              HUD / Overlay Style
+              {t("menu.overlayHudTitle")}
             </div>
             <label className="menu-option">
               <input 
@@ -220,7 +220,7 @@ export function MenuBar({
                 onChange={onToggleTransparency} 
                
               />
-              Transparent Background
+              {t("menu.transparentBg")}
             </label>
             <div className="overlay-style-grid">
               {OVERLAY_STYLES.map(style => (
@@ -233,8 +233,8 @@ export function MenuBar({
                     <span className="selected-check">✓</span>
                   )}
                   <div className={`tile-preview ${style.preview}`} />
-                  <div className="tile-name">{style.icon} {style.name}</div>
-                  <div className="tile-desc">{style.desc}</div>
+                  <div className="tile-name">{style.icon} {t(OVERLAY_STYLE_KEYS[style.id]?.name || "")}</div>
+                  <div className="tile-desc">{t(OVERLAY_STYLE_KEYS[style.id]?.desc || "")}</div>
                 </button>
               ))}
             </div>
@@ -285,7 +285,7 @@ export function MenuBar({
         {openMenu === "version" && (
           <div className="menu-dropdown">
             <button className="menu-option" onClick={() => { handleCheckUpdate(); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
-              Check for updates
+              {t("menu.checkUpdates")}
             </button>
           </div>
         )}

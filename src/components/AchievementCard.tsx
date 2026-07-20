@@ -15,7 +15,7 @@ interface AchievementCardProps {
   handleToggleTrack: (apiname: string) => void;
   handleToggleHint: (apiname: string) => void;
   handleEdit: (apiname: string, field: keyof LocalEdit, value: any) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 function AchievementCardBase({ 
@@ -57,7 +57,7 @@ function AchievementCardBase({
         <span className="hunt-tracked-badge">Active</span>
       )}
       {ach._setName && (
-        <span className="chapter-tag" style={{ position: "absolute", top: "8px", right: ach.is_missable || isTracked ? "90px" : "8px", opacity: 0.85 }} title="This achievement belongs to a linked set">
+        <span className="chapter-tag" style={{ position: "absolute", top: "8px", right: ach.is_missable || isTracked ? "90px" : "8px", opacity: 0.85 }} title={t("ach.linked_set_tooltip")}>
           {ach._setName}
         </span>
       )}
@@ -75,11 +75,11 @@ function AchievementCardBase({
               
               {ach.ra_points !== undefined && (
                 <span className="ra-points-display" style={{ fontSize: "0.85em", marginLeft: "8px", display: "inline-flex", gap: "8px", alignItems: "center", fontWeight: "normal" }}>
-                    <span style={{ color: "#fcd34d", display: "inline-flex", alignItems: "center", gap: "3px" }} title="Standard Points (Casual)">
+                    <span style={{ color: "#fcd34d", display: "inline-flex", alignItems: "center", gap: "3px" }} title={t("ach.points_tooltip")}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         {ach.ra_points}
                     </span>
-                    <span style={{ color: "#e2e8f0", display: "inline-flex", alignItems: "center", gap: "3px" }} title="True Ratio (Hardcore)">
+                    <span style={{ color: "#e2e8f0", display: "inline-flex", alignItems: "center", gap: "3px" }} title={t("ach.trueratio_tooltip")}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         {ach.ra_trueratio}
                     </span>
@@ -91,7 +91,7 @@ function AchievementCardBase({
             {ach.ra_type === "progression" && (
               <span
                 className="ra-type-badge ra-type-badge--progression"
-                title="Official RetroAchievements type: Progression"
+                title={t("ach.progression_tooltip")}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
               </span>
@@ -99,13 +99,13 @@ function AchievementCardBase({
             {ach.ra_type === "win_condition" && (
               <span
                 className="ra-type-badge ra-type-badge--win-condition"
-                title="Official RetroAchievements type: Win Condition"
+                title={t("ach.win_condition_tooltip")}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
               </span>
             )}
               {ach.hint && !editMode && (
-                <button className={`icon-btn ${isHintHidden ? "hint-hidden" : "hint-visible"}`} onClick={() => handleToggleHint(ach.apiname)} title="Toggle Hint Visibility">
+                <button className={`icon-btn ${isHintHidden ? "hint-hidden" : "hint-visible"}`} onClick={() => handleToggleHint(ach.apiname)} title={t("ach.toggle_hint_tooltip")}>
                   {isHintHidden ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
                   ) : (
@@ -121,7 +121,7 @@ function AchievementCardBase({
                 <button
                   className="icon-btn icon-btn--ra-link"
                   onClick={() => open(`https://retroachievements.org/achievement/${ach.apiname}`)}
-                  title="Open achievement page on RetroAchievements"
+                  title={t("ach.open_ra_tooltip")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </button>
@@ -141,20 +141,20 @@ function AchievementCardBase({
             {allKnownChaptersForDropdown.map(c => (<option key={c} value={c}>{c}</option>))}
           </select>
           
-          <textarea placeholder="Hint..." value={localOrOfficialEditData.hint ?? ach.hint ?? ""} onChange={e => handleEdit(ach.apiname, "hint", e.target.value)} className="edit-input edit-textarea" />
+          <textarea placeholder={t("ach.hint_placeholder")} value={localOrOfficialEditData.hint ?? ach.hint ?? ""} onChange={e => handleEdit(ach.apiname, "hint", e.target.value)} className="edit-input edit-textarea" />
           
-          <input type="text" placeholder="Video URL..." value={localOrOfficialEditData.video_url ?? ach.video_url ?? ""} onChange={e => handleEdit(ach.apiname, "video_url", e.target.value)} className="edit-input" />
-          <textarea placeholder="Private notes..." value={localOrOfficialEditData.notes ?? ach.notes ?? ""} onChange={e => handleEdit(ach.apiname, "notes", e.target.value)} className="edit-input edit-textarea" style={{ borderLeft: "3px solid var(--accent-green)" }} />
+          <input type="text" placeholder={t("ach.video_url_placeholder")} value={localOrOfficialEditData.video_url ?? ach.video_url ?? ""} onChange={e => handleEdit(ach.apiname, "video_url", e.target.value)} className="edit-input" />
+          <textarea placeholder={t("ach.notes_placeholder")} value={localOrOfficialEditData.notes ?? ach.notes ?? ""} onChange={e => handleEdit(ach.apiname, "notes", e.target.value)} className="edit-input edit-textarea" style={{ borderLeft: "3px solid var(--accent-green)" }} />
           <div className="edit-checks">
             <label className="edit-check-label" style={{ opacity: ach.is_official_missable ? 0.6 : 1, cursor: ach.is_official_missable ? "not-allowed" : "pointer" }}>
               <input type="checkbox" checked={ach.is_missable || false} disabled={ach.is_official_missable} onChange={e => handleEdit(ach.apiname, "is_missable", e.target.checked)} /> 
-              Is Missable {ach.is_official_missable && <span style={{ color: "var(--accent-yellow)", marginLeft: "4px" }}>(Official)</span>}
+              {t("ach.is_missable_label")} {ach.is_official_missable && <span style={{ color: "var(--accent-yellow)", marginLeft: "4px" }}>{t("ach.official_label")}</span>}
             </label>
-            <label className="edit-check-label"><input type="checkbox" checked={ach.is_spoiler || false} onChange={e => handleEdit(ach.apiname, "is_spoiler", e.target.checked)} /> Is Spoiler</label>
+            <label className="edit-check-label"><input type="checkbox" checked={ach.is_spoiler || false} onChange={e => handleEdit(ach.apiname, "is_spoiler", e.target.checked)} /> {t("ach.is_spoiler_label")}</label>
           </div>
 
           <div className="edit-requires">
-            <label className="edit-input-label">Requires (prerequisite achievements)</label>
+            <label className="edit-input-label">{t("ach.requires_prereq_label")}</label>
             <div className="edit-requires-list">
               {achievements.filter(a => a.apiname !== ach.apiname).map(other => {
                 const currentRequires: string[] = localOrOfficialEditData.requires ?? ach.requires ?? [];
@@ -182,7 +182,7 @@ function AchievementCardBase({
         <>
           {ach.requires && ach.requires.length > 0 && (
             <div className="chain-row">
-              <span className="chain-label">Requires:</span>
+              <span className="chain-label">{t("ach.requires_label")}</span>
               {ach.requires.map(reqId => {
                 const reqAch = achievements.find(a => a.apiname === reqId);
                 if (!reqAch) return null;
@@ -200,7 +200,7 @@ function AchievementCardBase({
             if (!unlocks.length) return null;
             return (
               <div className="chain-row">
-                <span className="chain-label">Unlocks:</span>
+                <span className="chain-label">{t("ach.unlocks_label")}</span>
                 {unlocks.map(u => (
                   <button key={u.apiname} className={`chain-badge chain-badge--unlocks${u.unlocked ? " chain-badge--done" : ""}`}
                     onClick={() => triggerHighlight(u.apiname)}>
@@ -213,17 +213,17 @@ function AchievementCardBase({
           
           {ach.notes && (
             <div className="notes-box">
-              <span className="notes-label">Notes: </span>{ach.notes}
+              <span className="notes-label">{t("ach.notes_label")}</span>{ach.notes}
             </div>
           )}
           
           {ach.hint && !isHintHidden && (
             <div className="hint-box">
               <p style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>
-                <span className="hint-label">Hint: </span>{renderHintWithLinks(ach.hint)}
+                <span className="hint-label">{t("ach.hint_label")}</span>{renderHintWithLinks(ach.hint)}
               </p>
               {ach.video_url && getYouTubeEmbedUrl(ach.video_url) && (
-                <div className="video-wrapper"><iframe src={getYouTubeEmbedUrl(ach.video_url)!} title="YouTube video" frameBorder="0" allowFullScreen></iframe></div>
+                <div className="video-wrapper"><iframe src={getYouTubeEmbedUrl(ach.video_url)!} title={t("ach.youtube_video_title")} frameBorder="0" allowFullScreen></iframe></div>
               )}
             </div>
           )}

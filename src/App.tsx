@@ -38,9 +38,13 @@ function App() {
     windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false
   });
 
-  const t = (key: string) => {
+  const t = (key: string, vars?: Record<string, string | number>) => {
     const langDict = TRANSLATIONS[settings.language] || TRANSLATIONS["en"];
-    return langDict[key] || TRANSLATIONS["en"][key] || key;
+    let str = langDict[key] || TRANSLATIONS["en"][key] || key;
+    if (vars) {
+      for (const k of Object.keys(vars)) str = str.split(`{${k}}`).join(String(vars[k]));
+    }
+    return str;
   };
 
   const [apiKey, setApiKey] = useState<string>("");
@@ -200,7 +204,7 @@ function App() {
       updated = { ...gameLinksRef.current, [id]: { id, appIds: [appIdA, appIdB] } };
     }
     saveGameLinks(updated);
-    toast.success("Games linked! They'll now share one tab.");
+    toast.success(t("link.toast_linked"));
   };
 
   const handleUnlinkGame = (appId: string) => {
@@ -1586,6 +1590,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
         onLink={(otherAppId) => { if (linkModalForAppId) handleCreateGameLink(linkModalForAppId, otherAppId); setLinkModalForAppId(null); }}
         onUnlink={() => { if (linkModalForAppId) handleUnlinkGame(linkModalForAppId); setLinkModalForAppId(null); }}
         onClose={() => setLinkModalForAppId(null)}
+        t={t}
       />
 
       {!isMiniMode && (
@@ -1622,7 +1627,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                         {isGroupLive && <span className="live-dot" title="Game is currently running"></span>}
                         <PlatformIcon platform={game.platform} size={16}/>
                         {groupTabName}
-                        {isGrouped && <span title={`Linked set: ${link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ")}`} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
+                        {isGrouped && <span title={t("link.tab_tooltip", { names: link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ") })} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
                       </button>
                       <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
                     </div>
@@ -1701,7 +1706,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                 {isSelectedGameRA ? "RetroAchievements" : isSelectedGameXbox ? "Xbox Live" : isSelectedGamePSN ? "PlayStation Network" : (isSelectedGameLive ? t("status.live") : t("status.offline"))}
               </p>
               <div className="game-name-wrapper">
-                <h1 className="game-title" style={{ marginTop: 4 }}>{gameName}</h1>
+                <h1 className="game-title">{gameName}</h1>
                 {!isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN && hasCommunityDb !== null && (
                   hasCommunityDb ? (
                     <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
@@ -1719,10 +1724,10 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                   return (
                     <button
                       className={`game-link-header-btn${isGrouped ? " linked" : ""}`}
-                      title={isGrouped ? "Manage linked RetroAchievements sets" : "Link with another RetroAchievements set"}
+                      title={isGrouped ? t("link.header_title_linked") : t("link.header_title")}
                       onClick={() => setLinkModalForAppId(selectedAppId)}
                     >
-                      🔗 {isGrouped ? "Linked Set" : "Link Set"}
+                      🔗 {isGrouped ? t("link.header_btn_linked") : t("link.header_btn")}
                     </button>
                   );
                 })()}
@@ -1826,13 +1831,13 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
               className={`inner-tab ${innerTab === "ACHIEVEMENTS" ? "active" : ""}`} 
               onClick={() => setInnerTab("ACHIEVEMENTS")}
             >
-              Achievements
+              {t("tab.achievements")}
             </button>
             <button 
               className={`inner-tab ${innerTab === "CHECKLISTS" ? "active" : ""}`} 
               onClick={() => setInnerTab("CHECKLISTS")}
             >
-              Checklists
+              {t("tab.checklists")}
             </button>
           </div>
 
@@ -1994,6 +1999,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
               key={selectedAppId}
               checklists={allChecklists[selectedAppId] || []}
               knownChapters={allKnownChaptersForDropdown}
+              t={t}
               onChange={(newList) => {
                 const updated = { ...allChecklists, [selectedAppId]: newList };
                 setAllChecklists(updated);

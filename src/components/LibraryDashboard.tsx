@@ -105,6 +105,7 @@ export function LibraryDashboard({
           raCreds={raCreds}
           xboxCreds={xboxCreds}
           psnCreds={psnCreds}
+          t={t}
         />
       </div>
     );
@@ -330,6 +331,7 @@ export function LibraryDashboard({
         raCreds={raCreds}
         xboxCreds={xboxCreds}
         psnCreds={psnCreds}
+        t={t}
       />
     </>
   );

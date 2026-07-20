@@ -11,9 +11,10 @@ interface GameLinkModalProps {
   onLink: (otherAppId: string) => void;
   onUnlink: () => void;
   onClose: () => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink, onUnlink, onClose }: GameLinkModalProps) {
+export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink, onUnlink, onClose, t }: GameLinkModalProps) {
   const [search, setSearch] = useState("");
   if (!isOpen) return null;
 
@@ -37,15 +38,14 @@ export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink,
         aria-modal="true"
         aria-labelledby="game-link-title"
       >
-        <h3 id="game-link-title" className="confirm-dialog-title">🔗 Link Game Sets</h3>
+        <h3 id="game-link-title" className="confirm-dialog-title">{t("link.title")}</h3>
         <p className="confirm-dialog-message game-link-modal-message">
-          Linking two entries (e.g. a base game and a subset) makes them
-          share one tab, one set of chapters, and merged achievements. So tracking one doesn't hijack the tab from the other.
+          {t("link.desc")}
         </p>
 
         {isGrouped && currentLink && (
           <div className="game-link-current">
-            <div className="game-link-current-label">Currently linked as one set:</div>
+            <div className="game-link-current-label">{t("link.current_label")}</div>
             {currentLink.appIds.map(id => (
               <div key={id} className="game-link-current-item">
                 <PlatformIcon platform={gameHistory[id]?.platform || "STEAM"} size={14} />
@@ -56,14 +56,14 @@ export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink,
               className="confirm-dialog-btn danger game-link-unlink-btn"
               onClick={onUnlink}
             >
-              Unlink "{selfName}" from this set
+              {t("link.unlink_btn", { name: selfName })}
             </button>
           </div>
         )}
 
         <input
           type="text"
-          placeholder="Search your tracked games..."
+          placeholder={t("link.search_placeholder")}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="game-link-search-input"
@@ -71,7 +71,7 @@ export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink,
 
         <div className="game-link-candidates">
           {candidates.length === 0 && (
-            <p className="game-link-empty">No other games to link with.</p>
+            <p className="game-link-empty">{t("link.empty")}</p>
           )}
           {candidates.map(([id, g]) => (
             <button
@@ -86,7 +86,7 @@ export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink,
         </div>
 
         <div className="confirm-dialog-actions">
-          <button className="confirm-dialog-btn cancel" onClick={onClose}>Close</button>
+          <button className="confirm-dialog-btn cancel" onClick={onClose}>{t("link.close_btn")}</button>
         </div>
       </div>
     </div>

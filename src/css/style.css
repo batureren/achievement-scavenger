@@ -428,7 +428,6 @@ a:hover {
 .game-title {
   font-size: clamp(1.4rem, 4vw, 2rem);
   font-weight: 700;
-  margin-top: 4px;
   line-height: 1.2;
 }
 

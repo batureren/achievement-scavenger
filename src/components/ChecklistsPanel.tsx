@@ -9,6 +9,7 @@ interface ChecklistsPanelProps {
   checklists: CustomChecklist[];
   onChange: (updated: CustomChecklist[]) => void;
   knownChapters?: string[];
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 type ItemFormState = Partial<ChecklistItem>;
@@ -48,7 +49,7 @@ function ChecklistThumb({ src, alt, className }: { src: string; alt: string; cla
   return <img src={src} alt={alt} className={className} />;
 }
 
-export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: ChecklistsPanelProps) {
+export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }: ChecklistsPanelProps) {
   const [activeChecklistId, setActiveChecklistId] = useState<string | null>(checklists[0]?.id ?? null);
   const activeChecklist = checklists.find(c => c.id === activeChecklistId) || checklists[0] || null;
 
@@ -265,10 +266,10 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                 </div>
               </button>
               <div className="checklist-tab-actions">
-                <button className="icon-btn hint-visible" title="Rename checklist" onClick={e => { e.stopPropagation(); setRenamingId(list.id); setRenameValue(list.title); }}>
+                <button className="icon-btn hint-visible" title={t("cl.rename_tooltip")} onClick={e => { e.stopPropagation(); setRenamingId(list.id); setRenameValue(list.title); }}>
                   <PencilIcon />
                 </button>
-                <button className="icon-btn hint-visible" title="Delete checklist" onClick={e => { e.stopPropagation(); setPendingDeleteChecklist(list); }}>
+                <button className="icon-btn hint-visible" title={t("cl.delete_checklist_tooltip")} onClick={e => { e.stopPropagation(); setPendingDeleteChecklist(list); }}>
                   <TrashIcon />
                 </button>
               </div>
@@ -277,14 +278,14 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
         })}
 
         <form onSubmit={handleCreateChecklist} className="add-link-form" style={{ marginTop: "10px" }}>
-          <input type="text" placeholder="New checklist topic..." value={newChecklistName} onChange={e => setNewChecklistName(e.target.value)} />
+          <input type="text" placeholder={t("cl.new_checklist_placeholder")} value={newChecklistName} onChange={e => setNewChecklistName(e.target.value)} />
           <button type="submit" className="btn-add-link">+</button>
         </form>
       </div>
 
       <div className="checklists-content">
         {!activeChecklist ? (
-          <div className="empty-state">Create a checklist to start tracking collectibles.</div>
+          <div className="empty-state">{t("cl.select_checklist_empty")}</div>
         ) : (
           <>
             <div className="checklist-header">
@@ -297,14 +298,14 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                   onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                 />
                 <div className="btn-group">
-                  <button className="btn-small" onClick={() => markAll(true)} disabled={totalCount === 0}>Mark All Found</button>
-                  <button className="btn-small" onClick={() => markAll(false)} disabled={totalCount === 0}>Reset</button>
-                  <button className="btn-small btn-small-success" onClick={openAddForm}>+ Add Item</button>
+                  <button className="btn-small" onClick={() => markAll(true)} disabled={totalCount === 0}>{t("cl.mark_all_found")}</button>
+                  <button className="btn-small" onClick={() => markAll(false)} disabled={totalCount === 0}>{t("cl.reset")}</button>
+                  <button className="btn-small btn-small-success" onClick={openAddForm}>{t("cl.add_item_btn")}</button>
                 </div>
               </div>
 
               <div className="checklist-progress-summary">
-                <strong>{completedCount}/{totalCount}</strong> collected &middot; {progressPct}%
+                <strong>{completedCount}/{totalCount}</strong> {t("cl.collected_label")} &middot; {progressPct}%
               </div>
               <div className="progress-bar-track">
                 <div className="progress-bar-fill" style={{ width: `${progressPct}%` }} />
@@ -315,14 +316,14 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                   <input
                     type="text"
                     className="search-input checklist-search-input"
-                    placeholder="Search items, locations, categories..."
+                    placeholder={t("cl.search_items_placeholder")}
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                   />
                   <div className="filter-btns" style={{ flex: "unset" }}>
                     {(["ALL", "MISSING", "FOUND"] as const).map(f => (
                       <button key={f} className={`filter-btn ${statusFilter === f ? "active" : ""}`} onClick={() => setStatusFilter(f)}>
-                        {f === "ALL" ? "All" : f === "FOUND" ? "Found" : "Missing"}
+                        {f === "ALL" ? t("cl.filter_all") : f === "FOUND" ? t("cl.filter_found") : t("cl.filter_missing")}
                       </button>
                     ))}
                   </div>
@@ -332,15 +333,15 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
               {(finderChapterOptions.length > 0 || finderLocationOptions.length > 0) && (
                 <div className="checklist-toolbar" style={{ marginTop: "8px" }}>
                   <select className="edit-input control-select" style={{ maxWidth: "220px" }} value={finderChapter} onChange={e => setFinderChapter(e.target.value)}>
-                    <option value="">Find by Chapter (all checklists)</option>
+                    <option value="">{t("cl.find_by_chapter")}</option>
                     {finderChapterOptions.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <select className="edit-input control-select" style={{ maxWidth: "220px" }} value={finderLocation} onChange={e => setFinderLocation(e.target.value)}>
-                    <option value="">Find by Location (all checklists)</option>
+                    <option value="">{t("cl.find_by_location")}</option>
                     {finderLocationOptions.map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
                   {isFinderActive && (
-                    <button className="btn-small" onClick={() => { setFinderChapter(""); setFinderLocation(""); }}>Clear</button>
+                    <button className="btn-small" onClick={() => { setFinderChapter(""); setFinderLocation(""); }}>{t("cl.clear")}</button>
                   )}
                 </div>
               )}
@@ -349,9 +350,9 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
             {showItemForm && (
               <form className="cl-form-container" onSubmit={handleSaveItem}>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <input type="text" className="edit-input" style={{ flex: "2 1 200px" }} placeholder="Item Name (e.g. Memory Stick #12)" required
+                  <input type="text" className="edit-input" style={{ flex: "2 1 200px" }} placeholder={t("cl.item_name_placeholder")} required
                     value={itemForm.name || ""} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} />
-                  <input type="text" className="edit-input" style={{ flex: "1 1 140px" }} placeholder="Category (e.g. Xion City)" list="checklist-categories"
+                  <input type="text" className="edit-input" style={{ flex: "1 1 140px" }} placeholder={t("cl.item_category_placeholder")} list="checklist-categories"
                     value={itemForm.category || ""} onChange={e => setItemForm({ ...itemForm, category: e.target.value })} />
                   <datalist id="checklist-categories">
                     {existingCategories.map(c => <option key={c} value={c} />)}
@@ -364,24 +365,24 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                     value={itemForm.chapter || ""}
                     onChange={e => setItemForm({ ...itemForm, chapter: e.target.value })}
                   >
-                    <option value="">No Chapter</option>
+                    <option value="">{t("cl.no_chapter_option")}</option>
                     {knownChapters.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
-                <input type="text" className="edit-input" placeholder="Location / how to get it (optional)"
+                <input type="text" className="edit-input" placeholder={t("cl.item_location_placeholder")}
                   value={itemForm.location || ""} onChange={e => setItemForm({ ...itemForm, location: e.target.value })} />
-                <textarea className="edit-input edit-textarea" placeholder="Description / notes..."
+                <textarea className="edit-input edit-textarea" placeholder={t("cl.item_desc_placeholder")}
                   value={itemForm.desc || ""} onChange={e => setItemForm({ ...itemForm, desc: e.target.value })} />
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <input type="url" className="edit-input" placeholder="Image/GIF/WebM URL (optional)"
+                  <input type="url" className="edit-input" placeholder={t("cl.item_image_placeholder")}
                     value={itemForm.imageUrl || ""} onChange={e => setItemForm({ ...itemForm, imageUrl: e.target.value })} />
-                  <input type="url" className="edit-input" placeholder="Video URL (optional)"
+                  <input type="url" className="edit-input" placeholder={t("cl.item_video_placeholder")}
                     value={itemForm.videoUrl || ""} onChange={e => setItemForm({ ...itemForm, videoUrl: e.target.value })} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                  <button type="button" className="btn-small" onClick={closeForm}>Cancel</button>
+                  <button type="button" className="btn-small" onClick={closeForm}>{t("cl.cancel")}</button>
                   <button type="submit" className="btn-primary" style={{ padding: "7px 16px" }}>
-                    {editingItemId ? "Save Changes" : "Add Item"}
+                    {editingItemId ? t("cl.save_changes") : t("cl.add_item_submit")}
                   </button>
                 </div>
               </form>
@@ -390,7 +391,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
             {isFinderActive ? (
               <>
                 {finderResults.length === 0 && (
-                  <div className="empty-state">No items match that chapter/location across your checklists.</div>
+                  <div className="empty-state">{t("cl.no_finder_match")}</div>
                 )}
                 {finderResults.map(group => (
                   <div key={group.checklist.id} className="accordion-section">
@@ -406,7 +407,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                         {group.items.map(item => (
                           <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
                             <div className="cl-item-hover-actions">
-                              <button className="icon-btn hint-visible" title="Edit item" onClick={() => { setActiveChecklistId(group.checklist.id); setFinderChapter(""); setFinderLocation(""); openEditForm(item); }}>
+                              <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip")} onClick={() => { setActiveChecklistId(group.checklist.id); setFinderChapter(""); setFinderLocation(""); openEditForm(item); }}>
                                 <PencilIcon />
                               </button>
                             </div>
@@ -445,17 +446,17 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
             ) : (
               <>
                 {totalCount === 0 && !showItemForm && (
-                  <div className="empty-state">No items added to this checklist yet.</div>
+                  <div className="empty-state">{t("cl.no_items_yet")}</div>
                 )}
                 {totalCount > 0 && filteredItems.length === 0 && (
-                  <div className="empty-state">No items match your search/filter.</div>
+                  <div className="empty-state">{t("cl.no_search_match")}</div>
                 )}
 
                 {groupedItems.map(([category, items]) => (
                   <div key={category} className="accordion-section">
                     <div className="accordion-header" onClick={() => toggleCategory(category)}>
                       <span className="accordion-title">
-                        {hasCategories ? category : "Items"}
+                        {hasCategories ? category : t("cl.items_fallback")}
                         <span className="checklist-category-count">{items.filter(i => i.completed).length}/{items.length}</span>
                       </span>
                       <span className={`accordion-chevron ${!collapsedCategories[category] ? "open" : ""}`}>▼</span>
@@ -468,10 +469,10 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                           return (
                             <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
                               <div className="cl-item-hover-actions">
-                                <button className="icon-btn hint-visible" title="Edit item" onClick={() => openEditForm(item)}>
+                                <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip")} onClick={() => openEditForm(item)}>
                                   <PencilIcon />
                                 </button>
-                                <button className="icon-btn hint-visible" title="Delete item" onClick={() => setPendingDeleteItem(item)}>
+                                <button className="icon-btn hint-visible" title={t("cl.delete_item_tooltip")} onClick={() => setPendingDeleteItem(item)}>
                                   <TrashIcon />
                                 </button>
                               </div>
@@ -505,7 +506,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                                 <div className="cl-item-actions">
                                   {item.videoUrl && (
                                     <button className="btn-small" onClick={() => setExpandedVideoId(isVideoOpen ? null : item.id)}>
-                                      {isVideoOpen ? "Hide Video" : "▶ Watch Video"}
+                                      {isVideoOpen ? t("cl.hide_video") : t("cl.watch_video")}
                                     </button>
                                   )}
                                 </div>
@@ -517,8 +518,8 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
                                     </div>
                                   ) : (
                                     <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "6px" }}>
-                                      Couldn't embed this link —{" "}
-                                      <a href="#" onClick={e => { e.preventDefault(); open(item.videoUrl); }}>open externally</a>.
+                                      {t("cl.cant_embed")}{" "}
+                                      <a href="#" onClick={e => { e.preventDefault(); open(item.videoUrl); }}>{t("cl.open_externally")}</a>.
                                     </p>
                                   )
                                 )}
@@ -548,17 +549,17 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [] }: Ch
 
       <ConfirmDialog
         isOpen={!!pendingDeleteChecklist}
-        title="Delete Checklist"
-        message={pendingDeleteChecklist ? `Delete "${pendingDeleteChecklist.title}" and all ${pendingDeleteChecklist.items.length} item(s)? This can't be undone.` : ""}
-        confirmLabel="Delete"
+        title={t("cl.delete_checklist_title")}
+        message={pendingDeleteChecklist ? t("cl.delete_checklist_message", { title: pendingDeleteChecklist.title, count: pendingDeleteChecklist.items.length }) : ""}
+        confirmLabel={t("cl.delete_confirm")}
         onConfirm={confirmDeleteChecklist}
         onCancel={() => setPendingDeleteChecklist(null)}
       />
       <ConfirmDialog
         isOpen={!!pendingDeleteItem}
-        title="Delete Item"
-        message={pendingDeleteItem ? `Remove "${pendingDeleteItem.name}" from this checklist?` : ""}
-        confirmLabel="Delete"
+        title={t("cl.delete_item_title")}
+        message={pendingDeleteItem ? t("cl.delete_item_message", { name: pendingDeleteItem.name }) : ""}
+        confirmLabel={t("cl.delete_confirm")}
         onConfirm={confirmDeleteItem}
         onCancel={() => setPendingDeleteItem(null)}
       />
