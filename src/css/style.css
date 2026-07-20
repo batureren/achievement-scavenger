@@ -2370,12 +2370,46 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 }
 
 @keyframes chainHighlight {
-  0%   { box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.7); }
-  100% { box-shadow: 0 0 0 0px rgba(96, 165, 250, 0); }
+  0% {
+    background: rgba(52, 211, 153, 0.28);
+    transform: scale(0.98);
+
+    box-shadow:
+      0 0 0 0 rgba(96,165,250,.8),
+      0 0 12px rgba(96,165,250,.7),
+      0 0 30px rgba(52,211,153,.45);
+  }
+
+  25% {
+    transform: scale(1.02);
+
+    box-shadow:
+      0 0 0 6px rgba(96,165,250,.35),
+      0 0 20px rgba(96,165,250,.9),
+      0 0 45px rgba(52,211,153,.65);
+  }
+
+  60% {
+    transform: scale(1);
+
+    box-shadow:
+      0 0 0 10px rgba(96,165,250,.12),
+      0 0 14px rgba(96,165,250,.55),
+      0 0 28px rgba(52,211,153,.35);
+  }
+
+  100% {
+    background: var(--card-bg);
+    transform: scale(1);
+
+    box-shadow:
+      0 0 0 16px rgba(96,165,250,0),
+      var(--shadow-card);
+  }
 }
 
 .chain-highlight {
-  animation: chainHighlight 1.5s ease-out forwards;
+  animation: chainHighlight 2.4s cubic-bezier(.22,.8,.2,1) forwards;
 }
 
 .ra-type-badge--progression {
@@ -3447,4 +3481,148 @@ video.cl-item-img {
 
 .game-link-candidate-btn:hover {
   border-color: var(--accent-green);
+}
+
+/* ============================================================
+   LIBRARY — WHAT TO PLAY NEXT
+   ============================================================ */
+
+.library-play-next-section {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.library-play-next-title {
+  font-size: 1.05rem;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
+}
+
+.library-play-next-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0 0 14px 0;
+}
+
+.library-play-next-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.library-play-next-card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition), background var(--transition);
+}
+
+.library-play-next-card:hover {
+  border-color: var(--accent-green);
+  background: color-mix(in srgb, var(--card-bg) 88%, var(--accent-green));
+  transform: translateY(-1px);
+}
+
+.library-play-next-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.library-play-next-icon--fallback {
+  background: var(--border-color);
+}
+
+.library-play-next-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.library-play-next-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-play-next-source {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.library-play-next-source-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-play-next-percent {
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   LIBRARY — FLOATING SECTION NAV
+   ============================================================ */
+
+.library-float-nav {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.library-float-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition), color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.library-float-btn:hover {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 700px) {
+  .library-float-nav {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .library-float-btn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
 }

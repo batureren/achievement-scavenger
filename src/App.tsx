@@ -104,6 +104,7 @@ function App() {
 
   const [runningAppIds, setRunningAppIds] = useState<string[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string>(""); 
+  const [pendingAchievementAnchor, setPendingAchievementAnchor] = useState<string | null>(null);
   const isSelectedGameRA = selectedAppId.startsWith("RA_");
   const isSelectedGameXbox = selectedAppId.startsWith("XBOX_");
   const isSelectedGamePSN = selectedAppId.startsWith("PSN_");
@@ -557,7 +558,7 @@ function App() {
 
                   historyUpdated = {
                     ...base,
-                    [gameIdStr]: { appId: gameIdStr, name: recentGame.Title, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "RA" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: recentGame.ImageBoxArt || recentGame.ImageTitle || recentGame.ImageIcon || existing?.raImageIcon }
+                    [gameIdStr]: { appId: gameIdStr, name: recentGame.Title, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "RA" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: recentGame.ImageBoxArt || recentGame.ImageTitle || recentGame.ImageIcon || existing?.raImageIcon }
                   };
                 }
 
@@ -595,7 +596,7 @@ function App() {
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === (recentGame.name || recentGame.titleName)) return prev;
 
-                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.name || recentGame.titleName || `Title ${recentGame.titleId}`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "XBOX" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: boxArt || existing?.raImageIcon } };
+                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.name || recentGame.titleName || `Title ${recentGame.titleId}`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "XBOX" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: boxArt || existing?.raImageIcon } };
                   invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
                   return updated;
                 });
@@ -631,7 +632,7 @@ function App() {
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.trophyTitleName) return prev;
 
-                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.trophyTitleName || `PSN Title`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "PSN" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, raImageIcon: recentGame.trophyTitleIconUrl || existing?.raImageIcon } };
+                  const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.trophyTitleName || `PSN Title`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "PSN" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: recentGame.trophyTitleIconUrl || existing?.raImageIcon } };
                   invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
                   return updated;
                 });
@@ -1251,7 +1252,17 @@ function App() {
         const color = p >= 40 ? "#a1a1aa" : p >= 20 ? "#60a5fa" : p >= 10 ? "#c084fc" : p >= 5 ? "#f59e0b" : "#ef4444";
         rarestUnlocked = { name: rarest.display_name, percent: p, color };
       }
-      const updated = { ...prev, [appId]: { appId, name: safeName, totalAch: achs.length, unlockedAch: achs.filter(a => a.unlocked).length, lastPlayed: existing?.lastPlayed || Date.now(), platform: resolvePlatform(appId), pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked, raImageIcon: existing?.raImageIcon } };
+
+      const lockedWithPercent = achs.filter(a => !a.unlocked && typeof a.globalPercent === "number" && a.globalPercent >= 0);
+      let easiestNext: GameHistory["easiestNext"] = null;
+      if (lockedWithPercent.length > 0) {
+        const easiest = lockedWithPercent.reduce((max, a) => (a.globalPercent! > max.globalPercent! ? a : max));
+        const p = easiest.globalPercent!;
+        const color = p >= 40 ? "#a1a1aa" : p >= 20 ? "#60a5fa" : p >= 10 ? "#c084fc" : p >= 5 ? "#f59e0b" : "#ef4444";
+        easiestNext = { apiname: easiest.apiname, name: easiest.display_name, percent: p, icon: easiest.icon, color };
+      }
+
+      const updated = { ...prev, [appId]: { appId, name: safeName, totalAch: achs.length, unlockedAch: achs.filter(a => a.unlocked).length, lastPlayed: existing?.lastPlayed || Date.now(), platform: resolvePlatform(appId), pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked, easiestNext, raImageIcon: existing?.raImageIcon } };
       invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
       return updated;
     });
@@ -1286,7 +1297,18 @@ function App() {
     lastNetworkFetchRef.current = 0; lastXboxNetworkFetchRef.current = 0;
     tickRef.current({ forceTabSwitch: true });
   };
-  
+
+  const handleSelectAchievement = (appId: string, apiname: string) => {
+    setFilter("ALL");
+    setSearchQuery("");
+    setSelectedChapter("ALL");
+    setSelectedSetFilter("ALL");
+    setInnerTab("ACHIEVEMENTS");
+    setEditMode(false);
+    setPendingAchievementAnchor(apiname);
+    handleSelectTab(appId);
+  };
+
   const handleToggleTrack = async (apiname: string, sourceAppId?: string) => { 
     const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; 
     setTrackedData(prev => { 
@@ -1527,6 +1549,26 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
   }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled]);
 
   useEffect(() => {
+    if (!pendingAchievementAnchor || appState !== "PLAYING") return;
+    if (!achievements.some(a => a.apiname === pendingAchievementAnchor)) return;
+
+    const anchorId = pendingAchievementAnchor;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`ach-${anchorId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.remove("chain-highlight");
+        void el.offsetWidth;
+        el.classList.add("chain-highlight");
+        setTimeout(() => el.classList.remove("chain-highlight"), 1500);
+      }
+      setPendingAchievementAnchor(null);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [pendingAchievementAnchor, appState, achievements]);
+
+  useEffect(() => {
     let unlistenFn: () => void;
     
     const setupCloseListener = async () => {
@@ -1653,6 +1695,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
             librarySearch={librarySearch}
             setLibrarySearch={setLibrarySearch}
             handleSelectTab={handleSelectTab}
+            onSelectAchievement={handleSelectAchievement}
             handleRemoveGame={handleRemoveGame}
             setGameHistory={setGameHistory}
             steamApiKey={apiKey}

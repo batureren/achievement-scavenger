@@ -29,6 +29,7 @@ interface LibraryDashboardProps {
   librarySearch: string;
   setLibrarySearch: (s: string) => void;
   handleSelectTab: (id: string) => void;
+  onSelectAchievement: (appId: string, apiname: string) => void;
   handleRemoveGame: (g: GameHistory) => void;
   setGameHistory: React.Dispatch<React.SetStateAction<Record<string, GameHistory>>>;
   t: (key: string) => string;
@@ -43,7 +44,7 @@ let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
 export function LibraryDashboard({
   gameHistory, runningAppIds, libraryFilter, setLibraryFilter,
   librarySort, setLibrarySort, librarySearch, setLibrarySearch,
-  handleSelectTab, handleRemoveGame, setGameHistory, t,
+  handleSelectTab, onSelectAchievement, handleRemoveGame, setGameHistory, t,
   steamApiKey, raCreds, xboxCreds, psnCreds
 }: LibraryDashboardProps) {
 
@@ -85,6 +86,11 @@ export function LibraryDashboard({
     return 0;
   });
 
+  const playNextCandidates = Object.values(gameHistory)
+    .filter(g => g.easiestNext && g.completionStatus !== "abandoned" && g.completionStatus !== "complete" && g.unlockedAch < g.totalAch)
+    .sort((a, b) => (b.easiestNext!.percent - a.easiestNext!.percent))
+    .slice(0, 8);
+
   if (Object.keys(gameHistory).length === 0) {
     return (
       <div className="setup-card" style={{ maxWidth: "100%", marginBottom: "20px", textAlign: "center", padding: "40px 20px" }}>
@@ -113,7 +119,7 @@ export function LibraryDashboard({
 
   return (
     <>
-      <div className="library-dashboard-wrapper">
+      <div id="library-section" className="library-dashboard-wrapper">
         <h2 style={{ fontSize: "1.2rem", color: "var(--text-main)", margin: 0 }}>
           Library
           <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 400, marginLeft: "8px" }}>
@@ -319,6 +325,65 @@ export function LibraryDashboard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {playNextCandidates.length > 0 && (
+        <div id="play-next-section" className="library-play-next-section">
+          <h2 className="library-play-next-title">{t("lib.play_next_title")}</h2>
+          <p className="library-play-next-desc">
+            {t("lib.play_next_desc")}
+          </p>
+          <div className="library-play-next-grid">
+            {playNextCandidates.map(game => {
+              const next = game.easiestNext!;
+              return (
+                <button
+                  key={game.appId}
+                  onClick={() => onSelectAchievement(game.appId, next.apiname)}
+                  className="library-play-next-card"
+                  title={`Jump to "${next.name}" in ${game.name}`}
+                >
+                  {next.icon ? (
+                    <img src={next.icon} alt="" className="library-play-next-icon" />
+                  ) : (
+                    <div className="library-play-next-icon library-play-next-icon--fallback" />
+                  )}
+                  <div className="library-play-next-info">
+                    <div className="library-play-next-name">{next.name}</div>
+                    <div className="library-play-next-source">
+                      <PlatformIcon platform={game.platform} size={11} />
+                      <span className="library-play-next-source-name">{game.name}</span>
+                    </div>
+                  </div>
+                  <span className="library-play-next-percent" style={{ color: next.color }}>
+                    {next.percent.toFixed(1)}%
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {playNextCandidates.length > 0 && (
+        <div className="library-float-nav">
+          <button
+            className="library-float-btn"
+            onClick={() => document.getElementById("play-next-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            title={t("lib.play_next_title")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            {t("lib.float_play_next")}
+          </button>
+          <button
+            className="library-float-btn"
+            onClick={() => document.getElementById("library-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            title={t("lib.float_library")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            {t("lib.float_library")}
+          </button>
         </div>
       )}
 
