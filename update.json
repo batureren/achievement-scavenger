@@ -6,6 +6,10 @@
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc29namFSdnQrNWRuNEhRWXdYVlVGUCs4cCtmY1cvNFZqNFdDeG1pVmg1ZjBmY1IyU0htdGNQNmpWVndjeVV5bksra1QxdXlLVXhxWnpPVUptdzhONEEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NTMzOTAwCWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4xLjRfeDY0LXNldHVwLmV4ZQpxS0wyRnpSMUUxQUdPWW1yYzM1eHduSnBPNUZIc3hNczFIelpYTllHb09tRU9HZU55ZldQdkljcTRFNitkMEY2YUpCR0hrZ0szeDhZeTR5SjVuUkNBdz09Cg==",
       "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.4/AchievementScavenger_0.1.4_x64-setup.exe"
+    },
+    "linux-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc21NbklacGl6RWVVUk1IMjhiWUhBb242NVRKWW5TQkhBamVHUlVramI4WGlObWI5RUZKN3l1ZmFGZEgzOUlqK2x6NmxydkROY2RscVpQUUVJMGV3YWdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NTQ2NzI5CWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4xLjRfYW1kNjQuQXBwSW1hZ2UKUGxvQUhXYmZKU3lPQW9qay9vWUZqU29YZmYxL1pQL0VyUTVTU3RDcjJxWjVUSkxLcmpVTnNYcE9UQlE5bWNQdDVCcGpBVkR0RTBPVTUwdW5BdGRUQ1E9PQo=",
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.4/AchievementScavenger_0.1.4_amd64.AppImage"
     }
   }
 }

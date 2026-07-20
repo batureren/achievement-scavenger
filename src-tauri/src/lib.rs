@@ -1046,15 +1046,21 @@ fn save_game_links(app_handle: tauri::AppHandle, data: String) -> Result<(), Str
 }
 
 // --- Entry Point ---
+#[cfg(target_os = "linux")]
+fn init_steam_deck_env() {
+    std::env::set_var("GDK_BACKEND", "x11");
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "linux")]
-    {
-    std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
-    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-    }
+    init_steam_deck_env();
+
     let (tx, rx) = mpsc::channel();
     spawn_discord_thread(rx);
+    
     tauri::Builder::default()
         .manage(DiscordState { tx: Mutex::new(tx) })
         .plugin(tauri_plugin_shell::init())
