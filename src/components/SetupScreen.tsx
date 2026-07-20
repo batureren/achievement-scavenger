@@ -89,7 +89,7 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, cu
   return (
     <div className="setup-screen">
       <div id="setup-screen-logo">
-        <img src="/icon.svg" alt="Achievement Scavenger Logo" style={{ width: "80px", height: "80px" }} />
+        <img src="/icon.svg" alt="Achievement Scavenger Logo" style={{ width: "64px", height: "64px" }} />
         <h1 className="app-title">Achievement Scavenger</h1>
       </div>
 
