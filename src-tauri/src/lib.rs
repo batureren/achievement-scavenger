@@ -728,51 +728,119 @@ fn save_chapters(app_handle: tauri::AppHandle, data: String) -> Result<(), Strin
 }
 
 // --- Steam Status ---
+#[cfg(target_os = "windows")]
 #[tauri::command]
 fn get_local_steam_status() -> Result<String, String> {
-    #[cfg(target_os = "windows")]
-    {
-        use winreg::enums::*;
-        use winreg::RegKey;
+    use winreg::enums::*;
+    use winreg::RegKey;
 
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let active_process = match hkcu.open_subkey("Software\\Valve\\Steam\\ActiveProcess") {
-            Ok(k) => k,
-            Err(e) => return Err(e.to_string()),
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let active_process = match hkcu.open_subkey("Software\\Valve\\Steam\\ActiveProcess") {
+        Ok(k) => k,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let active_user: u32 = active_process.get_value("ActiveUser").unwrap_or(0);
+    if active_user == 0 {
+        return Ok("NOT_LOGGED_IN".to_string());
+    }
+
+    let steam_id_64 = (active_user as u64) + 76561197960265728;
+    let apps_key = match hkcu.open_subkey("Software\\Valve\\Steam\\Apps") {
+        Ok(k) => k,
+        Err(_) => return Ok(format!("|||{}", steam_id_64)),
+    };
+
+    let mut running_ids: Vec<String> = Vec::new();
+    for subkey_name in apps_key.enum_keys().filter_map(|k| k.ok()) {
+        let app_id: u32 = match subkey_name.parse() {
+            Ok(id) => id,
+            Err(_) => continue,
         };
-        
-        let active_user: u32 = active_process.get_value("ActiveUser").unwrap_or(0);
-        if active_user == 0 {
-            return Ok("NOT_LOGGED_IN".to_string());
-        }
-        
-        let steam_id_64 = (active_user as u64) + 76561197960265728;
-        let apps_key = match hkcu.open_subkey("Software\\Valve\\Steam\\Apps") {
-            Ok(k) => k,
-            Err(_) => return Ok(format!("|||{}", steam_id_64)),
-        };
-        
-        let mut running_ids: Vec<String> = Vec::new();
-        for subkey_name in apps_key.enum_keys().filter_map(|k| k.ok()) {
-            let app_id: u32 = match subkey_name.parse() {
-                Ok(id) => id,
-                Err(_) => continue,
-            };
-                        
-            if let Ok(app_subkey) = apps_key.open_subkey(&subkey_name) {
-                let running: u32 = app_subkey.get_value("Running").unwrap_or(0);
-                if running == 1 {
-                    running_ids.push(app_id.to_string());
-                }
+
+        if let Ok(app_subkey) = apps_key.open_subkey(&subkey_name) {
+            let running: u32 = app_subkey.get_value("Running").unwrap_or(0);
+            if running == 1 {
+                running_ids.push(app_id.to_string());
             }
         }
-        Ok(format!("{}|||{}", running_ids.join(","), steam_id_64))
+    }
+    Ok(format!("{}|||{}", running_ids.join(","), steam_id_64))
+}
+
+#[cfg(target_os = "linux")]
+#[tauri::command]
+fn get_local_steam_status() -> Result<String, String> {
+    use keyvalues_parser::Vdf;
+
+    let candidates = [
+        dirs::home_dir().map(|h| h.join(".steam/steam/registry.vdf")),
+        dirs::home_dir().map(|h| h.join(".local/share/Steam/registry.vdf")),
+        dirs::home_dir().map(|h| h.join(".var/app/com.valvesoftware.Steam/.local/share/Steam/registry.vdf")),
+    ];
+
+    let path = candidates
+        .into_iter()
+        .flatten()
+        .find(|p| p.exists())
+        .ok_or("Steam registry.vdf not found")?;
+
+    let contents = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let vdf = Vdf::parse(&contents).map_err(|e| e.to_string())?;
+
+    let steam = vdf
+        .value
+        .get_obj()
+        .and_then(|o| o.get("HKCU"))
+        .and_then(|v| v.first())
+        .and_then(|v| v.get_obj())
+        .and_then(|o| o.get("Software"))
+        .and_then(|v| v.first())
+        .and_then(|v| v.get_obj())
+        .and_then(|o| o.get("Valve"))
+        .and_then(|v| v.first())
+        .and_then(|v| v.get_obj())
+        .and_then(|o| o.get("Steam"))
+        .and_then(|v| v.first())
+        .and_then(|v| v.get_obj())
+        .ok_or("Unexpected registry.vdf structure")?;
+
+    let active_user: u64 = steam
+        .get("ActiveUser")
+        .and_then(|v| v.first())
+        .and_then(|v| v.get_str())
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
+    if active_user == 0 {
+        return Ok("NOT_LOGGED_IN".to_string());
     }
 
-    #[cfg(not(target_os = "windows"))]
-    {
-        Ok("NOT_LOGGED_IN".to_string())
+    let steam_id_64 = active_user + 76561197960265728;
+
+    let mut running_ids: Vec<String> = Vec::new();
+    if let Some(apps) = steam.get("apps").and_then(|v| v.first()).and_then(|v| v.get_obj()) {
+        for (app_id, entry) in apps.iter() {
+            let running = entry
+                .first()
+                .and_then(|v| v.get_obj())
+                .and_then(|o| o.get("Running"))
+                .and_then(|v| v.first())
+                .and_then(|v| v.get_str())
+                .unwrap_or("0");
+            if running == "1" {
+                running_ids.push(app_id.to_string());
+            }
+        }
     }
+
+    Ok(format!("{}|||{}", running_ids.join(","), steam_id_64))
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+#[tauri::command]
+fn get_local_steam_status() -> Result<String, String> {
+    Ok("NOT_LOGGED_IN".to_string())
 }
 
 // --- Steam API ---

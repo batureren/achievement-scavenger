@@ -204,6 +204,12 @@ a:hover {
    SETUP / WAITING SCREEN
    ============================================================ */
 
+#setup-screen-logo{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .setup-screen {
   display: flex;
   flex-direction: column;
@@ -214,6 +220,20 @@ a:hover {
   padding: 24px;
   text-align: center;
   overflow: hidden;
+  overflow-y: auto;
+}
+
+.setup-platforms{
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 32px; 
+  max-width: 480px; 
+  width: 100%; 
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  z-index: 1;
 }
 
 .setup-screen::before {

@@ -87,13 +87,13 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, cu
   };
 
   return (
-    <div className="setup-screen" style={{ overflowY: "auto" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+    <div className="setup-screen">
+      <div id="setup-screen-logo">
         <img src="/icon.svg" alt="Achievement Scavenger Logo" style={{ width: "80px", height: "80px" }} />
         <h1 className="app-title">Achievement Scavenger</h1>
       </div>
 
-      <div style={{ background: "var(--card-bg)", border: "1px solid var(--border-color)", borderRadius: "12px", padding: "32px", maxWidth: "480px", width: "100%", display: "flex", flexDirection: "column", gap: "24px", zIndex: 1 }}>
+      <div className="setup-platforms">
         
         {/* Steam Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
