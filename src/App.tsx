@@ -550,7 +550,7 @@ function App() {
                   const isLive = (Date.now() - lastPlayedUTC) < 4 * 60 * 1000;
                   if (isLive) nextLiveIds.add(gameIdStr);
 
-                  const base = historyUpdated || gameHistoryRef.current;
+                  const base: Record<string, GameHistory> = historyUpdated || gameHistoryRef.current;                  
                   const existing = base[gameIdStr];
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.Title) continue;

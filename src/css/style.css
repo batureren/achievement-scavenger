@@ -804,7 +804,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 20px 14px 14px;
+  padding: 24px 14px 14px;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -877,7 +877,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 .card-top {
   display: flex;
   gap: 12px;
-  margin-bottom: 10px;
 }
 
 .ach-icon {

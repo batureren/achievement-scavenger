@@ -57,7 +57,7 @@ function AchievementCardBase({
         <span className="hunt-tracked-badge">Active</span>
       )}
       {ach._setName && (
-        <span className="chapter-tag" style={{ position: "absolute", top: "8px", right: ach.is_missable || isTracked ? "90px" : "8px", opacity: 0.85 }} title={t("ach.linked_set_tooltip")}>
+        <span className="chapter-tag" style={{ position: "absolute", top: "0px", right: ach.is_missable || isTracked ? "140px" : "8px", opacity: 0.85 }} title={t("ach.linked_set_tooltip")}>
           {ach._setName}
         </span>
       )}
