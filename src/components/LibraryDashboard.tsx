@@ -113,7 +113,7 @@ export function LibraryDashboard({
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "14px", borderBottom: "1px solid var(--border-color)", paddingBottom: "10px" }}>
+      <div className="library-dashboard-wrapper">
         <h2 style={{ fontSize: "1.2rem", color: "var(--text-main)", margin: 0 }}>
           Library
           <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 400, marginLeft: "8px" }}>

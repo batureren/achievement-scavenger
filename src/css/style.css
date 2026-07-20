@@ -408,6 +408,17 @@ a:hover {
    TRACKING SCREEN
    ============================================================ */
 
+.library-dashboard-wrapper{
+  display: flex;
+  align-items: center; 
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px
+}
+
 .tracking-screen {
   margin: 0 auto;
   width: 100%;
@@ -1981,6 +1992,9 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 
 .library-filter-chip.active {
   font-weight: 700;
+  background-color: var(--accent-green);
+  color: #000;
+  border-color: var(--accent-green);
 }
 
 .library-import-btn {

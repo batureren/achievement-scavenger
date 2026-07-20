@@ -1855,20 +1855,20 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                         <div className="stat-card"><span className="stat-label">{t("stat.avgCompletion")}</span><span className="stat-value">{averagePercent}%</span></div>
                         {isSelectedGameRA && totalPoints > 0 && (
                           <div className="stat-card">
-                            <span className="stat-label">⭐ Points</span>
+                            <span className="stat-label">{t("stat.raPoints")}</span>
                             <span className="stat-value" style={{ fontSize: "1rem" }}>
                               <span style={{ color: "var(--accent-yellow)" }}>{earnedPoints}</span>
                               <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalPoints}</span>
                             </span>
                             <span className="stat-label" style={{ marginTop: "4px", fontSize: "0.72rem" }}>
-                              True: <span style={{ color: "var(--accent-yellow)" }}>{earnedTruePoints}</span>
+                              {t("stat.trueRatio")} <span style={{ color: "var(--accent-yellow)" }}>{earnedTruePoints}</span>
                               <span style={{ color: "var(--text-muted)" }}> / {totalTruePoints}</span>
                             </span>
                           </div>
                         )}
                         {isSelectedGameXbox && totalGamerscore > 0 && (
                           <div className="stat-card">
-                            <span className="stat-label">🟩 Gamerscore</span>
+                            <span className="stat-label">{t("stat.xboxGamerscore")}</span>
                             <span className="stat-value" style={{ fontSize: "1rem" }}>
                               <span style={{ color: "#107c10" }}>{earnedGamerscore}</span>
                               <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> / {totalGamerscore}</span>
