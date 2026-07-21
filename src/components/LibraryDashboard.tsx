@@ -90,7 +90,7 @@ export function LibraryDashboard({
   const playNextCandidates = Object.values(gameHistory)
     .filter(g => g.easiestNext && g.completionStatus !== "abandoned" && g.completionStatus !== "complete" && g.unlockedAch < g.totalAch)
     .sort((a, b) => (b.easiestNext!.percent - a.easiestNext!.percent))
-    .slice(0, 8);
+    .slice(0, 20);
 
   if (Object.keys(gameHistory).length === 0) {
     return (

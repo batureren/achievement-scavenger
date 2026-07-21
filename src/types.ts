@@ -73,3 +73,9 @@ export interface GameLink {
   appIds: string[];
   name?: string;
 }
+
+export interface SyncConfig {
+  githubToken: string;
+  gistId: string;
+  lastSync: number;
+}

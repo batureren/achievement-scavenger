@@ -2273,6 +2273,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
     width: 260px;
     height: 260px;
   }
+
+  .library-float-nav {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .library-float-btn {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3635,14 +3645,134 @@ video.cl-item-img {
   transform: translateY(-1px);
 }
 
-@media (max-width: 700px) {
-  .library-float-nav {
-    right: 14px;
-    bottom: 14px;
-  }
+/* ============================================================
+   CLOUD SYNC MODAL
+   ============================================================ */
 
-  .library-float-btn {
-    padding: 8px 12px;
-    font-size: 0.75rem;
-  }
+.cloud-sync-modal {
+  max-width: 540px;
+  width: 100%;
+}
+
+.cloud-sync-info-box {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.cloud-sync-info-box ol {
+  margin: 8px 0 0 20px;
+  padding: 0;
+}
+
+.cloud-sync-info-box li {
+  margin-bottom: 4px;
+}
+
+.cloud-sync-form-group {
+  margin-bottom: 16px;
+}
+
+.cloud-sync-form-group.large-margin {
+  margin-bottom: 24px;
+}
+
+.cloud-sync-label {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cloud-sync-label-link {
+  color: var(--accent-green);
+  font-weight: normal;
+}
+
+.cloud-sync-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cloud-sync-input-wrapper input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.cloud-sync-eye-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transition: color var(--transition);
+}
+
+.cloud-sync-eye-btn:hover {
+  color: var(--text-main);
+}
+
+.cloud-sync-help-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.cloud-sync-flex-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cloud-sync-flex-row input {
+  flex: 1;
+}
+
+.cloud-sync-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cloud-sync-btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-restore {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+.btn-restore:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.25) !important;
+}
+
+.btn-backup {
+  background: var(--accent-green) !important;
+  border-color: var(--accent-green) !important;
+  color: #000 !important;
+}
+
+.btn-backup:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.cloud-sync-last-time {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 16px;
 }

@@ -21,13 +21,14 @@ interface MenuBarProps {
   onOpenScreenshots: () => void;
   onToggleDiscordRPC: () => void;
   onToggleMinimizeToTray: () => void;
+  onOpenCloudSync: () => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray,
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -241,25 +242,29 @@ export function MenuBar({
           </div>
         )}
       </div>
-      <div className="menu-item">
-        <button className="menu-trigger" onClick={() => toggle("account")}>{t("menu.accounts")}</button>
-        {openMenu === "account" && (
-          <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>
-              {t("menu.keys")}
-            </button>
-            <label className="menu-option">
-              <input 
-                type="checkbox" 
-                checked={settings.discordRPCEnabled !== false} 
-                onChange={onToggleDiscordRPC} 
-               
-              />
-              {t("menu.discordRPC")}
-            </label>
-          </div>
-        )}
-      </div>
+<div className="menu-item">
+  <button className="menu-trigger" onClick={() => toggle("account")}>{t("menu.accounts")}</button>
+  {openMenu === "account" && (
+    <div className="menu-dropdown">
+      <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>
+        {t("menu.keys")}
+      </button>
+
+      <button className="menu-option" onClick={() => { onOpenCloudSync(); setOpenMenu(null); }}>
+        {t("menu.cloudSync")}
+      </button>
+
+      <label className="menu-option">
+        <input 
+          type="checkbox" 
+          checked={settings.discordRPCEnabled !== false} 
+          onChange={onToggleDiscordRPC} 
+        />
+        {t("menu.discordRPC")}
+      </label>
+    </div>
+  )}
+</div>
 
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("links")}>{t("menu.links")}</button>

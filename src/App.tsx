@@ -15,6 +15,8 @@ import { AchievementCard } from "./components/AchievementCard";
 import { ChecklistsPanel } from "./components/ChecklistsPanel";
 import { GameLinkModal } from "./components/GameLinkModal";
 import { PlatformIcon, GitHubIcon } from "./components/Icons";
+import { CloudSyncModal } from "./components/CloudSyncModal";
+import { SyncConfig } from "./types";
 
 import { 
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
@@ -171,6 +173,9 @@ function App() {
   const [linkModalForAppId, setLinkModalForAppId] = useState<string | null>(null);
   const [groupFetchTick, setGroupFetchTick] = useState(0);
 
+  const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [syncConfig, setSyncConfig] = useState<SyncConfig>({ githubToken: "", gistId: "", lastSync: 0 });
+
   const linkForAppId = (appId: string): GameLink | null =>
     Object.values(gameLinksRef.current).find(l => l.appIds.includes(appId)) || null;
 
@@ -253,6 +258,8 @@ function App() {
   useEffect(() => {
   gameHistoryRef.current = gameHistory;
 }, [gameHistory]);
+
+
 
   const [statsOpen, setStatsOpen] = useState(true);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -369,6 +376,10 @@ function App() {
           savedSettings.runOnStartup = isAutostart;
         } catch(e) {}
 
+
+        const syncStr = await invoke<string>("load_sync_config").catch(() => "{}");
+        const parsedSync = safeParseJSON(syncStr, { githubToken: "", gistId: "", lastSync: 0 });
+        setSyncConfig(parsedSync);
         const historyStr = await invoke<string>("load_history"); setGameHistory(safeParseJSON(historyStr, {}));
         const linksStr = await invoke<string>("load_user_links"); setUserLinks(Array.isArray(safeParseJSON(linksStr, [])) ? safeParseJSON(linksStr, []) : []);
         const trackedStr = await invoke<string>("load_tracked"); setTrackedData(safeParseTracked(trackedStr));
@@ -1608,6 +1619,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
         onOpenScreenshots={handleOpenScreenshots}
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
         onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)} 
       />
 
       <PsnReauthModal
@@ -2063,6 +2075,8 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
           )}
         </div>
       )}
+
+      <CloudSyncModal isOpen={isCloudSyncOpen} onClose={() => setIsCloudSyncOpen(false)} syncConfig={syncConfig} setSyncConfig={setSyncConfig} t={t}/>
 
       <ConfirmDialog isOpen={!!pendingRemoveGame} title="Remove Game" message={pendingRemoveGame ? `Remove "${pendingRemoveGame.name}" from your history?` : ""} confirmLabel="Remove" onConfirm={confirmRemoveGame} onCancel={() => setPendingRemoveGame(null)} />
     </div>
