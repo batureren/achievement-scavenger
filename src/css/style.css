@@ -1446,7 +1446,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   border: 1px solid transparent;
   border-bottom: none;
   color: var(--text-muted);
-  padding: 8px 16px;
+  padding: 0px 16px;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   cursor: pointer;
   font-size: 0.85rem;
@@ -1468,7 +1468,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--text-main);
   border-color: var(--border-color);
   border-bottom: 2px solid var(--bg-color);
-  margin-bottom: -1px;
 }
 
 .live-dot {
@@ -1494,14 +1493,14 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 
 .game-tab-wrapper .game-tab {
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-  padding-right: 6px;
+  padding-right: 0px;
 }
 
 .game-tab-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 7px;
+  padding: 7px;
   font-size: 1rem;
   line-height: 1;
   color: var(--text-muted);
@@ -1519,9 +1518,17 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   opacity: 1;
 }
 
+.game-tab-wrapper.active{
+  border: 1px solid var(--accent-green) !important;
+}
+
+.game-tab-wrapper:hover{
+  background: var(--accent-green);
+}
+
 .game-tab-remove:hover {
-  color: var(--accent-red);
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-green);
+  background: var(--accent-red);
 }
 
 .game-tab-remove:disabled,
