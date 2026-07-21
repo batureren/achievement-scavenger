@@ -1,9 +1,9 @@
 [package]
 name = "achievementscavenger"
-version = "0.1.5"
-description = "Track Steam, Xbox and RetroAchievements progress."
+version = "0.1.6"
+description = "Track Steam, Playstation, RetroAchievements and Xbox progress."
 authors = ["sawwormGames"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "trophymap_lib"

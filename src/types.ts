@@ -79,3 +79,30 @@ export interface SyncConfig {
   gistId: string;
   lastSync: number;
 }
+
+export type GuideBlockType = "text" | "achievement" | "checklist" | "media";
+
+export interface GuideBlock {
+  id: string;
+  type: GuideBlockType;
+  content: string;
+}
+
+export interface GuideIndex {
+  id: string;
+  title: string;
+  blocks: GuideBlock[];
+}
+
+export interface GuidePlaythrough {
+  id: string;
+  name: string;
+  indexes: GuideIndex[];
+}
+
+export interface CustomGuide {
+  appId: string;
+  playthroughs: GuidePlaythrough[];
+  activePlaythroughId: string | null;
+  currentProgressBlockId: string | null;
+}

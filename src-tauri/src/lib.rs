@@ -355,7 +355,7 @@ fn set_window_opacity(app_handle: tauri::AppHandle, opacity: f32) -> Result<(), 
     {
         mod ffi {
             #[link(name = "user32")]
-            extern "system" {
+            unsafe extern "system" {
                 pub fn GetWindowLongA(hWnd: isize, nIndex: i32) -> i32;
                 pub fn SetWindowLongA(hWnd: isize, nIndex: i32, dwNewLong: i32) -> i32;
                 pub fn SetLayeredWindowAttributes(
@@ -1125,6 +1125,25 @@ fn save_sync_config(app_handle: tauri::AppHandle, data: String) -> Result<(), St
     write_json_atomic(&path, &data)
 }
 
+#[tauri::command]
+fn load_guides(app_handle: tauri::AppHandle) -> String {
+    if let Ok(app_dir) = app_handle.path().app_data_dir() {
+        let file_path = app_dir.join("guides.json");
+        if let Ok(content) = fs::read_to_string(file_path) {
+            return content;
+        }
+    }
+    "{}".to_string()
+}
+
+#[tauri::command]
+fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
+    let app_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    let file_path = app_dir.join("guides.json");
+    fs::write(file_path, data).map_err(|e| e.to_string())
+}
+
 // --- Entry Point ---
 #[cfg(target_os = "linux")]
 fn init_steam_deck_env() {
@@ -1213,7 +1232,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

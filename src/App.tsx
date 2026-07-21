@@ -22,8 +22,9 @@ import {
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, GameLink
+  CustomChecklist, GameLink, CustomGuide
 } from "./types";
+import { GuidedModePanel } from "./components/GuidedModePanel";
 import { 
   BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
 } from "./constants";
@@ -80,8 +81,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DEFAULT");
 
-  const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS">("ACHIEVEMENTS");
+  const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS" | "GUIDE">("ACHIEVEMENTS");
   const [allChecklists, setAllChecklists] = useState<Record<string, CustomChecklist[]>>({});
+  const [allGuides, setAllGuides] = useState<Record<string, CustomGuide>>({});
   const [checklistProgress, setChecklistProgress] = useState<Record<string, Record<string, Record<string, boolean>>>>({});
   const checklistProgressRef = useRef(checklistProgress);
   checklistProgressRef.current = checklistProgress;
@@ -393,6 +395,9 @@ function App() {
         const loadedGameLinks = safeParseJSON(gameLinksStr, {});
         setGameLinks(loadedGameLinks);
         gameLinksRef.current = loadedGameLinks;
+
+        const guidesStr = await invoke<string>("load_guides").catch(() => "{}");
+        setAllGuides(safeParseJSON(guidesStr, {}));
 
         const checklistsStr = await invoke<string>("load_checklists").catch(() => "{}");
         const loadedChecklists = safeParseJSON(checklistsStr, {});
@@ -1895,6 +1900,12 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
             >
               {t("tab.checklists")}
             </button>
+            <button 
+              className={`inner-tab ${innerTab === "GUIDE" ? "active" : ""}`} 
+              onClick={() => setInnerTab("GUIDE")}
+            >
+              GUIDE
+            </button>
           </div>
 
           {innerTab === "ACHIEVEMENTS" && (
@@ -2073,6 +2084,41 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
               }}
             />
           )}
+
+          {innerTab === "GUIDE" && (
+            <GuidedModePanel
+              appId={selectedAppId}
+              guide={allGuides[selectedAppId] || null}
+              achievements={displayedAchievements}
+              checklists={allChecklists[selectedAppId] || []}
+              t={t}
+              onChange={(updatedGuide) => {
+                const newGuides = { ...allGuides, [selectedAppId]: updatedGuide };
+                setAllGuides(newGuides);
+                invoke("save_guides", { data: JSON.stringify(newGuides) }).catch(console.error);
+              }}
+              onToggleChecklistItem={(checklistId, itemId) => {
+                const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
+                if (!gameProgress[checklistId]) gameProgress[checklistId] = {};
+                gameProgress[checklistId][itemId] = !gameProgress[checklistId][itemId];
+                
+                const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
+                setChecklistProgress(updatedProgress);
+                invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
+
+                setAllChecklists(prev => {
+                  const currentLists = prev[selectedAppId] || [];
+                  return {
+                    ...prev,
+                    [selectedAppId]: currentLists.map(c => c.id === checklistId ? {
+                      ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
+                    } : c)
+                  };
+                });
+              }}
+            />
+          )}
+
         </div>
       )}
 
