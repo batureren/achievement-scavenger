@@ -3365,6 +3365,19 @@ video.cl-item-img {
   transform: translateY(0);
 }
 
+.cl-item-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.cl-item-card:hover .cl-item-header-actions {
+  opacity: 1;
+}
+
 /* --- Lightbox for enlarged item images --- */
 
 .cl-lightbox-overlay {
@@ -3397,6 +3410,7 @@ video.cl-item-img {
   .cl-item-img-wrapper { width: 100%; height: 160px; }
   .cl-item-img-wrapper .cl-item-img { width: 100%; height: 160px; }
   .cl-item-hover-actions { position: static; opacity: 1; transform: none; justify-content: flex-end; width: 100%; }
+  .cl-item-header-actions { opacity: 1; }
 }
 
 /* GameLinkModal */
@@ -3587,7 +3601,6 @@ video.cl-item-img {
   bottom: 22px;
   z-index: 900;
   display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 

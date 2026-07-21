@@ -468,15 +468,6 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                           const isVideoOpen = expandedVideoId === item.id;
                           return (
                             <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
-                              <div className="cl-item-hover-actions">
-                                <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip")} onClick={() => openEditForm(item)}>
-                                  <PencilIcon />
-                                </button>
-                                <button className="icon-btn hint-visible" title={t("cl.delete_item_tooltip")} onClick={() => setPendingDeleteItem(item)}>
-                                  <TrashIcon />
-                                </button>
-                              </div>
-
                               <span className="cl-item-number">{numberByItemId.get(item.id)}</span>
 
                               <div className="cl-item-checkbox">
@@ -495,8 +486,18 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
 
                               <div className="cl-item-info">
                                 <div className="cl-item-header">
-                                  <h3 className="cl-item-title">{item.name}</h3>
-                                  {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <h3 className="cl-item-title">{item.name}</h3>
+                                    {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                                  </span>
+                                  <div className="cl-item-header-actions">
+                                    <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip")} onClick={() => openEditForm(item)}>
+                                      <PencilIcon />
+                                    </button>
+                                    <button className="icon-btn hint-visible" title={t("cl.delete_item_tooltip")} onClick={() => setPendingDeleteItem(item)}>
+                                      <TrashIcon />
+                                    </button>
+                                  </div>
                                 </div>
                                 {item.location && (
                                   <span className="cl-item-location"><PinIcon /> {item.location}</span>

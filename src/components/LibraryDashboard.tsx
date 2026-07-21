@@ -371,19 +371,19 @@ export function LibraryDashboard({
         <div className="library-float-nav">
           <button
             className="library-float-btn"
-            onClick={() => document.getElementById("play-next-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            title={t("lib.play_next_title")}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-            {t("lib.float_play_next")}
-          </button>
-          <button
-            className="library-float-btn"
             onClick={() => document.getElementById("library-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             title={t("lib.float_library")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             {t("lib.float_library")}
+          </button>
+          <button
+            className="library-float-btn"
+            onClick={() => document.getElementById("play-next-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            title={t("lib.play_next_title")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            {t("lib.float_play_next")}
           </button>
         </div>
       )}
