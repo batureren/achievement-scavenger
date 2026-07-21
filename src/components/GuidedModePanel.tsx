@@ -20,7 +20,7 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   const [isAddingIndex, setIsAddingIndex] = useState(false);
   const [newIndexTitle, setNewIndexTitle] = useState("");
   
-  const [isIndexMenuOpen, setIsIndexMenuOpen] = useState(false);
+  const [isIndexMenuOpen, setIsIndexMenuOpen] = useState(true);
 
   const scrollToIndex = (id: string) => {
     const el = document.getElementById(`guided-index-${id}`);
@@ -142,146 +142,146 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
 
   return (
     <div className="guided-mode-container">
-      <div className="guided-header">
-        <div className="guided-controls">
-          <select 
-            className="control-select" 
-            value={safeGuide.activePlaythroughId || ""}
-            onChange={e => persist({ ...safeGuide, activePlaythroughId: e.target.value })}
-          >
-            {safeGuide.playthroughs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          
-          {isAddingMode ? (
-            <form onSubmit={submitAddPlaythrough} className="guided-inline-form">
-              <input 
-                autoFocus 
-                className="edit-input" 
-                placeholder="Mode name (e.g. New Game+)" 
-                value={newModeName} 
-                onChange={e => setNewModeName(e.target.value)} 
-              />
-              <button type="submit" className="btn-small btn-small-success">Save</button>
-              <button type="button" className="btn-small" onClick={() => setIsAddingMode(false)}>Cancel</button>
-            </form>
-          ) : (
-            <button className="btn-small" onClick={() => setIsAddingMode(true)}>+ Mode</button>
-          )}
-
-          <button className={`btn-small ${editMode ? "btn-small-danger" : ""}`} onClick={() => setEditMode(!editMode)}>
-            {editMode ? "Close Editor" : "Edit Guide"}
-          </button>
-        </div>
-
-        <div className="guided-progress-wrapper">
-          <div className="guided-progress-text">
-            <span>Progress: <strong>{progressPct}%</strong></span>
-            <span>{currentIndex + 1} / {allBlocks.length} Blocks</span>
-          </div>
-          <div className="progress-bar-track">
-            <div className="progress-bar-fill" style={{ width: `${progressPct}%`, background: "var(--accent-yellow)" }} />
-          </div>
-        </div>
-      </div>
-
-      {activePlaythrough?.indexes.length > 0 && (
-        <div className="accordion-section" style={{ marginTop: "12px", marginBottom: "0", border: "1px solid var(--border-color)" }}>
-          <div className="accordion-header" onClick={() => setIsIndexMenuOpen(!isIndexMenuOpen)}>
-            <span className="accordion-title">📑 Table of Contents</span>
-            <span className={`accordion-chevron ${isIndexMenuOpen ? "open" : ""}`}>▼</span>
-          </div>
-          {isIndexMenuOpen && (
-            <div className="accordion-body">
-              <div className="guided-index-menu">
-                {activePlaythrough.indexes.map((idx, i) => (
-                  <button key={idx.id} className="guided-index-link" onClick={() => scrollToIndex(idx.id)}>
-                    {i + 1}. {idx.title}
-                    <span className="guided-index-link-count">{idx.blocks.length} blocks</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="guided-timeline">
-        {activePlaythrough?.indexes.map((index, i) => (
-          <div key={index.id} id={`guided-index-${index.id}`} className="guided-index">
-            <h3 className="guided-index-title">{i + 1}. {index.title}</h3>
+        <div className="guided-header">
+            <div className="guided-controls">
+            <select 
+                className="control-select" 
+                value={safeGuide.activePlaythroughId || ""}
+                onChange={e => persist({ ...safeGuide, activePlaythroughId: e.target.value })}
+            >
+                {safeGuide.playthroughs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
             
-            <div className="guided-blocks">
-              {index.blocks.map((block) => {
-                const isCurrent = safeGuide.currentProgressBlockId === block.id;
-                return (
-                  <div key={block.id} className={`guided-block ${isCurrent ? "is-current" : ""}`}>
-                    {!editMode && (
-                      <button 
-                        className="guided-set-progress-btn" 
-                        title="Mark progress up to here"
-                        onClick={() => persist({ ...safeGuide, currentProgressBlockId: block.id })}
-                      >
-                        {isCurrent ? "You are here" : "Set Progress"}
-                      </button>
-                    )}
+            {isAddingMode ? (
+                <form onSubmit={submitAddPlaythrough} className="guided-inline-form">
+                <input 
+                    autoFocus 
+                    className="edit-input" 
+                    placeholder="Mode name (e.g. New Game+)" 
+                    value={newModeName} 
+                    onChange={e => setNewModeName(e.target.value)} 
+                />
+                <button type="submit" className="btn-small btn-small-success">Save</button>
+                <button type="button" className="btn-small" onClick={() => setIsAddingMode(false)}>Cancel</button>
+                </form>
+            ) : (
+                <button className="btn-small" onClick={() => setIsAddingMode(true)}>+ Mode</button>
+            )}
 
-                    {editMode ? (
-                      <div className="guided-block-edit">
-                        <div style={{display: "flex", justifyContent: "space-between", marginBottom: "8px"}}>
-                          <span className="chain-label">Type: {block.type.toUpperCase()}</span>
-                          <button className="btn-remove-link" onClick={() => handleRemoveBlock(index.id, block.id)}>✕ Remove</button>
-                        </div>
-                        {block.type === "text" && <textarea className="edit-input edit-textarea" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder="Type paragraph here..." />}
-                        {block.type === "media" && <input type="url" className="edit-input" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder="Image or Video URL..." />}
-                        {block.type === "achievement" && (
-                          <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
-                            <option value="">-- Select Achievement --</option>
-                            {achievements.map(a => <option key={a.apiname} value={a.apiname}>{a.display_name}</option>)}
-                          </select>
+            <button className={`btn-small ${editMode ? "btn-small-danger" : ""}`} onClick={() => setEditMode(!editMode)}>
+                {editMode ? "Close Editor" : "Edit Guide"}
+            </button>
+            </div> 
+        </div>
+     
+        <div className="guided-layout">
+        
+        <div className="guided-main">
+          <div className="guided-timeline">
+            {activePlaythrough?.indexes.map((index, i) => (
+              <div key={index.id} id={`guided-index-${index.id}`} className="guided-index">
+                <h3 className="guided-index-title">{i + 1}. {index.title}</h3>
+                
+                <div className="guided-blocks">
+                  {index.blocks.map((block) => {
+                    const isCurrent = safeGuide.currentProgressBlockId === block.id;
+                    return (
+                      <div key={block.id} className={`guided-block ${isCurrent ? "is-current" : ""}`}>
+                        {!editMode && (
+                          <button 
+                            className="guided-set-progress-btn" 
+                            title="Mark progress up to here"
+                            onClick={() => persist({ ...safeGuide, currentProgressBlockId: block.id })}
+                          >
+                            {isCurrent ? "You are here" : "Set Progress"}
+                          </button>
                         )}
-                        {block.type === "checklist" && (
-                          <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
-                            <option value="">-- Select Item --</option>
-                            {allChecklistItems.map(item => <option key={item.id} value={item.id}>[{item.parentListTitle}] {item.name}</option>)}
-                          </select>
+
+                        {editMode ? (
+                          <div className="guided-block-edit">
+                            <div style={{display: "flex", justifyContent: "space-between", marginBottom: "8px"}}>
+                              <span className="chain-label">Type: {block.type.toUpperCase()}</span>
+                              <button className="btn-remove-link" onClick={() => handleRemoveBlock(index.id, block.id)}>✕ Remove</button>
+                            </div>
+                            {block.type === "text" && <textarea className="edit-input edit-textarea" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder="Type paragraph here..." />}
+                            {block.type === "media" && <input type="url" className="edit-input" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder="Image or Video URL..." />}
+                            {block.type === "achievement" && (
+                              <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
+                                <option value="">-- Select Achievement --</option>
+                                {achievements.map(a => <option key={a.apiname} value={a.apiname}>{a.display_name}</option>)}
+                              </select>
+                            )}
+                            {block.type === "checklist" && (
+                              <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
+                                <option value="">-- Select Item --</option>
+                                {allChecklistItems.map(item => <option key={item.id} value={item.id}>[{item.parentListTitle}] {item.name}</option>)}
+                              </select>
+                            )}
+                          </div>
+                        ) : (
+                          renderBlockContent(block)
                         )}
                       </div>
-                    ) : (
-                      renderBlockContent(block)
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
 
-              {editMode && (
-                <div className="guided-add-block-row">
-                  <button className="btn-small" onClick={() => handleAddBlock(index.id, "text")}>+ Text</button>
-                  <button className="btn-small" onClick={() => handleAddBlock(index.id, "achievement")}>+ Achievement</button>
-                  <button className="btn-small" onClick={() => handleAddBlock(index.id, "checklist")}>+ Checklist</button>
-                  <button className="btn-small" onClick={() => handleAddBlock(index.id, "media")}>+ Media</button>
+                  {editMode && (
+                    <div className="guided-add-block-row">
+                      <button className="btn-small" onClick={() => handleAddBlock(index.id, "text")}>+ Text</button>
+                      <button className="btn-small" onClick={() => handleAddBlock(index.id, "achievement")}>+ Achievement</button>
+                      <button className="btn-small" onClick={() => handleAddBlock(index.id, "checklist")}>+ Checklist</button>
+                      <button className="btn-small" onClick={() => handleAddBlock(index.id, "media")}>+ Media</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {editMode && (
+              isAddingIndex ? (
+                <form onSubmit={submitAddIndex} className="guided-inline-form" style={{ marginTop: "10px", paddingLeft: "16px" }}>
+                  <input 
+                    autoFocus 
+                    className="edit-input" 
+                    placeholder="Chapter title..." 
+                    value={newIndexTitle} 
+                    onChange={e => setNewIndexTitle(e.target.value)} 
+                  />
+                  <button type="submit" className="btn-small btn-small-success">Save</button>
+                  <button type="button" className="btn-small" onClick={() => setIsAddingIndex(false)}>Cancel</button>
+                </form>
+              ) : (
+                <button className="btn-add-link" onClick={() => setIsAddingIndex(true)} style={{ marginTop: "10px" }}>+ Add Index/Chapter</button>
+              )
+            )}
+          </div>
+        </div>
+
+        <div className="guided-sidebar">
+          {activePlaythrough?.indexes.length > 0 && (
+            <div className="accordion-section" style={{ margin: 0, border: "1px solid var(--border-color)" }}>
+              <div className="accordion-header" onClick={() => setIsIndexMenuOpen(!isIndexMenuOpen)}>
+                <span className="accordion-title">Table of Contents</span>
+                <span className={`accordion-chevron ${isIndexMenuOpen ? "open" : ""}`}>▼</span>
+              </div>
+              {isIndexMenuOpen && (
+                <div className="accordion-body">
+                  <div className="guided-index-menu">
+                    {activePlaythrough.indexes.map((idx, i) => (
+                      <button key={idx.id} className="guided-index-link" onClick={() => scrollToIndex(idx.id)}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {i + 1}. {idx.title}
+                        </span>
+                        <span className="guided-index-link-count">{idx.blocks.length}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          )}
+        </div>
 
-        {editMode && (
-          isAddingIndex ? (
-            <form onSubmit={submitAddIndex} className="guided-inline-form" style={{ marginTop: "10px", paddingLeft: "16px" }}>
-              <input 
-                autoFocus 
-                className="edit-input" 
-                placeholder="Chapter title..." 
-                value={newIndexTitle} 
-                onChange={e => setNewIndexTitle(e.target.value)} 
-              />
-              <button type="submit" className="btn-small btn-small-success">Save</button>
-              <button type="button" className="btn-small" onClick={() => setIsAddingIndex(false)}>Cancel</button>
-            </form>
-          ) : (
-            <button className="btn-add-link" onClick={() => setIsAddingIndex(true)} style={{ marginTop: "10px" }}>+ Add Index/Chapter</button>
-          )
-        )}
       </div>
     </div>
   );

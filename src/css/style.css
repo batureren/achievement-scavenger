@@ -3849,7 +3849,7 @@ video.cl-item-img {
 .guided-index-title {
   font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-main);
+  color: var(--accent-green);
   margin-bottom: 12px;
   position: relative;
 }
@@ -4103,4 +4103,39 @@ video.cl-item-img {
 .guided-index-link:hover .guided-index-link-count {
   color: var(--accent-green);
   background-color: rgba(52, 211, 153, 0.16);
+}
+
+.guided-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.guided-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.guided-sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  position: sticky;
+  top: calc(var(--menu-height) + var(--tabs-height) + 20px);
+}
+
+.guided-index-menu {
+  max-height: 60vh; 
+}
+
+@media (max-width: 850px) {
+  .guided-layout {
+    flex-direction: column-reverse;
+  }
+
+  .guided-sidebar {
+    width: 100%;
+    position: static;
+    top: auto;
+  }
 }
