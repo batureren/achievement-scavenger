@@ -258,10 +258,8 @@ function App() {
   }, [selectedAppId]);
 
   useEffect(() => {
-  gameHistoryRef.current = gameHistory;
-}, [gameHistory]);
-
-
+    gameHistoryRef.current = gameHistory;
+  }, [gameHistory]);
 
   const [statsOpen, setStatsOpen] = useState(true);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -1669,6 +1667,14 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                 .filter(([dictKey, game]) => {
                   const safeAppId = game.appId || dictKey;
                   const groupKey = getGroupKey(safeAppId);
+                  
+                  const link = linkForAppId(safeAppId);
+                  const isGrouped = !!link && link.appIds.length > 1;
+                  const isGroupLive = isGrouped ? link!.appIds.some(id => runningAppIds.includes(id)) : runningAppIds.includes(safeAppId);
+                  
+                  const shouldShow = game.pinned || isGroupLive || selectedAppId === safeAppId;
+                  
+                  if (!shouldShow) return false;
                   if (seenGroups.has(groupKey)) return false;
                   seenGroups.add(groupKey);
                   return true;
@@ -1684,6 +1690,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                     <div key={dictKey} className={`game-tab-wrapper ${selectedAppId === safeAppId ? "active" : ""}`}>
                       <button className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
                         {isGroupLive && <span className="live-dot" title="Game is currently running"></span>}
+                        {game.pinned && <span style={{ fontSize: "0.75rem", opacity: 0.8 }} title="Pinned">📌</span>}
                         <PlatformIcon platform={game.platform} size={16}/>
                         {groupTabName}
                         {isGrouped && <span title={t("link.tab_tooltip", { names: link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ") })} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
@@ -1704,6 +1711,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
         <div className="tracking-screen">
           <LibraryDashboard
             gameHistory={gameHistory}
+            gameLinks={gameLinks}
             runningAppIds={runningAppIds}
             libraryFilter={libraryFilter}
             setLibraryFilter={setLibraryFilter}
@@ -1904,7 +1912,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
               className={`inner-tab ${innerTab === "GUIDE" ? "active" : ""}`} 
               onClick={() => setInnerTab("GUIDE")}
             >
-              GUIDE
+              {t("tab.guide")}
             </button>
           </div>
 

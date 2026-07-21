@@ -1901,6 +1901,15 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2), var(--shadow-card);
 }
 
+.library-card-linked-icon {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.library-card-playtime {
+  color: var(--accent-yellow);
+}
+
 .library-pin-btn {
   position: absolute;
   top: 8px;

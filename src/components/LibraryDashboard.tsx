@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
-  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus 
+  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink 
 } from "../types";
 import { COMPLETION_CONFIG, COMPLETION_KEYS } from "../constants";
 import { PlatformIcon } from "./Icons";
@@ -21,6 +21,7 @@ const PLATFORM_FILTER_LABELS: Record<PlatformFilter, string> = {
 
 interface LibraryDashboardProps {
   gameHistory: Record<string, GameHistory>;
+  gameLinks: Record<string, GameLink>;
   runningAppIds: string[];
   libraryFilter: LibraryFilter;
   setLibraryFilter: (f: LibraryFilter) => void;
@@ -43,7 +44,7 @@ interface LibraryDashboardProps {
 let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
 
 export function LibraryDashboard({
-  gameHistory, runningAppIds, libraryFilter, setLibraryFilter,
+  gameHistory, gameLinks, runningAppIds, libraryFilter, setLibraryFilter,
   librarySort, setLibrarySort, librarySearch, setLibrarySearch,
   handleSelectTab, onSelectAchievement, handleRemoveGame, setGameHistory, t, language,
   steamApiKey, raCreds, xboxCreds, psnCreds
@@ -176,6 +177,7 @@ export function LibraryDashboard({
           {games.map(game => {
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
             const isRunning = runningAppIds.includes(game.appId);
+            const isLinked = Object.values(gameLinks).some(link => link.appIds.includes(game.appId));
 
             const barColor = game.totalAch === 0 ? "var(--border-color)"
               : percent >= 100 ? "#a78bfa"
@@ -270,6 +272,7 @@ export function LibraryDashboard({
                     <h3 style={{ display: "flex", gap: "6px", fontSize: "0.95rem", margin: 0, lineHeight: 1.3, alignItems: "center", flexWrap: "wrap" }}>
                       <PlatformIcon platform={game.platform} size={16}/>
                       {game.name}
+                      {isLinked && <span className="library-card-linked-icon" title="Linked to another set">🔗</span>}
                     </h3>
                     <span style={{ fontSize: "0.75rem", color: pctColor, background: "rgba(255,255,255,0.05)", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, flexShrink: 0, marginLeft: "6px" }}>
                       {game.totalAch === 0 ? "—" : `${percent}%`}
