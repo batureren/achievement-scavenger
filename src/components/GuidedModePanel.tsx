@@ -1,6 +1,12 @@
 import { useState, useMemo } from "react";
+import { open } from "@tauri-apps/plugin-shell";
+import toast from "react-hot-toast";
 import { CustomGuide, GuidePlaythrough, GuideBlock, MergedAchievement, CustomChecklist, GuideBlockType } from "../types";
 import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
+
+const PencilIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>;
+const TrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>;
+const GitHubIcon = () => <svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" style={{marginTop:"-2px"}}><path d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>;
 
 interface GuidedModePanelProps {
   appId: string;
@@ -17,10 +23,23 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   
   const [isAddingMode, setIsAddingMode] = useState(false);
   const [newModeName, setNewModeName] = useState("");
+  const [newModeAuthor, setNewModeAuthor] = useState("");
+  const [newModeDesc, setNewModeDesc] = useState("");
+
+  const [isEditingModeMeta, setIsEditingModeMeta] = useState(false);
+  const [editModeName, setEditModeName] = useState("");
+  const [editModeAuthor, setEditModeAuthor] = useState("");
+  const [editModeDesc, setEditModeDesc] = useState("");
+  
   const [isAddingIndex, setIsAddingIndex] = useState(false);
   const [newIndexTitle, setNewIndexTitle] = useState("");
   
   const [isIndexMenuOpen, setIsIndexMenuOpen] = useState(true);
+
+  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
+  const [communityGuides, setCommunityGuides] = useState<GuidePlaythrough[]>([]);
+  const [loadingGuides, setLoadingGuides] = useState(false);
+  const [guideSearchQuery, setGuideSearchQuery] = useState("");
 
   const scrollToIndex = (id: string) => {
     const el = document.getElementById(`guided-index-${id}`);
@@ -35,7 +54,7 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
 
   const safeGuide: CustomGuide = guide || {
     appId,
-    playthroughs: [{ id: Date.now().toString(), name: "Standard Playthrough", indexes: [] }],
+    playthroughs: [{ id: Date.now().toString(), name: "New Guide", indexes: [] }],
     activePlaythroughId: null,
     currentProgressBlockId: null
   };
@@ -47,8 +66,6 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   const activePlaythrough = safeGuide.playthroughs.find(p => p.id === safeGuide.activePlaythroughId) || safeGuide.playthroughs[0];
 
   const allBlocks = useMemo(() => activePlaythrough?.indexes.flatMap(idx => idx.blocks) || [], [activePlaythrough]);
-  const currentIndex = safeGuide.currentProgressBlockId ? allBlocks.findIndex(b => b.id === safeGuide.currentProgressBlockId) : -1;
-  const progressPct = allBlocks.length > 0 ? Math.round(((currentIndex + 1) / allBlocks.length) * 100) : 0;
 
   const persist = (updated: CustomGuide) => onChange(updated);
   
@@ -57,11 +74,66 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   const submitAddPlaythrough = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newModeName.trim();
-    if (!name) return;
-    const newPt: GuidePlaythrough = { id: Date.now().toString(), name, indexes: [] };
+    const author = newModeAuthor.trim();
+    const desc = newModeDesc.trim();
+    if (!name || !author || !desc) return;
+
+    const newPt: GuidePlaythrough = { 
+      id: Date.now().toString(), 
+      name, 
+      author,
+      description: desc,
+      indexes: [] 
+    };
     persist({ ...safeGuide, playthroughs: [...safeGuide.playthroughs, newPt], activePlaythroughId: newPt.id });
     setNewModeName("");
+    setNewModeAuthor("");
+    setNewModeDesc("");
     setIsAddingMode(false);
+  };
+
+  const handleOpenEditMeta = () => {
+    setEditModeName(activePlaythrough.name);
+    setEditModeAuthor(activePlaythrough.author || "");
+    setEditModeDesc(activePlaythrough.description || "");
+    setIsEditingModeMeta(true);
+    setIsAddingMode(false);
+  };
+
+  const submitEditModeMeta = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = editModeName.trim();
+    const author = editModeAuthor.trim();
+    const desc = editModeDesc.trim();
+    if (!name || !author || !desc) return;
+
+    const updatedPt = {
+      ...activePlaythrough,
+      name,
+      author,
+      description: desc
+    };
+    persist({
+      ...safeGuide,
+      playthroughs: safeGuide.playthroughs.map(p => p.id === activePlaythrough.id ? updatedPt : p)
+    });
+    setIsEditingModeMeta(false);
+  };
+
+  const handleDeletePlaythrough = () => {
+    if (safeGuide.playthroughs.length <= 1) {
+      toast.error("You cannot delete the last guide mode.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete "${activePlaythrough.name}"?`)) {
+      const remaining = safeGuide.playthroughs.filter(p => p.id !== activePlaythrough.id);
+      persist({
+        ...safeGuide,
+        playthroughs: remaining,
+        activePlaythroughId: remaining[0].id
+      });
+      setIsEditingModeMeta(false);
+    }
   };
 
   const submitAddIndex = (e: React.FormEvent) => {
@@ -95,6 +167,84 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
     );
     persist({ ...safeGuide, playthroughs: safeGuide.playthroughs.map(p => p.id === activePlaythrough.id ? { ...p, indexes: updatedIndexes } : p) });
   };
+
+  const handlePublishGuide = async () => {
+    if (!activePlaythrough) return;
+
+    if (!activePlaythrough.author || !activePlaythrough.description) {
+      toast.error("Author and Description are required to publish. Please click the Pencil icon to add them.");
+      return;
+    }
+
+    try {
+      const sanitizedAuthor = activePlaythrough.author.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      const filename = `${appId}_${sanitizedAuthor}_${Date.now()}.json`;
+
+      const clipboardText = JSON.stringify(activePlaythrough, null, 2);
+      await navigator.clipboard.writeText(clipboardText);
+
+      const url = `https://github.com/batureren/achievement-scavenger-database/new/main/guides?filename=${filename}`;
+      await open(url);
+      
+      toast.success("Guide copied! Paste it into the new file on GitHub.", { duration: 6000 });
+    } catch (err) {
+      toast.error("Failed to copy data or open browser.");
+    }
+  };
+
+  const fetchCommunityGuides = async () => {
+    setIsCommunityModalOpen(true);
+    setLoadingGuides(true);
+    setGuideSearchQuery("");
+    try {
+      const contentsRes = await fetch("https://api.github.com/repos/batureren/achievement-scavenger-database/contents/guides");
+      if (!contentsRes.ok) throw new Error();
+      
+      const contents = await contentsRes.json();
+      
+      const prefix = `${appId}_`;
+      const exact = `${appId}.json`;
+      const matchingFiles = contents.filter((f: any) => 
+        f.type === "file" && (f.name.startsWith(prefix) || f.name === exact)
+      );
+
+      const fetchedGuides: GuidePlaythrough[] = [];
+      for (const file of matchingFiles) {
+        const res = await fetch(file.download_url);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            fetchedGuides.push(...data);
+          } else {
+            fetchedGuides.push(data);
+          }
+        }
+      }
+      
+      setCommunityGuides(fetchedGuides);
+    } catch (e) {
+      setCommunityGuides([]);
+    } finally {
+      setLoadingGuides(false);
+    }
+  };
+
+  const handleDownloadGuide = (guide: GuidePlaythrough) => {
+    const imported: GuidePlaythrough = { ...guide, id: Date.now().toString() };
+    persist({ ...safeGuide, playthroughs: [...safeGuide.playthroughs, imported], activePlaythroughId: imported.id });
+    setIsCommunityModalOpen(false);
+    toast.success("Community guide imported successfully!");
+  };
+
+  const filteredCommunityGuides = useMemo(() => {
+    if (!guideSearchQuery.trim()) return communityGuides;
+    const q = guideSearchQuery.toLowerCase();
+    return communityGuides.filter(g => 
+      (g.name && g.name.toLowerCase().includes(q)) ||
+      (g.author && g.author.toLowerCase().includes(q)) ||
+      (g.description && g.description.toLowerCase().includes(q))
+    );
+  }, [communityGuides, guideSearchQuery]);
 
   const renderBlockContent = (block: GuideBlock) => {
     switch (block.type) {
@@ -144,34 +294,72 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
     <div className="guided-mode-container">
         <div className="guided-header">
             <div className="guided-controls">
-            <select 
-                className="control-select" 
-                value={safeGuide.activePlaythroughId || ""}
-                onChange={e => persist({ ...safeGuide, activePlaythroughId: e.target.value })}
-            >
-                {safeGuide.playthroughs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            
-            {isAddingMode ? (
-                <form onSubmit={submitAddPlaythrough} className="guided-inline-form">
-                <input 
-                    autoFocus 
-                    className="edit-input" 
-                    placeholder="Mode name (e.g. New Game+)" 
-                    value={newModeName} 
-                    onChange={e => setNewModeName(e.target.value)} 
-                />
-                <button type="submit" className="btn-small btn-small-success">Save</button>
-                <button type="button" className="btn-small" onClick={() => setIsAddingMode(false)}>Cancel</button>
+              <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                <select 
+                    className="control-select" 
+                    value={safeGuide.activePlaythroughId || ""}
+                    onChange={e => {
+                      persist({ ...safeGuide, activePlaythroughId: e.target.value });
+                      setIsEditingModeMeta(false);
+                      setIsAddingMode(false);
+                    }}
+                >
+                    {safeGuide.playthroughs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                
+                {editMode && (
+                  <>
+                    <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px" }} onClick={handleOpenEditMeta} title="Edit Guide Info"><PencilIcon /></button>
+                    {safeGuide.playthroughs.length > 1 && (
+                      <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={handleDeletePlaythrough} title="Delete Guide"><TrashIcon /></button>
+                    )}
+                  </>
+                )}
+              </div>
+              
+              <button className="btn-small" onClick={() => { setIsAddingMode(true); setIsEditingModeMeta(false); }}>+ New Guide</button>
+              
+              <div style={{ display: "flex", gap: "6px", marginLeft: "auto", flexWrap: "wrap" }}>
+                <button className={`btn-small ${editMode ? "btn-small-danger" : ""}`} onClick={() => { setEditMode(!editMode); setIsEditingModeMeta(false); }}>
+                    {editMode ? "Close Editor" : "Edit Guide"}
+                </button>
+                <button className="btn-small btn-small-success" onClick={handlePublishGuide} title="Export & Create PR">
+                    <GitHubIcon /> Publish
+                </button>
+                <button className="btn-small" onClick={fetchCommunityGuides}>🌐 Browse Community Guides</button>
+              </div>
+            </div> 
+
+            {isAddingMode && (
+                <form onSubmit={submitAddPlaythrough} className="guided-inline-form" style={{flexDirection: "column", alignItems: "flex-start", marginTop: "10px", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed var(--border-color)"}}>
+                  <input autoFocus className="edit-input" placeholder="Guide Title (e.g. 100% Walkthrough)" value={newModeName} onChange={e => setNewModeName(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <input className="edit-input" placeholder="Author Name" value={newModeAuthor} onChange={e => setNewModeAuthor(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <textarea className="edit-input edit-textarea" placeholder="Guide Description" value={newModeDesc} onChange={e => setNewModeDesc(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <div style={{display: "flex", gap: "8px", marginTop: "4px"}}>
+                      <button type="submit" className="btn-small btn-small-success">Create Guide</button>
+                      <button type="button" className="btn-small" onClick={() => setIsAddingMode(false)}>Cancel</button>
+                  </div>
                 </form>
-            ) : (
-                <button className="btn-small" onClick={() => setIsAddingMode(true)}>+ Mode</button>
             )}
 
-            <button className={`btn-small ${editMode ? "btn-small-danger" : ""}`} onClick={() => setEditMode(!editMode)}>
-                {editMode ? "Close Editor" : "Edit Guide"}
-            </button>
-            </div> 
+            {isEditingModeMeta && editMode && (
+                <form onSubmit={submitEditModeMeta} className="guided-inline-form" style={{flexDirection: "column", alignItems: "flex-start", marginTop: "10px", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed var(--accent-yellow)"}}>
+                  <input autoFocus className="edit-input" placeholder="Guide Title (e.g. 100% Walkthrough)" value={editModeName} onChange={e => setEditModeName(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <input className="edit-input" placeholder="Author Name" value={editModeAuthor} onChange={e => setEditModeAuthor(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <textarea className="edit-input edit-textarea" placeholder="Guide Description" value={editModeDesc} onChange={e => setEditModeDesc(e.target.value)} required style={{ width: "100%", maxWidth: "400px" }} />
+                  <div style={{display: "flex", gap: "8px", marginTop: "4px"}}>
+                      <button type="submit" className="btn-small btn-small-success">Save Info</button>
+                      <button type="button" className="btn-small" onClick={() => setIsEditingModeMeta(false)}>Cancel</button>
+                  </div>
+                </form>
+            )}
+
+            {activePlaythrough && (activePlaythrough.author || activePlaythrough.description) && !isAddingMode && !isEditingModeMeta && (
+              <div className="guided-meta">
+                {activePlaythrough.author && <div style={{ marginBottom: "4px" }}><strong>Author:</strong> {activePlaythrough.author}</div>}
+                {activePlaythrough.description && <div>{activePlaythrough.description}</div>}
+              </div>
+            )}
         </div>
      
         <div className="guided-layout">
@@ -186,7 +374,7 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
                   {index.blocks.map((block) => {
                     const isCurrent = safeGuide.currentProgressBlockId === block.id;
                     return (
-                      <div key={block.id} className={`guided-block ${isCurrent ? "is-current" : ""}`}>
+                      <div key={block.id} id={`guided-block-${block.id}`} className={`guided-block ${isCurrent ? "is-current" : ""}`}>
                         {!editMode && (
                           <button 
                             className="guided-set-progress-btn" 
@@ -267,14 +455,22 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
               {isIndexMenuOpen && (
                 <div className="accordion-body">
                   <div className="guided-index-menu">
-                    {activePlaythrough.indexes.map((idx, i) => (
-                      <button key={idx.id} className="guided-index-link" onClick={() => scrollToIndex(idx.id)}>
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {i + 1}. {idx.title}
-                        </span>
-                        <span className="guided-index-link-count">{idx.blocks.length}</span>
-                      </button>
-                    ))}
+                    {activePlaythrough.indexes.map((idx, i) => {
+                      const hasCurrent = idx.blocks.some(b => b.id === safeGuide.currentProgressBlockId);
+                      return (
+                        <button 
+                          key={idx.id} 
+                          className={`guided-index-link ${hasCurrent ? "is-active-index" : ""}`} 
+                          onClick={() => scrollToIndex(idx.id)}
+                        >
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {i + 1}. {idx.title}
+                            {hasCurrent && <span className="guided-toc-here">HERE</span>}
+                          </span>
+                          <span className="guided-index-link-count">{idx.blocks.length}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -283,6 +479,73 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
         </div>
 
       </div>
+
+      {safeGuide.currentProgressBlockId && !editMode && (
+        <div className="library-float-nav">
+          <button
+            className="library-float-btn"
+            style={{ borderColor: "var(--accent-yellow)", color: "var(--accent-yellow)" }}
+            onClick={() => {
+              const el = document.getElementById(`guided-block-${safeGuide.currentProgressBlockId}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            title="Jump to Current Progress"
+          >
+            Jump to Current Progress
+          </button>
+        </div>
+      )}
+
+      {isCommunityModalOpen && (
+        <div className="confirm-dialog-overlay" onClick={() => setIsCommunityModalOpen(false)}>
+          <div className="confirm-dialog" style={{ width: "min(600px, 92vw)" }} onClick={e => e.stopPropagation()}>
+            <h3 className="confirm-dialog-title">Community Guides</h3>
+            <p className="confirm-dialog-message" style={{ marginBottom: "10px" }}>
+              Download user-submitted guides and playthrough routes.
+            </p>
+            
+            {communityGuides.length > 0 && !loadingGuides && (
+              <input 
+                type="text" 
+                className="search-input" 
+                placeholder="Search by title, author, or description..." 
+                value={guideSearchQuery}
+                onChange={e => setGuideSearchQuery(e.target.value)}
+                style={{ width: "100%", marginBottom: "10px" }}
+              />
+            )}
+
+            <div className="community-guides-list">
+              {loadingGuides ? (
+                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "20px" }}>Fetching guides...</p>
+              ) : filteredCommunityGuides.length === 0 ? (
+                <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "20px" }}>
+                  {communityGuides.length === 0 
+                    ? "No community guides available for this game yet."
+                    : "No guides match your search."}
+                </p>
+              ) : (
+                filteredCommunityGuides.map((g, idx) => (
+                  <div key={idx} className="community-guide-card">
+                    <h4>{g.name}</h4>
+                    {g.description && <p>{g.description}</p>}
+                    <div className="community-guide-card-footer">
+                      <span>By <strong>{g.author || "Unknown"}</strong> &middot; {g.indexes.length} Chapters</span>
+                      <button className="btn-small btn-small-success" onClick={() => handleDownloadGuide(g)}>
+                        ⬇ Download
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="confirm-dialog-actions" style={{ marginTop: "16px" }}>
+              <button className="confirm-dialog-btn cancel" onClick={() => setIsCommunityModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

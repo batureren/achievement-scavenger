@@ -97,6 +97,8 @@ export interface GuideIndex {
 export interface GuidePlaythrough {
   id: string;
   name: string;
+  author?: string;
+  description?: string;
   indexes: GuideIndex[];
 }
 
