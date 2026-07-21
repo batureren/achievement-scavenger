@@ -1670,8 +1670,8 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                         <PlatformIcon platform={game.platform} size={16}/>
                         {groupTabName}
                         {isGrouped && <span title={t("link.tab_tooltip", { names: link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ") })} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
+                          <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
                       </button>
-                      <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
                     </div>
                   );
               });
