@@ -1,6 +1,6 @@
 # Achievement Scavenger: Tracker & Guides
 
-A cross-platform desktop companion app for hunting achievements. Achievement Scavenger sits alongside your games, automatically detects what you're playing, and gives you live progress tracking, missable warnings, community hints, and Discord integration. All in one lightweight window.
+A cross-platform desktop companion app for hunting achievements. Achievement Scavenger sits alongside your games, automatically detects what you're playing, and gives you live progress tracking, interactive collectible checklists, step-by-step walkthroughs, missable warnings, community hints, and Discord integration. All in one lightweight window.
 
 Built with **Tauri (Rust + React/TypeScript)**.
 
@@ -21,22 +21,24 @@ Built with **Tauri (Rust + React/TypeScript)**.
 - Polls for new unlocks in real time while you play and shows toast notifications the instant an achievement pops.
 - Automatically takes a desktop screenshot with the achievement icon overlaid the moment you unlock something.
 
-### Community-Powered Guides
+### Guides, Checklists & Walkthroughs
+- **Guide Playthroughs**: Follow step-by-step community walkthroughs that combine text instructions, embedded media, live achievement tracking, and checklist items into a single unified timeline.
+- **Interactive Checklists**: Track collectibles, side-quests, and hidden items. Mark them off as you find them, complete with location tags, categories, and video links.
 - Pulls a community-maintained achievement database (hints, descriptions, chapters, missable flags, and guide links) from GitHub for supported games.
 - **Missable achievement alerts** warn you before you progress past a point of no return.
 - Spoiler-protected hints (blurred until hovered).
-- Submit your own achievement data back to the community database directly from the app via a one-click GitHub PR flow.
 
 ### Personalization & Organization
 - Custom chapters/sections to organize achievements by story progress.
 - Track specific achievements to a personal watchlist.
 - Local notes and edits per achievement, saved independently of the community database.
 - Sort by name, rarity, or chapter; filter by locked/unlocked/tracked/missable/spoiler.
-- "Guided Mode" hides everything except what's relevant to your current chapter and tracked list.
+- Filter out the noise: toggle filters to hide everything except what's relevant to your current chapter and tracked list.
 
 ### Quality of Life
+- **Cloud Sync**: Backup and restore your local history, settings, and custom checklists across multiple devices (like your PC and Steam Deck) using GitHub Gists.
 - **Discord Rich Presence** shows your current game and achievement hunting progress to friends.
-- **Mini Mode** a compact, always-on-top overlay showing just your tracked achievements.
+- **Mini Mode**: A compact, always-on-top overlay showing just your tracked achievements.
 - Multiple overlay styles (ghost, neon, tactical, frosted, MMO-style) with adjustable transparency.
 - Adjustable window opacity, UI scale, and windowed/borderless/fullscreen modes.
 - Global hotkey (`Ctrl+Shift+T`) to show/hide the tracker instantly.
@@ -101,7 +103,7 @@ npm run tauri build
 The achievement hint/chapter/missable database that powers community guides lives in a separate repository:  
 [**achievement-scavenger-database**](https://github.com/batureren/achievement-scavenger-database)
 
-You can contribute directly from the app: fill in hints, chapters, and missable flags for a game, then hit **"Submit to GitHub"** to open a pre-filled pull request. No manual JSON editing required.
+You can contribute directly from the app: fill in hints, chapters, checklists, and missable flags for a game, then hit **"Create PR"** to copy the formatted code and open a pre-filled pull request. No manual JSON editing required.
 
 Bug reports and feature requests for the app itself are welcome via [Issues](../../issues).
 
@@ -115,4 +117,4 @@ GNU GENERAL PUBLIC LICENSE
 
 ## Credits
 
-Developed by **sawworm games**.
+Developed by **sawworm Games**.
