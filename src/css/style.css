@@ -4068,6 +4068,41 @@ video.cl-item-img {
 .guided-cl-card.completed .guided-cl-topic {
   color: color-mix(in srgb, var(--accent-green) 60%, transparent);
 }
+
+.guided-timeline.is-grid-view {
+  padding-left: 0;
+}
+
+.guided-timeline.is-grid-view::before,
+.guided-timeline.is-grid-view .guided-index-title::before,
+.guided-timeline.is-grid-view .guided-block::before {
+  display: none;
+}
+
+.guided-timeline.is-grid-view .guided-blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.guided-timeline.is-grid-view .guided-block {
+  padding-bottom: 44px;
+  display: flex;
+  flex-direction: column;
+}
+
+.guided-timeline.is-grid-view .guided-text,
+.guided-timeline.is-grid-view .guided-ach-card,
+.guided-timeline.is-grid-view .guided-cl-card {
+  margin-right: 0;
+}
+
+.guided-timeline.is-grid-view .guided-set-progress-btn {
+  top: auto;
+  bottom: 10px;
+  right: 10px;
+}
+
 .guided-index-menu {
   display: flex;
   flex-direction: column;
@@ -4223,6 +4258,10 @@ video.cl-item-img {
 @media (max-width: 850px) {
   .guided-layout {
     flex-direction: column-reverse;
+  }
+
+  .guided-block, .guided-main{
+    width: 100%;
   }
 
   .guided-sidebar {
