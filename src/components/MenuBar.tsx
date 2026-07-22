@@ -32,6 +32,7 @@ export function MenuBar({
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const toggle = (name: string) => setOpenMenu(prev => prev === name ? null : name);
   
@@ -40,6 +41,10 @@ export function MenuBar({
     document.addEventListener("click", handler); 
     
     getVersion().then(v => setAppVersion(v)).catch(() => {});
+
+    check().then(update => {
+      if (update) setUpdateAvailable(true);
+    }).catch(() => {});
 
     return () => document.removeEventListener("click", handler); 
   }, []);
@@ -286,16 +291,26 @@ export function MenuBar({
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("version")} style={{ color: "var(--text-muted)", fontWeight: "normal" }}>
           v{appVersion || "..."}
+          {updateAvailable && (
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-yellow)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          )}
         </button>
         {openMenu === "version" && (
           <div className="menu-dropdown">
-            <button className="menu-option" onClick={() => { handleCheckUpdate(); setOpenMenu(null); }} style={{ padding: "8px 14px" }}> 
+            <button 
+              className="menu-option" 
+              onClick={() => { handleCheckUpdate(); setOpenMenu(null); }} 
+              style={{ padding: "8px 14px", color: updateAvailable ? "var(--accent-yellow)" : "inherit", fontWeight: updateAvailable ? "bold" : "normal" }}
+            > 
               {t("menu.checkUpdates")}
             </button>
           </div>
         )}
       </div>
-      
     </div>
   );
 }
