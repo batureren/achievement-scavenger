@@ -68,8 +68,6 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
 
   const activePlaythrough = safeGuide.playthroughs.find(p => p.id === safeGuide.activePlaythroughId) || safeGuide.playthroughs[0];
 
-  const allBlocks = useMemo(() => activePlaythrough?.indexes.flatMap(idx => idx.blocks) || [], [activePlaythrough]);
-
   const persist = (updated: CustomGuide) => onChange(updated);
   
   const allChecklistItems = useMemo(() => checklists.flatMap(c => c.items.map(i => ({ ...i, parentListId: c.id, parentListTitle: c.title }))), [checklists]);

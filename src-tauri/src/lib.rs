@@ -770,6 +770,7 @@ fn get_local_steam_status() -> Result<String, String> {
 
 #[cfg(target_os = "linux")]
 #[tauri::command]
+#[allow(deprecated)]
 fn get_local_steam_status() -> Result<String, String> {
     use keyvalues_parser::Vdf;
 
@@ -786,6 +787,7 @@ fn get_local_steam_status() -> Result<String, String> {
         .ok_or("Steam registry.vdf not found")?;
 
     let contents = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    
     let vdf = Vdf::parse(&contents).map_err(|e| e.to_string())?;
 
     let steam = vdf
@@ -1147,9 +1149,11 @@ fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String>
 // --- Entry Point ---
 #[cfg(target_os = "linux")]
 fn init_steam_deck_env() {
-    std::env::set_var("GDK_BACKEND", "x11");
-    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    unsafe {
+        std::env::set_var("GDK_BACKEND", "x11");
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
