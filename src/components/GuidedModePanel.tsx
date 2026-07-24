@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import toast from "react-hot-toast";
 import { CustomGuide, GuidePlaythrough, GuideBlock, MergedAchievement, CustomChecklist, GuideBlockType } from "../types";
@@ -9,6 +9,9 @@ const TrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const GitHubIcon = () => <svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" style={{marginTop:"-2px"}}><path d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>;
 const GridIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>;
 const ListIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+
+let cachedGuidesList: any[] | null = null;
+let lastGuidesListFetch = 0;
 
 interface GuidedModePanelProps {
   appId: string;
@@ -43,6 +46,33 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   const [communityGuides, setCommunityGuides] = useState<GuidePlaythrough[]>([]);
   const [loadingGuides, setLoadingGuides] = useState(false);
   const [guideSearchQuery, setGuideSearchQuery] = useState("");
+  const [availableGuideCount, setAvailableGuideCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCount = async () => {
+      try {
+        if (!cachedGuidesList || Date.now() - lastGuidesListFetch > 5 * 60 * 1000) {
+          const res = await fetch("https://api.github.com/repos/batureren/achievement-scavenger-database/contents/guides");
+          if (res.ok) {
+            cachedGuidesList = await res.json();
+            lastGuidesListFetch = Date.now();
+          }
+        }
+        if (isMounted && cachedGuidesList) {
+          const prefix = `${appId}_`;
+          const exact = `${appId}.json`;
+          const count = cachedGuidesList.filter((f: any) => 
+            f.type === "file" && (f.name.startsWith(prefix) || f.name === exact)
+          ).length;
+          setAvailableGuideCount(count);
+        }
+      } catch (e) {
+      }
+    };
+    fetchCount();
+    return () => { isMounted = false; };
+  }, [appId]);
 
   const scrollToIndex = (id: string) => {
     const el = document.getElementById(`guided-index-${id}`);
@@ -212,11 +242,14 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
     setLoadingGuides(true);
     setGuideSearchQuery("");
     try {
-      const contentsRes = await fetch("https://api.github.com/repos/batureren/achievement-scavenger-database/contents/guides");
-      if (!contentsRes.ok) throw new Error();
+      if (!cachedGuidesList || Date.now() - lastGuidesListFetch > 5 * 60 * 1000) {
+        const contentsRes = await fetch("https://api.github.com/repos/batureren/achievement-scavenger-database/contents/guides");
+        if (!contentsRes.ok) throw new Error();
+        cachedGuidesList = await contentsRes.json();
+        lastGuidesListFetch = Date.now();
+      }
       
-      const contents = await contentsRes.json();
-      
+      const contents = cachedGuidesList!;
       const prefix = `${appId}_`;
       const exact = `${appId}.json`;
       const matchingFiles = contents.filter((f: any) => 
@@ -349,7 +382,9 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
                 <button className="btn-small btn-small-success" onClick={handlePublishGuide} title={t("guide.export_pr_tooltip")}>
                     <GitHubIcon /> {t("guide.publish")}
                 </button>
-                <button className="btn-small" onClick={fetchCommunityGuides}>{t("guide.browse_community")}</button>
+                <button className="btn-small" onClick={fetchCommunityGuides}>
+                  {t("guide.browse_community")} {availableGuideCount !== null && availableGuideCount > 0 ? `(${availableGuideCount})` : ""}
+                </button>
               </div>
             </div> 
 
