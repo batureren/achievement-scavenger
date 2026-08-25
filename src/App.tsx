@@ -2001,11 +2001,13 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                   </div>
                   <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select">
                     <option value="ALL">{t("chap.all")}</option>
+                    {(chapterCounts["No Chapter"] > 0 || selectedChapter === "No Chapter") && (
+                      <option value="No Chapter">{t("chap.fallback")} ({chapterCounts["No Chapter"] || 0})</option>
+                    )}
                     {allKnownChaptersForDropdown.map((chap) => { 
                       const count = chapterCounts[chap] || 0; 
                       if (count === 0 && !editMode) return null; 
-                      const displayName = chap === "No Chapter" ? t("chap.fallback") : chap;
-                      return <option key={chap} value={chap}>{displayName} ({count})</option>; 
+                      return <option key={chap} value={chap}>{chap} ({count})</option>; 
                     })}
                   </select>
                 </div>

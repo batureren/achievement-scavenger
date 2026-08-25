@@ -41,12 +41,20 @@ export function applyTheme(theme: Theme) {
 }
 
 export function renderHintWithLinks(text: string) {
+  if (!text) return null;
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const parts = text.split(urlRegex);
   return parts.map((part, i) =>
     urlRegex.test(part)
       ? <a key={i} href="#" onClick={(e) => { e.preventDefault(); open(part); }} style={{ color: "var(--accent-green)", textDecoration: "underline", wordBreak: "break-all" }}>{part}</a>
-      : <React.Fragment key={i}>{part}</React.Fragment>
+      : <React.Fragment key={i}>
+          {part.split('\n').map((line, j, arr) => (
+            <React.Fragment key={j}>
+              {line}
+              {j < arr.length - 1 && <br />}
+            </React.Fragment>
+          ))}
+        </React.Fragment>
   );
 }
 
