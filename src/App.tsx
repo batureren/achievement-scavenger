@@ -1928,7 +1928,7 @@ const handleCreatePR = async () => {
               </p>
               <div className="game-name-wrapper">
                 <h1 className="game-title">{gameName}</h1>
-                {!isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN && hasCommunityDb !== null && (
+                {hasCommunityDb !== null && (
                   <>
                     {hasCommunityDb ? (
                       <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
