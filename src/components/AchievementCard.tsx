@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
@@ -32,6 +32,9 @@ function AchievementCardBase({
   handleEdit, 
   t 
 }: AchievementCardProps) {
+
+  const [showRequires, setShowRequires] = useState(false);
+  const [reqSearch, setReqSearch] = useState("");
 
   const tier = ach.globalPercent != null ? getRarityTier(ach.globalPercent) : null;
   const pColor = tier ? tier.color : "var(--text-muted)";
@@ -157,28 +160,50 @@ function AchievementCardBase({
           </div>
 
           <div className="edit-requires">
-            <label className="edit-input-label">{t("ach.requires_prereq_label")}</label>
-            <div className="edit-requires-list">
-              {achievements.filter(a => a.apiname !== ach.apiname).map(other => {
-                const currentRequires: string[] = localOrOfficialEditData.requires ?? ach.requires ?? [];
-                const isChecked = currentRequires.includes(other.apiname);
-                return (
-                  <label key={other.apiname} className="edit-requires-item">
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={e => {
-                        const next = e.target.checked
-                          ? [...currentRequires, other.apiname]
-                          : currentRequires.filter(id => id !== other.apiname);
-                        handleEdit(ach.apiname, "requires", next);
-                      }}
-                    />
-                    {other.display_name}
-                  </label>
-                );
-              })}
-            </div>
+            <button 
+              className="btn-small" 
+              onClick={() => setShowRequires(!showRequires)}
+              style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.2)" }}
+            >
+              <span>{t("ach.requires_prereq_label")} ({(localOrOfficialEditData.requires ?? ach.requires ?? []).length})</span>
+              <span>{showRequires ? "▲" : "▼"}</span>
+            </button>
+            
+            {showRequires && (
+              <div style={{ marginTop: "8px", border: "1px solid var(--border-color)", borderRadius: "6px", background: "var(--bg-color)", padding: "8px" }}>
+                <input 
+                  type="text" 
+                  placeholder={t("search.achievements")}
+                  value={reqSearch}
+                  onChange={e => setReqSearch(e.target.value)}
+                  className="edit-input"
+                  style={{ width: "100%", marginBottom: "8px", boxSizing: "border-box" }}
+                />
+                <div className="edit-requires-list" style={{ maxHeight: "200px", overflowY: "auto" }}>
+                  {achievements
+                    .filter(a => a.apiname !== ach.apiname && (!reqSearch.trim() || a.display_name.toLowerCase().includes(reqSearch.trim().toLowerCase())))
+                    .map(other => {
+                      const currentRequires: string[] = localOrOfficialEditData.requires ?? ach.requires ?? [];
+                      const isChecked = currentRequires.includes(other.apiname);
+                      return (
+                        <label key={other.apiname} className="edit-requires-item" style={{ display: "flex", alignItems: "center", gap: "6px", padding: "4px 0", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...currentRequires, other.apiname]
+                                : currentRequires.filter(id => id !== other.apiname);
+                              handleEdit(ach.apiname, "requires", next);
+                            }}
+                          />
+                          <span style={{ fontSize: "0.85rem" }}>{other.display_name}</span>
+                        </label>
+                      );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (

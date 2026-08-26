@@ -45,8 +45,8 @@ export function renderHintWithLinks(text: string) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   const parts = text.split(urlRegex);
   return parts.map((part, i) =>
-    urlRegex.test(part)
-      ? <a key={i} href="#" onClick={(e) => { e.preventDefault(); open(part); }} style={{ color: "var(--accent-green)", textDecoration: "underline", wordBreak: "break-all" }}>{part}</a>
+    part.match(/^https?:\/\//)
+      ? <a key={i} href="#" onClick={(e) => { e.preventDefault(); if (part) open(part); }} style={{ color: "var(--accent-green)", textDecoration: "underline", wordBreak: "break-all" }}>{part}</a>
       : <React.Fragment key={i}>
           {part.split('\n').map((line, j, arr) => (
             <React.Fragment key={j}>

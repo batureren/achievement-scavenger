@@ -24,6 +24,98 @@ interface GuidedModePanelProps {
   t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
+function AchievementSearchSelect({ value, onChange, achievements, t }: { value: string, onChange: (v: string) => void, achievements: MergedAchievement[], t: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const selected = achievements.find(a => a.apiname === value);
+
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: "500px" }}>
+      <button type="button" className="edit-input control-select" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", textAlign: "left", cursor: "pointer", padding: "6px 12px", minHeight: "36px" }} onClick={() => setIsOpen(!isOpen)}>
+        {selected ? (
+          <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+            <img src={selected.icon} style={{ width: 18, height: 18, borderRadius: "2px" }} alt="" />
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selected.display_name}</span>
+          </span>
+        ) : (
+          <span style={{ color: "var(--text-muted)" }}>{t("guide.dropdown_select_ach")}</span>
+        )}
+        <span>{isOpen ? "▲" : "▼"}</span>
+      </button>
+      
+      {isOpen && (
+        <div style={{ position: "absolute", zIndex: 100, top: "100%", left: 0, right: 0, marginTop: "4px", background: "var(--bg-color)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+          <input autoFocus type="text" placeholder={t("search.achievements")} value={search} onChange={e => setSearch(e.target.value)} className="edit-input" style={{ width: "100%", marginBottom: "8px", boxSizing: "border-box" }} />
+          <div style={{ maxHeight: "250px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "2px" }}>
+            <button type="button" onClick={() => { onChange(""); setIsOpen(false); setSearch(""); }} style={{ padding: "6px", background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", textAlign: "left", width: "100%" }}>{t("guide.dropdown_select_ach")}</button>
+            {achievements
+              .filter(a => !search.trim() || a.display_name.toLowerCase().includes(search.trim().toLowerCase()))
+              .map(a => (
+                <button key={a.apiname} type="button" onClick={() => { onChange(a.apiname); setIsOpen(false); setSearch(""); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px", background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", borderRadius: "4px", textAlign: "left", width: "100%" }} onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                  <img src={a.icon} style={{ width: 20, height: 20, borderRadius: "4px", flexShrink: 0 }} alt="" />
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.display_name}</span>
+                </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChecklistItemSearchSelect({ value, onChange, items, t }: { value: string, onChange: (v: string) => void, items: any[], t: any }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const selected = items.find(i => i.id === value);
+
+  return (
+    <div style={{ position: "relative", width: "100%", maxWidth: "500px" }}>
+      <button type="button" className="edit-input control-select" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", textAlign: "left", cursor: "pointer", padding: "6px 12px", minHeight: "36px" }} onClick={() => setIsOpen(!isOpen)}>
+        {selected ? (
+          <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
+            {selected.imageUrl ? (
+              <img src={selected.imageUrl} style={{ width: 18, height: 18, borderRadius: "2px", objectFit: "cover", flexShrink: 0 }} alt="" />
+            ) : (
+              <div style={{ width: 18, height: 18, borderRadius: "2px", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+            )}
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ color: "var(--accent-green)", marginRight: "4px" }}>[{selected.parentListTitle}]</span>
+              {selected.name}
+            </span>
+          </span>
+        ) : (
+          <span style={{ color: "var(--text-muted)" }}>{t("guide.dropdown_select_item")}</span>
+        )}
+        <span>{isOpen ? "▲" : "▼"}</span>
+      </button>
+      
+      {isOpen && (
+        <div style={{ position: "absolute", zIndex: 100, top: "100%", left: 0, right: 0, marginTop: "4px", background: "var(--bg-color)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}>
+          <input autoFocus type="text" placeholder="Search items..." value={search} onChange={e => setSearch(e.target.value)} className="edit-input" style={{ width: "100%", marginBottom: "8px", boxSizing: "border-box" }} />
+          <div style={{ maxHeight: "250px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "2px" }}>
+            <button type="button" onClick={() => { onChange(""); setIsOpen(false); setSearch(""); }} style={{ padding: "6px", background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", textAlign: "left", width: "100%" }}>{t("guide.dropdown_select_item")}</button>
+            {items
+              .filter(i => !search.trim() || i.name.toLowerCase().includes(search.trim().toLowerCase()) || i.parentListTitle.toLowerCase().includes(search.trim().toLowerCase()))
+              .map(item => (
+                <button key={item.id} type="button" onClick={() => { onChange(item.id); setIsOpen(false); setSearch(""); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "6px", background: "transparent", border: "none", color: "var(--text-main)", cursor: "pointer", borderRadius: "4px", textAlign: "left", width: "100%" }} onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} style={{ width: 20, height: 20, borderRadius: "4px", objectFit: "cover", flexShrink: 0 }} alt="" />
+                  ) : (
+                    <div style={{ width: 20, height: 20, borderRadius: "4px", background: "rgba(255,255,255,0.1)", flexShrink: 0 }} />
+                  )}
+                  <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <span style={{ color: "var(--accent-green)", marginRight: "4px" }}>[{item.parentListTitle}]</span> 
+                    {item.name}
+                  </span>
+                </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function GuidedModePanel({ appId, guide, achievements, checklists, onChange, onToggleChecklistItem, t }: GuidedModePanelProps) {
   const [editMode, setEditMode] = useState(false);
   const [isGridView, setIsGridView] = useState(false);
@@ -326,7 +418,16 @@ const handlePublishGuide = async () => {
         if (!clItem) return <p className="guided-missing">{t("guide.select_checklist_item")}</p>;
         return (
           <div className={`guided-cl-card ${clItem.completed ? "completed" : ""}`} onClick={() => onToggleChecklistItem(clItem.parentListId, clItem.id)}>
-            <input type="checkbox" checked={clItem.completed} readOnly />
+            <input type="checkbox" checked={clItem.completed} readOnly style={{ flexShrink: 0 }} />
+            
+            {clItem.imageUrl && (
+              <img 
+                src={clItem.imageUrl} 
+                alt="" 
+                style={{ width: 32, height: 32, borderRadius: "4px", objectFit: "cover", flexShrink: 0 }} 
+              />
+            )}
+            
             <div>
               <strong>
                 <span className="guided-cl-topic">[{clItem.parentListTitle}]</span> {clItem.name}
@@ -481,16 +582,20 @@ const handlePublishGuide = async () => {
                             {block.type === "text" && <textarea className="edit-input edit-textarea" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder={t("guide.text_placeholder")} />}
                             {block.type === "media" && <input type="url" className="edit-input" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder={t("guide.media_placeholder")} />}
                             {block.type === "achievement" && (
-                              <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
-                                <option value="">{t("guide.dropdown_select_ach")}</option>
-                                {achievements.map(a => <option key={a.apiname} value={a.apiname}>{a.display_name}</option>)}
-                              </select>
+                              <AchievementSearchSelect 
+                                value={block.content} 
+                                onChange={val => handleUpdateBlock(index.id, block.id, val)} 
+                                achievements={achievements} 
+                                t={t} 
+                              />
                             )}
                             {block.type === "checklist" && (
-                              <select className="edit-input control-select" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)}>
-                                <option value="">{t("guide.dropdown_select_item")}</option>
-                                {allChecklistItems.map(item => <option key={item.id} value={item.id}>[{item.parentListTitle}] {item.name}</option>)}
-                              </select>
+                              <ChecklistItemSearchSelect 
+                                value={block.content} 
+                                onChange={val => handleUpdateBlock(index.id, block.id, val)} 
+                                items={allChecklistItems} 
+                                t={t} 
+                              />
                             )}
                           </div>
                         ) : (

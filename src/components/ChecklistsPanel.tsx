@@ -527,7 +527,7 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                                   ) : (
                                     <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "6px" }}>
                                       {t("cl.cant_embed")}{" "}
-                                      <a href="#" onClick={e => { e.preventDefault(); open(item.videoUrl); }}>{t("cl.open_externally")}</a>.
+                                      <a href="#" onClick={e => { e.preventDefault(); if (item.videoUrl) open(item.videoUrl); }}>{t("cl.open_externally")}</a>.
                                     </p>
                                   )
                                 )}

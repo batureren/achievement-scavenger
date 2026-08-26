@@ -870,7 +870,11 @@ function App() {
                     cDb = communityData;
                   } else { 
                     cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
-                    cLinks = Array.isArray(communityData.links) ? communityData.links : []; 
+                    
+                    cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
+                      typeof l === "string" ? { title: "Community Link", url: l } : l
+                    ) : []; 
+
                     cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
                     cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : []; 
                   }
@@ -1127,7 +1131,13 @@ function App() {
           const communityData = await dbRes.json();
           let cDb = [], cLinks = [], cChapters = [];
           if (Array.isArray(communityData)) { cDb = communityData; }
-          else { cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; cLinks = Array.isArray(communityData.links) ? communityData.links : []; cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; }
+          else { 
+            cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
+            cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
+              typeof l === "string" ? { title: "Community Link", url: l } : l
+            ) : []; 
+            cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
+          }
           communityDbCacheRef.current[appId] = { db: cDb, links: cLinks, chapters: cChapters };
         } else {
           communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] };
@@ -1442,6 +1452,14 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
     const cLinks = dbCache.links || [];
     const gameEdits = allLocalEdits[selectedAppIdRef.current] || {};
 
+    let safeGameName = gameName;
+    if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
+      safeGameName = gameHistory[selectedAppIdRef.current]?.name || gameNameRef.current;
+    }
+    if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
+      safeGameName = selectedAppIdRef.current;
+    }
+
     const unifiedAchievements = achievements.map(ach => {
       const orig = cData.find((m: any) => m.apiname === ach.apiname) || {};
       const edits = gameEdits[ach.apiname] || {};
@@ -1457,7 +1475,7 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
     currentGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
 
     const payload: Record<string, unknown> = { 
-      gameName: gameName, 
+      gameName: safeGameName, 
       chapters: currentGameChapters, 
       links: Array.from(mergedLinksMap.values()),
       achievements: unifiedAchievements 
@@ -1481,16 +1499,24 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
   
   const handleExportHTML = async () => { 
     try { 
+      let safeGameName = gameName;
+      if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
+        safeGameName = gameHistory[selectedAppIdRef.current]?.name || gameNameRef.current;
+      }
+      if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
+        safeGameName = selectedAppIdRef.current;
+      }
+
       const gameChecklistsForExport = allChecklists[selectedAppIdRef.current] || [];
       const checklistsHtml = gameChecklistsForExport.length === 0 ? "" : `
-        <h1 style="margin-top: 2.5rem;">${gameName} - Checklists</h1>
+        <h1 style="margin-top: 2.5rem;">${safeGameName} - Checklists</h1>
         ${gameChecklistsForExport.map(list => `
           <h2 style="color: #f4f4f5; border-bottom: 1px solid #3f3f46; padding-bottom: 6px; margin-top: 1.5rem;">${list.title} <span style="color: #a1a1aa; font-size: 0.8rem; font-weight: normal;">(${list.items.filter(i => i.completed).length}/${list.items.length})</span></h2>
           ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
         `).join('')}
       `;
-      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${gameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${gameName} - Checklist</h1>${achievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
-      await invoke<string>("save_file_dialog", { filename: `${gameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); toast.success("HTML Checklist saved successfully!"); 
+      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${safeGameName} - Checklist</h1>${achievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
+      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); toast.success("HTML Checklist saved successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
@@ -1909,7 +1935,7 @@ const handleCreatePR = async () => {
                         <div className="links-list">
                           {currentGameLinks.map(link => (
                             <div key={link.id} className="user-link-item">
-                              <a href="#" onClick={(e) => { e.preventDefault(); open(link.url); }} className="user-link">🔗 {link.title}</a>
+                              <a href="#" onClick={(e) => { e.preventDefault(); if (link.url) open(link.url); }} className="user-link">🔗 {link.title}</a>
                               <button onClick={async () => { const updatedLinks = userLinks.filter(l => l.id !== link.id); setUserLinks(updatedLinks); await invoke("save_user_links", { data: JSON.stringify(updatedLinks) }); }} className="btn-remove-link">✕</button>
                             </div>
                           ))}
@@ -1959,7 +1985,7 @@ const handleCreatePR = async () => {
                           <div className="links-header"><h3>{t("sec.guides")}</h3></div>
                           <div className="links-list">
                             {communityLinks.map((link, i) => (
-                              <div key={i} className="user-link-item"><a href="#" onClick={(e) => { e.preventDefault(); open(link.url); }} className="user-link">🔗 {link.title}</a></div>
+                              <div key={i} className="user-link-item"><a href="#" onClick={(e) => { e.preventDefault(); if (link.url) open(link.url); }} className="user-link">🔗 {link.title}</a></div>
                             ))}
                           </div>
                         </div>
