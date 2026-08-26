@@ -61,6 +61,14 @@ export const STEAM_LANG_MAP: Record<string, string> = {
 
 export const TRANSLATIONS: Record<string, Record<string, string>> = {
   "en": {
+    "db.browse_title": "Community Databases",
+    "db.browse_desc": "Browse and add games that have community-provided hints, chapters, and edits.",
+    "db.add_btn": "+ Add",
+    "db.added_btn": "In Library",
+    "lib.browse_db": "Browse DBs",
+    "db.fetching": "Fetching database list...",
+    "db.no_dbs": "No databases match your search.",
+    "ach.privacy_warning": "Cannot check live progress: You don't own this game, have zero playtime, or your Steam \"Game Details\" are private.",
     "menu.view": "View", "menu.themes": "Themes", "menu.accounts": "Accounts", "menu.alwaysOnTop": "Always on Top (Overlay)", "menu.overlayWarning": "⚠️ For overlay use, set your game to Borderless Windowed", "menu.miniMode": "Compact Mini Mode", "menu.windowMode": "Window Mode", "menu.opacity": "Window Opacity", "menu.uiScale": "UI Scale", "menu.language": "Language (Database & UI)", "menu.sound": "Unlock Sound", "menu.keys": "Manage API Keys", "menu.startup": "Run on System Startup", "menu.screenshots": "Screenshots Folder", "menu.discordRPC": "Discord Rich Presence", "menu.minimizeToTray": "Minimize to Tray on Close",
     "filter.all": "All", "filter.locked": "Locked", "filter.unlocked": "Unlocked", "filter.tracked": "Tracked", "filter.missable": "⚠️ Missable", "filter.spoilers": "👁 Spoilers", "filter.guided": "🛡 Guided Mode", "filter.guidedOn": "🛡 Guided Mode (ON)", "menu.links": "Links",
     "search.achievements": "Search achievements...", "search.library": "🔍 Search games...",

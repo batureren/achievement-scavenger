@@ -357,24 +357,10 @@ export function BatchImportModal(props: BatchImportModalProps) {
       for (const item of toImport) {
         if (updated[item.appId]) continue;
         const steamCounts = achCounts.get(item.appId);
-
-        // Steam's owned-games list only gives us a tiny 32x32 img_icon_url.
-        // Don't cache that as raImageIcon or it'll permanently shadow the
-        // higher-res header/capsule art that LibraryDashboard otherwise
-        // fetches for Steam games. Xbox/PSN icons ARE already good
-        // banner-sized art (and already full URLs), so those get cached as-is.
         let cachedIcon: string | undefined;
         if (item.platform === "STEAM") {
           cachedIcon = undefined;
         } else if (item.platform === "RA") {
-          // Store the RAW relative path here (e.g. "/Images/012345.png"),
-          // never the full media URL: LibraryDashboard prepends the
-          // media.retroachievements.org domain itself when rendering RA
-          // cards. item.icon was built with the domain already attached
-          // (for display in this modal's own list), so caching it as-is
-          // would double up the domain and break the image until the user
-          // opened the game once and the achievements loader overwrote it
-          // with a correct relative path.
           cachedIcon = raBoxArt.get(item.appId) || item.icon?.replace("https://media.retroachievements.org", "");
         } else {
           cachedIcon = item.icon;

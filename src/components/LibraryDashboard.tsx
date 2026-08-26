@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
@@ -8,6 +8,7 @@ import { COMPLETION_CONFIG, COMPLETION_KEYS } from "../constants";
 import { PlatformIcon } from "./Icons";
 import { timeAgo } from "../utils";
 import { BatchImportModal } from "./BatchImportModal";
+import { CommunityDbModal } from "./CommunityDbModal";
 
 type PlatformFilter = "ALL" | "STEAM" | "RA" | "XBOX" | "PSN";
 
@@ -52,6 +53,7 @@ export function LibraryDashboard({
 
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("ALL");
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isDbBrowserOpen, setIsDbBrowserOpen] = useState(false);
 
   const togglePin = (e: React.MouseEvent, appId: string) => {
     e.stopPropagation();
@@ -100,9 +102,15 @@ export function LibraryDashboard({
         <p className="status-text" style={{ justifyContent: "center" }}>
           Launch any Steam game, or play any game on RetroAchievements. We'll automatically detect it and create a tab for it here!
         </p>
-        <button className="library-filter-chip library-import-btn" style={{ marginTop: "16px" }} onClick={() => setIsImportOpen(true)}>
-          ＋ Batch Import Games
-        </button>
+        
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
+          <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
+            ＋ Batch Import Games
+          </button>
+          <button className="library-filter-chip library-import-btn" onClick={() => setIsDbBrowserOpen(true)}>
+            🔍 {t("lib.browse_db") || "Browse DBs"}
+          </button>
+        </div>
 
         <BatchImportModal
           isOpen={isImportOpen}
@@ -115,6 +123,18 @@ export function LibraryDashboard({
           psnCreds={psnCreds}
           t={t}
         />
+
+<CommunityDbModal
+        isOpen={isDbBrowserOpen}
+        onClose={() => setIsDbBrowserOpen(false)}
+        gameHistory={gameHistory}
+        setGameHistory={setGameHistory}
+        steamApiKey={steamApiKey}
+        raCreds={raCreds}
+        xboxCreds={xboxCreds}
+        psnCreds={psnCreds}
+        t={t}
+      />
       </div>
     );
   }
@@ -158,6 +178,9 @@ export function LibraryDashboard({
 
           <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
             ＋ Batch Import
+          </button>
+          <button className="library-filter-chip library-import-btn" onClick={() => setIsDbBrowserOpen(true)}>
+            🔍 {t("lib.browse_db") || "Browse DBs"}
           </button>
         </div>
         <input
@@ -394,6 +417,18 @@ export function LibraryDashboard({
       <BatchImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
+        gameHistory={gameHistory}
+        setGameHistory={setGameHistory}
+        steamApiKey={steamApiKey}
+        raCreds={raCreds}
+        xboxCreds={xboxCreds}
+        psnCreds={psnCreds}
+        t={t}
+      />
+
+      <CommunityDbModal
+        isOpen={isDbBrowserOpen}
+        onClose={() => setIsDbBrowserOpen(false)}
         gameHistory={gameHistory}
         setGameHistory={setGameHistory}
         steamApiKey={steamApiKey}

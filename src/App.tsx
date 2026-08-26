@@ -1388,8 +1388,10 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     saveGameChapters(newChapters);
   };
 
-  const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) => {
-    const cData = communityDbCacheRef.current[selectedAppIdRef.current]?.db || [];
+const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) => {
+    const dbCache = communityDbCacheRef.current[selectedAppIdRef.current] || { db: [], links: [], chapters: [] };
+    const cData = dbCache.db || [];
+    const cLinks = dbCache.links || [];
     const gameEdits = allLocalEdits[selectedAppIdRef.current] || {};
 
     const unifiedAchievements = achievements.map(ach => {
@@ -1402,7 +1404,17 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
       };
     });
 
-    const payload: Record<string, unknown> = { chapters: currentGameChapters, links: currentGameLinks.map(l => ({ title: l.title, url: l.url })), achievements: unifiedAchievements };
+    const mergedLinksMap = new Map();
+    cLinks.forEach((l: any) => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+    currentGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+
+    const payload: Record<string, unknown> = { 
+      gameName: gameName, 
+      chapters: currentGameChapters, 
+      links: Array.from(mergedLinksMap.values()),
+      achievements: unifiedAchievements 
+    };
+    
     if (opts.includeChecklists) {
       const gameChecklists = allChecklists[selectedAppIdRef.current] || [];
       payload.checklists = gameChecklists.map(list => ({
@@ -1966,7 +1978,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
                 </div>
               )}
 
-              {isProfilePrivate && <div className="privacy-warning">⚠️ Cannot check unlocks: Your Steam "Game Details" are private.</div>}
+              {isProfilePrivate && <div className="privacy-warning">⚠️ {t("ach.privacy_warning")}</div>}
 
               {isSelectedGamePSN && psnAuthError && (
                 <div className="privacy-warning">
