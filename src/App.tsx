@@ -236,6 +236,58 @@ function App() {
     });
   };
 
+  const handleRefreshCommunityDb = async () => {
+    const appId = selectedAppIdRef.current;
+    if (!appId) return;
+
+    const toastId = toast.loading("Checking for database updates...");
+    try {
+      const dbUrl = `${GITHUB_DB_BASE_URL}/${appId}.json?t=${Date.now()}`;
+      const dbRes = await fetch(dbUrl);
+      
+      if (!dbRes.ok) {
+        toast.error("Failed to fetch database.", { id: toastId });
+        return;
+      }
+
+      const communityData = await dbRes.json();
+      let cDb = [], cLinks = [], cChapters = [], cChecklists = [];
+      
+      if (Array.isArray(communityData)) { 
+        cDb = communityData;
+      } else { 
+        cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
+        cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
+          typeof l === "string" ? { title: "Community Link", url: l } : l
+        ) : []; 
+        cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
+        cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : []; 
+      }
+
+      const newCacheData = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists };
+      const oldCacheData = communityDbCacheRef.current[appId];
+
+      if (JSON.stringify(newCacheData) === JSON.stringify(oldCacheData)) {
+        toast.success("Database is already up to date.", { id: toastId });
+        return;
+      }
+
+      communityDbCacheRef.current[appId] = newCacheData;
+      setHasCommunityDb(cDb.length > 0);
+      setCommunityLinks(cLinks);
+      
+      if (cChecklists.length > 0) {
+        mergeCommunityChecklists(appId, cChecklists);
+      }
+
+      tickRef.current({ forceTabSwitch: true });
+      
+      toast.success("Database updated!", { id: toastId });
+    } catch (e) {
+      toast.error("Error checking for updates.", { id: toastId });
+    }
+  };
+
   const handleCreateGameLink = (appIdA: string, appIdB: string) => {
     const linkA = linkForAppId(appIdA);
     const linkB = linkForAppId(appIdB);
@@ -1877,15 +1929,25 @@ const handleCreatePR = async () => {
               <div className="game-name-wrapper">
                 <h1 className="game-title">{gameName}</h1>
                 {!isSelectedGameRA && !isSelectedGameXbox && !isSelectedGamePSN && hasCommunityDb !== null && (
-                  hasCommunityDb ? (
-                    <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
-                      {t("db.available")}
-                    </span>
-                  ) : (
-                    <span className="community-db-badge community-db-badge--missing" title="No community database found for this game yet. You can help by submitting one!">
-                      {t("db.missing")}
-                    </span>
-                  )
+                  <>
+                    {hasCommunityDb ? (
+                      <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
+                        {t("db.available")}
+                      </span>
+                    ) : (
+                      <span className="community-db-badge community-db-badge--missing" title="No community database found for this game yet. You can help by submitting one!">
+                        {t("db.missing")}
+                      </span>
+                    )}
+                    <button 
+                      className="icon-btn hint-visible" 
+                      onClick={handleRefreshCommunityDb} 
+                      title="Refresh Community Database"
+                      style={{ width: "22px", height: "22px", padding: 0, marginLeft: "4px" }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
+                  </>
                 )}
                 {isSelectedGameRA && (() => {
                   const currentLink = linkForAppId(selectedAppId);
