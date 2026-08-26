@@ -143,7 +143,7 @@ function App() {
   const achievementsCacheRef = useRef<Record<string, MergedAchievement[]>>({});
   const schemaCacheRef = useRef<Record<string, any[]>>({});
   const percentagesCacheRef = useRef<Record<string, Map<string, number>>>({});
-  const communityDbCacheRef = useRef<Record<string, { db: any[], links: CommunityLink[], chapters: string[] }>>({});
+  const communityDbCacheRef = useRef<Record<string, { db: any[], links: CommunityLink[], chapters: string[], checklists?: CustomChecklist[] }>>({});
 
   const lastNetworkFetchRef = useRef<number>(0);
   const prevUnlockedRef = useRef<Record<string, Set<string>>>({});
@@ -191,6 +191,49 @@ function App() {
     setGameLinks(updated);
     gameLinksRef.current = updated;
     await invoke("save_game_links", { data: JSON.stringify(updated) }).catch(console.error);
+  };
+
+  const mergeCommunityChecklists = (appId: string, communityChecklists: any[]) => {
+    if (!communityChecklists || communityChecklists.length === 0) return;
+    
+    setAllChecklists(prev => {
+      const existing = prev[appId] || [];
+      let changed = false;
+      
+      const newLists = existing.map(localList => {
+        const cList = communityChecklists.find((c: any) => c.id === localList.id);
+        if (!cList) return localList;
+        
+        let listChanged = false;
+        const newItems = [...localList.items];
+        
+        for (const cItem of cList.items || []) {
+          if (!newItems.some(i => i.id === cItem.id)) {
+            newItems.push({ ...cItem, completed: false });
+            listChanged = true;
+          }
+        }
+        if (listChanged) { changed = true; return { ...localList, items: newItems }; }
+        return localList;
+      });
+
+      for (const cList of communityChecklists) {
+        if (!newLists.some(l => l.id === cList.id)) {
+          newLists.push({
+            ...cList,
+            items: (cList.items || []).map((item: any) => ({ ...item, completed: false }))
+          });
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        const updated = { ...prev, [appId]: newLists };
+        invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+        return updated;
+      }
+      return prev;
+    });
   };
 
   const handleCreateGameLink = (appIdA: string, appIdB: string) => {
@@ -822,16 +865,21 @@ function App() {
 
                 if (dbRes && dbRes.ok) {
                   const communityData = await dbRes.json();
-                  let cDb = [], cLinks = [], cChapters = [];
+                  let cDb = [], cLinks = [], cChapters = [], cChecklists = [];
                   if (Array.isArray(communityData)) { 
                     cDb = communityData;
                   } else { 
                     cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
                     cLinks = Array.isArray(communityData.links) ? communityData.links : []; 
                     cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
+                    cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : []; 
                   }
-                  communityDbCacheRef.current[targetAppId] = { db: cDb, links: cLinks, chapters: cChapters };
+                  communityDbCacheRef.current[targetAppId] = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists };
                   setHasCommunityDb(cDb.length > 0);
+
+                  if (cChecklists.length > 0) {
+                    mergeCommunityChecklists(targetAppId, cChecklists);
+                  }
                 } else { 
                   communityDbCacheRef.current[targetAppId] = { db: [], links: [], chapters: [] };
                   setHasCommunityDb(false);
@@ -1446,13 +1494,27 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
-  const handleCreatePR = async () => { 
+const handleCreatePR = async () => { 
     try { 
-      await navigator.clipboard.writeText(generateUnifiedExportJSON({ includeChecklists: true })); 
-      const fileExists = (communityDbCacheRef.current[selectedAppIdRef.current]?.db?.length || 0) > 0;
-      await open(fileExists ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${selectedAppIdRef.current}.json` : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${selectedAppIdRef.current}.json`); 
+      const jsonString = generateUnifiedExportJSON({ includeChecklists: true }) + "\n";
+      
+      await navigator.clipboard.writeText(jsonString); 
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const checkUrl = `https://api.github.com/repos/batureren/achievement-scavenger-database/contents/games/${selectedAppIdRef.current}.json`;
+      const res = await fetch(checkUrl);
+      const fileExists = res.ok;
+
+      const targetUrl = fileExists 
+        ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${selectedAppIdRef.current}.json` 
+        : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${selectedAppIdRef.current}.json`;
+
+      await open(targetUrl); 
       toast.success("Data copied to clipboard! Paste it on GitHub.", { duration: 5000 }); 
-    } catch (err) { toast.error(`Failed to copy to clipboard: ${err}`); } 
+    } catch (err) { 
+      toast.error(`Failed to copy to clipboard: ${err}`); 
+    } 
   };
 
   const currentGameTracked = useMemo(() => Array.isArray(trackedData[selectedAppId]) ? trackedData[selectedAppId] : [], [trackedData, selectedAppId]);
@@ -1700,14 +1762,14 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
                   const isGroupRunning = isGrouped ? link!.appIds.some(id => runningAppIds.includes(id)) : runningAppIds.includes(safeAppId);
                   return (
                     <div key={dictKey} className={`game-tab-wrapper ${selectedAppId === safeAppId ? "active" : ""}`}>
-                      <button className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
+                      <div className={`game-tab ${selectedAppId === safeAppId ? "active" : ""}`} onClick={() => handleSelectTab(safeAppId)}>
                         {isGroupLive && <span className="live-dot" title="Game is currently running"></span>}
                         {game.pinned && <span style={{ fontSize: "0.75rem", opacity: 0.8 }} title="Pinned">📌</span>}
                         <PlatformIcon platform={game.platform} size={16}/>
                         {groupTabName}
                         {isGrouped && <span title={t("link.tab_tooltip", { names: link!.appIds.map(id => gameHistory[id]?.name || id).join(" + ") })} style={{ marginLeft: 4, opacity: 0.7 }}>🔗</span>}
-                          <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
-                      </button>
+                        <button className="game-tab-remove" title={isGroupRunning ? "Can't remove a game that's currently running" : `Remove "${groupTabName}" from history`} disabled={isGroupRunning} onClick={(e) => { e.stopPropagation(); handleRemoveGame({ ...game, appId: safeAppId }); }}>×</button>
+                      </div>
                     </div>
                   );
               });

@@ -59,12 +59,13 @@ export function renderHintWithLinks(text: string) {
 }
 
 export function getMediaKind(url: string): "video" | "image" {
-  if (!url) return "image";
+  if (!url || typeof url !== "string") return "image";
   const clean = url.split(/[?#]/)[0].toLowerCase();
   return /\.(webm|mp4|mov|m4v)$/.test(clean) ? "video" : "image";
 }
 
 export function getYouTubeEmbedUrl(url: string) {
+  if (!url || typeof url !== "string") return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;

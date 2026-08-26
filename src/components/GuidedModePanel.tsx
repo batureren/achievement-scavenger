@@ -214,7 +214,7 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
     }
   };
 
-  const handlePublishGuide = async () => {
+const handlePublishGuide = async () => {
     if (!activePlaythrough) return;
 
     if (!activePlaythrough.author || !activePlaythrough.description) {
@@ -226,8 +226,10 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
       const sanitizedAuthor = activePlaythrough.author.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
       const filename = `${appId}_${sanitizedAuthor}_${Date.now()}.json`;
 
-      const clipboardText = JSON.stringify(activePlaythrough, null, 2);
+      const clipboardText = JSON.stringify(activePlaythrough, null, 2) + "\n";
       await navigator.clipboard.writeText(clipboardText);
+
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       const url = `https://github.com/batureren/achievement-scavenger-database/new/main/guides?filename=${filename}`;
       await open(url);
