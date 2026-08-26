@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
 import { renderHintWithLinks, getYouTubeEmbedUrl } from "../utils";
+import { CollapsibleBox } from "./CollapsibleBox";
 
 interface AchievementCardProps {
   ach: MergedAchievement;
@@ -130,7 +131,9 @@ function AchievementCardBase({
               {!editMode && ach.globalPercent !== undefined && <div className="ach-global-percent" style={{ color: pColor }}>{ach.globalPercent.toFixed(1)} %</div>}
             </div>
           </div>
-          <p className="ach-desc" style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>{ach.description}</p>
+          <CollapsibleBox maxHeight={60}>
+            <p className="ach-desc" style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>{ach.description}</p>
+          </CollapsibleBox>
         </div>
       </div>
 
@@ -213,18 +216,22 @@ function AchievementCardBase({
           
           {ach.notes && (
             <div className="notes-box">
-              <span className="notes-label">{t("ach.notes_label")}</span>{ach.notes}
+              <CollapsibleBox maxHeight={80}>
+                <span className="notes-label">{t("ach.notes_label")}</span>{renderHintWithLinks(ach.notes)}
+              </CollapsibleBox>
             </div>
           )}
           
           {ach.hint && !isHintHidden && (
             <div className="hint-box">
-              <p style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>
-                <span className="hint-label">{t("ach.hint_label")}</span>{renderHintWithLinks(ach.hint)}
-              </p>
-              {ach.video_url && getYouTubeEmbedUrl(ach.video_url) && (
-                <div className="video-wrapper"><iframe src={getYouTubeEmbedUrl(ach.video_url)!} title={t("ach.youtube_video_title")} frameBorder="0" allowFullScreen></iframe></div>
-              )}
+              <CollapsibleBox maxHeight={150}>
+                <p style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>
+                  <span className="hint-label">{t("ach.hint_label")}</span>{renderHintWithLinks(ach.hint)}
+                </p>
+                {ach.video_url && getYouTubeEmbedUrl(ach.video_url) && (
+                  <div className="video-wrapper"><iframe src={getYouTubeEmbedUrl(ach.video_url)!} title={t("ach.youtube_video_title")} frameBorder="0" allowFullScreen></iframe></div>
+                )}
+              </CollapsibleBox>
             </div>
           )}
         </>

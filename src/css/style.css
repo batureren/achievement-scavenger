@@ -4255,6 +4255,57 @@ video.cl-item-img {
   color: var(--text-muted);
 }
 
+.collapsible-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.collapsible-content {
+  overflow: hidden;
+  transition: max-height 0.25s ease-out;
+  width: 100%;
+}
+
+.collapsible-box.is-overflowing:not(.is-expanded) .collapsible-content {
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.collapsible-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.collapsible-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
+  width: 100%;
+}
+
+.collapsible-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.collapsible-btn:hover {
+  color: var(--text-main);
+  border-color: var(--text-muted);
+  background: var(--border-color);
+}
+
 @media (max-width: 850px) {
   .guided-layout {
     flex-direction: column-reverse;

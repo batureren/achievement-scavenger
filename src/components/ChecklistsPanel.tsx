@@ -4,7 +4,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import { CustomChecklist, ChecklistItem } from "../types";
 import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
 import { ConfirmDialog } from "./ConfirmDialog";
-
+import { CollapsibleBox } from "./CollapsibleBox";
 interface ChecklistsPanelProps {
   checklists: CustomChecklist[];
   onChange: (updated: CustomChecklist[]) => void;
@@ -434,8 +434,12 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                               {item.location && (
                                 <span className="cl-item-location"><PinIcon /> {item.location}</span>
                               )}
-                              {item.desc && <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>}
-                            </div>
+                              {item.desc && (
+                                <CollapsibleBox maxHeight={60}>
+                                  <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>
+                                </CollapsibleBox>
+                              )}                            
+                              </div>
                           </div>
                         ))}
                       </div>
@@ -502,8 +506,11 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                                 {item.location && (
                                   <span className="cl-item-location"><PinIcon /> {item.location}</span>
                                 )}
-                                {item.desc && <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>}
-
+                                {item.desc && (
+                                        <CollapsibleBox maxHeight={120}>
+                                          <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>
+                                        </CollapsibleBox>
+                                      )}
                                 <div className="cl-item-actions">
                                   {item.videoUrl && (
                                     <button className="btn-small" onClick={() => setExpandedVideoId(isVideoOpen ? null : item.id)}>

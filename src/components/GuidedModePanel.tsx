@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import toast from "react-hot-toast";
 import { CustomGuide, GuidePlaythrough, GuideBlock, MergedAchievement, CustomChecklist, GuideBlockType } from "../types";
 import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
+import { CollapsibleBox } from "./CollapsibleBox";
 
 const PencilIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>;
 const TrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>;
@@ -297,7 +298,11 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
   const renderBlockContent = (block: GuideBlock) => {
     switch (block.type) {
       case "text":
-        return <p className="guided-text">{renderHintWithLinks(block.content)}</p>;
+        return (
+          <CollapsibleBox maxHeight={150}>
+            <p className="guided-text">{renderHintWithLinks(block.content)}</p>
+          </CollapsibleBox>
+        );
       
       case "achievement":
         const ach = achievements.find(a => a.apiname === block.content);
@@ -307,7 +312,9 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
             <img src={ach.unlocked ? ach.icon : ach.icongray} alt="" />
             <div>
               <strong>{ach.display_name} {ach.unlocked ? "✅" : "🔒"}</strong>
-              <p>{ach.description}</p>
+              <CollapsibleBox maxHeight={60}>
+                <p>{ach.description}</p>
+              </CollapsibleBox>
             </div>
           </div>
         );
@@ -415,7 +422,11 @@ export function GuidedModePanel({ appId, guide, achievements, checklists, onChan
             {activePlaythrough && (activePlaythrough.author || activePlaythrough.description) && !isAddingMode && !isEditingModeMeta && (
               <div className="guided-meta">
                 {activePlaythrough.author && <div style={{ marginBottom: "4px" }}><strong>{t("guide.author_label")}</strong> {activePlaythrough.author}</div>}
-                {activePlaythrough.description && <div>{activePlaythrough.description}</div>}
+                {activePlaythrough.description && (
+                  <CollapsibleBox maxHeight={80}>
+                    <div>{activePlaythrough.description}</div>
+                  </CollapsibleBox>
+                )}
               </div>
             )}
         </div>
