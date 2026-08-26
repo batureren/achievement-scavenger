@@ -54,6 +54,62 @@ export function LibraryDashboard({
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("ALL");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDbBrowserOpen, setIsDbBrowserOpen] = useState(false);
+  const groupedGames: any[] = [];
+  const processedLinkIds = new Set<string>();
+
+  for (const g of Object.values(gameHistory)) {
+    const link = Object.values(gameLinks).find(l => l.appIds.includes(g.appId));
+
+    if (link) {
+      if (processedLinkIds.has(link.id)) continue;
+      processedLinkIds.add(link.id);
+
+      const linkedGames = link.appIds.map(id => gameHistory[id]).filter(Boolean);
+      if (linkedGames.length === 0) continue;
+
+      const totalAch = linkedGames.reduce((sum, curr) => sum + curr.totalAch, 0);
+      const unlockedAch = linkedGames.reduce((sum, curr) => sum + curr.unlockedAch, 0);
+      const lastPlayed = Math.max(...linkedGames.map(curr => curr.lastPlayed));
+      const pinned = linkedGames.some(curr => curr.pinned);
+      
+      const unlockedRarities = linkedGames.map(curr => curr.rarestUnlocked).filter(Boolean);
+      const rarestUnlocked = unlockedRarities.length > 0 
+        ? unlockedRarities.reduce((min, curr) => curr!.percent < min!.percent ? curr : min) 
+        : null;
+
+      const name = link.name || linkedGames.map(curr => curr.name).join(" | ");
+
+      groupedGames.push({
+        isGroup: true,
+        appId: linkedGames[0].appId,
+        name,
+        platform: linkedGames[0].platform,
+        allPlatforms: Array.from(new Set(linkedGames.map(curr => curr.platform))),
+        totalAch,
+        unlockedAch,
+        lastPlayed,
+        pinned,
+        completionStatus: linkedGames[0].completionStatus,
+        rarestUnlocked,
+        linkedGames
+      });
+    } else {
+      groupedGames.push({
+        isGroup: false,
+        appId: g.appId,
+        name: g.name,
+        platform: g.platform,
+        allPlatforms: [g.platform],
+        totalAch: g.totalAch,
+        unlockedAch: g.unlockedAch,
+        lastPlayed: g.lastPlayed,
+        pinned: g.pinned,
+        completionStatus: g.completionStatus,
+        rarestUnlocked: g.rarestUnlocked,
+        linkedGames: [g]
+      });
+    }
+  }
 
   const togglePin = (e: React.MouseEvent, appId: string) => {
     e.stopPropagation();
@@ -73,9 +129,9 @@ export function LibraryDashboard({
     });
   };
 
-  let games = Object.values(gameHistory).filter(g => {
+  let games = groupedGames.filter(g => {
     if (libraryFilter !== "ALL" && g.completionStatus !== libraryFilter) return false;
-    if (platformFilter !== "ALL" && g.platform !== platformFilter) return false;
+    if (platformFilter !== "ALL" && !g.allPlatforms.includes(platformFilter)) return false;
     if (librarySearch.trim()) return g.name.toLowerCase().includes(librarySearch.trim().toLowerCase());
     return true;
   });
@@ -196,11 +252,10 @@ export function LibraryDashboard({
       {games.length === 0 ? (
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "32px 0" }}>{t("lib.empty")}</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" }}>
+<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" }}>
           {games.map(game => {
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
-            const isRunning = runningAppIds.includes(game.appId);
-            const isLinked = Object.values(gameLinks).some(link => link.appIds.includes(game.appId));
+            const isRunning = game.linkedGames.some((sub: any) => runningAppIds.includes(sub.appId));
 
             const barColor = game.totalAch === 0 ? "var(--border-color)"
               : percent >= 100 ? "#a78bfa"
@@ -213,89 +268,93 @@ export function LibraryDashboard({
               <div key={game.appId} className={`achievement-card library-card${game.pinned ? " library-card--pinned" : ""}`}
                 onClick={() => handleSelectTab(game.appId)}>
 
-                {(() => {
-                  const isSteam = game.platform === "STEAM";
-                  const steamSrcs = isSteam ? Array.from(new Set([
-                    ...(game.raImageIcon ? [game.raImageIcon] : []),
-                    `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/header.jpg`,
-                    `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/capsule_231x87.jpg`,
-                    `https://cdn.akamai.steamstatic.com/steam/apps/${game.appId}/capsule_sm_120.jpg`,
-                  ])) : [];
-                  
-                  const isXbox = game.platform === "XBOX";
-                  const isPSN = game.platform === "PSN";
-                  const raSrc = (!isSteam && game.raImageIcon)
-                    ? (isXbox || isPSN) ? game.raImageIcon : `https://media.retroachievements.org${game.raImageIcon}`
-                    : null;
+                <div className={`library-card-banner`}>
+                  <div className="library-card-banner-multi">
+                    {game.linkedGames.map((subGame: any) => {
+                      const isSteam = subGame.platform === "STEAM";
+                      const steamSrcs = isSteam ? Array.from(new Set([
+                        ...(subGame.raImageIcon ? [subGame.raImageIcon] : []),
+                        `https://cdn.akamai.steamstatic.com/steam/apps/${subGame.appId}/header.jpg`,
+                        `https://cdn.akamai.steamstatic.com/steam/apps/${subGame.appId}/capsule_231x87.jpg`,
+                        `https://cdn.akamai.steamstatic.com/steam/apps/${subGame.appId}/capsule_sm_120.jpg`,
+                      ])) : [];
+                      
+                      const isXbox = subGame.platform === "XBOX";
+                      const isPSN = subGame.platform === "PSN";
+                      const raSrc = (!isSteam && subGame.raImageIcon)
+                        ? (isXbox || isPSN) ? subGame.raImageIcon : `https://media.retroachievements.org${subGame.raImageIcon}`
+                        : null;
 
-                  const imgSrc = isSteam ? steamSrcs[0] : raSrc;
-                  const fallbacks = isSteam ? steamSrcs.slice(1) : [];
+                      const imgSrc = isSteam ? steamSrcs[0] : raSrc;
+                      const fallbacks = isSteam ? steamSrcs.slice(1) : [];
 
-                  const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                    const img = e.currentTarget;
-                    if (isSteam && img.src && game.raImageIcon !== img.src && img.src.startsWith("http")) {
-                      setGameHistory(prev => {
-                        const existing = prev[game.appId];
-                        if (!existing || existing.raImageIcon === img.src) return prev;
-                        const updated = { ...prev, [game.appId]: { ...existing, raImageIcon: img.src } };
-                        if (imgCacheSaveTimer) clearTimeout(imgCacheSaveTimer);
-                        imgCacheSaveTimer = setTimeout(() => {
-                          invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
-                        }, 2500);
-                        return updated;
-                      });
-                    }
-                  };
+                      const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+                        const img = e.currentTarget;
+                        if (isSteam && img.src && subGame.raImageIcon !== img.src && img.src.startsWith("http")) {
+                          setGameHistory(prev => {
+                            const existing = prev[subGame.appId];
+                            if (!existing || existing.raImageIcon === img.src) return prev;
+                            const updated = { ...prev, [subGame.appId]: { ...existing, raImageIcon: img.src } };
+                            if (imgCacheSaveTimer) clearTimeout(imgCacheSaveTimer);
+                            imgCacheSaveTimer = setTimeout(() => {
+                              invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
+                            }, 2500);
+                            return updated;
+                          });
+                        }
+                      };
 
-                  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                    const img = e.currentTarget;
-                    const srcs: string[] = JSON.parse(img.dataset.fallbacks || "[]");
-                    if (srcs.length > 0) {
-                      img.src = srcs[0];
-                      img.dataset.fallbacks = JSON.stringify(srcs.slice(1));
-                    } else if (isSteam && img.dataset.apiTried !== "1") {
-                      img.dataset.apiTried = "1";
-                      invoke<string>("get_steam_header_image", { appId: game.appId })
-                        .then((url) => {
-                          if (url) { img.src = url; } 
-                          else { img.style.display = "none"; img.parentElement?.classList.add("library-card-banner--fallback"); }
-                        })
-                        .catch(() => { img.style.display = "none"; img.parentElement?.classList.add("library-card-banner--fallback"); });
-                    } else {
-                      img.style.display = "none";
-                      img.parentElement?.classList.add("library-card-banner--fallback");
-                    }
-                  };
+                      const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+                        const img = e.currentTarget;
+                        const srcs: string[] = JSON.parse(img.dataset.fallbacks || "[]");
+                        if (srcs.length > 0) {
+                          img.src = srcs[0];
+                          img.dataset.fallbacks = JSON.stringify(srcs.slice(1));
+                        } else if (isSteam && img.dataset.apiTried !== "1") {
+                          img.dataset.apiTried = "1";
+                          invoke<string>("get_steam_header_image", { appId: subGame.appId })
+                            .then((url) => {
+                              if (url) { img.src = url; } 
+                              else { img.style.display = "none"; }
+                            })
+                            .catch(() => { img.style.display = "none"; });
+                        } else {
+                          img.style.display = "none";
+                        }
+                      };
 
-                  return (
-                    <div className={`library-card-banner${!imgSrc ? " library-card-banner--fallback" : ""}`}>
-                      {imgSrc ? (
-                        <img src={imgSrc} data-fallbacks={JSON.stringify(fallbacks)} alt="" className="library-card-banner-img" onLoad={handleImgLoad} onError={handleImgError} />
-                      ) : null}
-                      <div className="library-card-banner-placeholder">
-                        <PlatformIcon platform={game.platform} size={20}/>
-                        <span>{game.name}</span>
-                      </div>
-                      <button className="game-card-remove library-card-banner-remove" disabled={isRunning}
-                        onClick={(e) => { e.stopPropagation(); handleRemoveGame(game); }}>×</button>
-                      <button className={`library-pin-btn library-card-banner-pin${game.pinned ? " pinned" : ""}`}
-                        title={game.pinned ? "Unpin game" : "Pin game to top"}
-                        onClick={(e) => togglePin(e, game.appId)}>📌</button>
-                      {isRunning && (
-                        <span className="library-card-banner-live">
-                          <span className="live-dot" style={{ position: "relative" }}></span> Live
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
+                      return (
+                        <div key={subGame.appId} className="banner-slice">
+                          {imgSrc ? (
+                            <img src={imgSrc} data-fallbacks={JSON.stringify(fallbacks)} alt="" onLoad={handleImgLoad} onError={handleImgError} />
+                          ) : (
+                            <div className="banner-slice-placeholder">
+                              <PlatformIcon platform={subGame.platform} size={20}/>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <button className="game-card-remove library-card-banner-remove" disabled={isRunning}
+                    onClick={(e) => { e.stopPropagation(); handleRemoveGame(game.linkedGames[0]); }}>×</button>
+                  <button className={`library-pin-btn library-card-banner-pin${game.pinned ? " pinned" : ""}`}
+                    title={game.pinned ? "Unpin game" : "Pin game to top"}
+                    onClick={(e) => togglePin(e, game.appId)}>📌</button>
+                  {isRunning && (
+                    <span className="library-card-banner-live">
+                      <span className="live-dot" style={{ position: "relative" }}></span> Live
+                    </span>
+                  )}
+                </div>
 
                 <div style={{ padding: "12px 12px 10px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
                     <h3 style={{ display: "flex", gap: "6px", fontSize: "0.95rem", margin: 0, lineHeight: 1.3, alignItems: "center", flexWrap: "wrap" }}>
-                      <PlatformIcon platform={game.platform} size={16}/>
+                      {game.allPlatforms.map((p: any) => <PlatformIcon key={p} platform={p} size={16}/>)}
                       {game.name}
-                      {isLinked && <span className="library-card-linked-icon" title="Linked to another set">🔗</span>}
+                      {game.isGroup && <span className="library-card-linked-icon" title="Merged linked set">🔗</span>}
                     </h3>
                     <span style={{ fontSize: "0.75rem", color: pctColor, background: "rgba(255,255,255,0.05)", padding: "2px 6px", borderRadius: "4px", fontWeight: 600, flexShrink: 0, marginLeft: "6px" }}>
                       {game.totalAch === 0 ? "—" : `${percent}%`}
@@ -313,7 +372,7 @@ export function LibraryDashboard({
                         <span style={{ fontSize: "0.72rem", opacity: 0.7 }}>🕐 {timeAgo(game.lastPlayed, t, language)}</span>
                       )}
                     </div>
-                    {!isRunning && game.platform === "STEAM" && (
+                    {!isRunning && game.allPlatforms.includes("STEAM") && (
                       <button onClick={async (e) => { e.stopPropagation(); try { await invoke("launch_steam_game", { appId: game.appId }); toast("Launching…", { icon: "🚀" }); } catch { toast.error("Failed to launch"); } }}
                         className="library-play-btn">{t("card.play")}</button>
                     )}

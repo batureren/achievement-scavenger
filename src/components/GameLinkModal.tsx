@@ -1,5 +1,5 @@
 // components/GameLinkModal.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameHistory, GameLink } from "../types";
 import { PlatformIcon } from "./Icons";
 
@@ -9,17 +9,26 @@ interface GameLinkModalProps {
   gameHistory: Record<string, GameHistory>;
   currentLink: GameLink | null;
   onLink: (otherAppId: string) => void;
-  onUnlink: () => void;
+  onUnlink: (appIdToUnlink: string) => void;
   onClose: () => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink, onUnlink, onClose, t }: GameLinkModalProps) {
   const [search, setSearch] = useState("");
+  const [selectedUnlinkId, setSelectedUnlinkId] = useState(appId);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedUnlinkId(appId);
+      setSearch("");
+    }
+  }, [isOpen, appId]);
+
   if (!isOpen) return null;
 
   const isGrouped = !!currentLink && currentLink.appIds.length > 1;
-  const selfName = gameHistory[appId]?.name || appId;
+  const selectedName = gameHistory[selectedUnlinkId]?.name || selectedUnlinkId;
   const selfPlatform = gameHistory[appId]?.platform;
 
   const candidates = Object.entries(gameHistory)
@@ -46,17 +55,23 @@ export function GameLinkModal({ isOpen, appId, gameHistory, currentLink, onLink,
         {isGrouped && currentLink && (
           <div className="game-link-current">
             <div className="game-link-current-label">{t("link.current_label")}</div>
-            {currentLink.appIds.map(id => (
-              <div key={id} className="game-link-current-item">
-                <PlatformIcon platform={gameHistory[id]?.platform || "STEAM"} size={14} />
-                {gameHistory[id]?.name || id}
-              </div>
-            ))}
+            <div className="game-link-current-list">
+              {currentLink.appIds.map(id => (
+                <button
+                  key={id}
+                  className={`game-link-current-item ${selectedUnlinkId === id ? "active" : ""}`}
+                  onClick={() => setSelectedUnlinkId(id)}
+                >
+                  <PlatformIcon platform={gameHistory[id]?.platform || "STEAM"} size={14} />
+                  {gameHistory[id]?.name || id}
+                </button>
+              ))}
+            </div>
             <button
               className="confirm-dialog-btn danger game-link-unlink-btn"
-              onClick={onUnlink}
+              onClick={() => onUnlink(selectedUnlinkId)}
             >
-              {t("link.unlink_btn", { name: selfName })}
+              {t("link.unlink_btn", { name: selectedName })}
             </button>
           </div>
         )}

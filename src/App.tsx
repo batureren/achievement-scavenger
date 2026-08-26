@@ -1498,21 +1498,17 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     saveGameChapters(newChapters);
   };
 
-const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) => {
-    const dbCache = communityDbCacheRef.current[selectedAppIdRef.current] || { db: [], links: [], chapters: [] };
+const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklists?: boolean } = {}) => {
+    const dbCache = communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] };
     const cData = dbCache.db || [];
     const cLinks = dbCache.links || [];
-    const gameEdits = allLocalEdits[selectedAppIdRef.current] || {};
+    const gameEdits = allLocalEdits[targetAppId] || {};
 
-    let safeGameName = gameName;
-    if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
-      safeGameName = gameHistory[selectedAppIdRef.current]?.name || gameNameRef.current;
-    }
-    if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
-      safeGameName = selectedAppIdRef.current;
-    }
+    let safeGameName = gameHistory[targetAppId]?.name || targetAppId;
 
-    const unifiedAchievements = achievements.map(ach => {
+    const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
+
+    const unifiedAchievements = gameAchievements.map(ach => {
       const orig = cData.find((m: any) => m.apiname === ach.apiname) || {};
       const edits = gameEdits[ach.apiname] || {};
       return {
@@ -1524,7 +1520,9 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
 
     const mergedLinksMap = new Map();
     cLinks.forEach((l: any) => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
-    currentGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+    
+    const specificGameLinks = userLinks.filter(l => l.appId === targetAppId);
+    specificGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
 
     const payload: Record<string, unknown> = { 
       gameName: safeGameName, 
@@ -1534,7 +1532,7 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
     };
     
     if (opts.includeChecklists) {
-      const gameChecklists = allChecklists[selectedAppIdRef.current] || [];
+      const gameChecklists = allChecklists[targetAppId] || [];
       payload.checklists = gameChecklists.map(list => ({
         id: list.id,
         title: list.title,
@@ -1544,22 +1542,17 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
     return JSON.stringify(payload, null, 2);
   };
 
-  const handleExportJSON = async () => { 
-    try { await invoke<string>("save_file_dialog", { filename: `${selectedAppIdRef.current}.json`, content: generateUnifiedExportJSON({ includeChecklists: true }) }); toast.success("JSON saved successfully!"); } 
+  const handleExportJSON = async (targetAppId: string) => { 
+    try { await invoke<string>("save_file_dialog", { filename: `${targetAppId}.json`, content: generateUnifiedExportJSON(targetAppId, { includeChecklists: true }) }); toast.success("JSON saved successfully!"); } 
     catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
-  const handleExportHTML = async () => { 
+  const handleExportHTML = async (targetAppId: string) => { 
     try { 
-      let safeGameName = gameName;
-      if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
-        safeGameName = gameHistory[selectedAppIdRef.current]?.name || gameNameRef.current;
-      }
-      if (!safeGameName || safeGameName === "Loading..." || safeGameName === "Library Dashboard") {
-        safeGameName = selectedAppIdRef.current;
-      }
+      const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
+      const gameChecklistsForExport = allChecklists[targetAppId] || [];
+      const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
 
-      const gameChecklistsForExport = allChecklists[selectedAppIdRef.current] || [];
       const checklistsHtml = gameChecklistsForExport.length === 0 ? "" : `
         <h1 style="margin-top: 2.5rem;">${safeGameName} - Checklists</h1>
         ${gameChecklistsForExport.map(list => `
@@ -1567,26 +1560,26 @@ const generateUnifiedExportJSON = (opts: { includeChecklists?: boolean } = {}) =
           ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
         `).join('')}
       `;
-      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${safeGameName} - Checklist</h1>${achievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
+      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${safeGameName} - Checklist</h1>${gameAchievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
       await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); toast.success("HTML Checklist saved successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
-const handleCreatePR = async () => { 
+  const handleCreatePR = async (targetAppId: string) => { 
     try { 
-      const jsonString = generateUnifiedExportJSON({ includeChecklists: true }) + "\n";
+      const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: true }) + "\n";
       
       await navigator.clipboard.writeText(jsonString); 
       
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      const checkUrl = `https://api.github.com/repos/batureren/achievement-scavenger-database/contents/games/${selectedAppIdRef.current}.json`;
+      const checkUrl = `https://api.github.com/repos/batureren/achievement-scavenger-database/contents/games/${targetAppId}.json`;
       const res = await fetch(checkUrl);
       const fileExists = res.ok;
 
       const targetUrl = fileExists 
-        ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${selectedAppIdRef.current}.json` 
-        : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${selectedAppIdRef.current}.json`;
+        ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${targetAppId}.json` 
+        : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${targetAppId}.json`;
 
       await open(targetUrl); 
       toast.success("Data copied to clipboard! Paste it on GitHub.", { duration: 5000 }); 
@@ -1618,7 +1611,12 @@ const handleCreatePR = async () => {
     return (settings.hiddenHints[appId] || []).includes(ach.apiname);
   };
 
-  const chapterCounts = useMemo(() => { const counts: Record<string, number> = {}; displayedAchievements.forEach(a => { const c = a.chapter?.trim() || "No Chapter"; counts[c] = (counts[c] || 0) + 1; }); return counts; }, [displayedAchievements]);
+  const achievementsInSelectedSet = useMemo(() => {
+    if (selectedSetFilter === "ALL") return displayedAchievements;
+    return displayedAchievements.filter(a => a._appId === selectedSetFilter);
+  }, [displayedAchievements, selectedSetFilter]);
+
+  const chapterCounts = useMemo(() => { const counts: Record<string, number> = {}; achievementsInSelectedSet.forEach(a => { const c = a.chapter?.trim() || "No Chapter"; counts[c] = (counts[c] || 0) + 1; }); return counts; }, [achievementsInSelectedSet]);
 
   const allKnownChaptersForDropdown = useMemo(() => {
     const list = [...currentGameChapters];
@@ -1626,23 +1624,21 @@ const handleCreatePR = async () => {
     return list;
   }, [currentGameChapters, chapterCounts]);
   
-  const totalAch = displayedAchievements.length; const unlockedAch = displayedAchievements.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch; 
-  const trackedAchCount = displayedAchievements.filter(a => isAchievementTracked(a)).length;
-  const missableAchCount = displayedAchievements.filter(a => a.is_missable && !a.unlocked).length;
-  const spoilerAchCount = displayedAchievements.filter(a => a.is_spoiler).length;
+  const totalAch = achievementsInSelectedSet.length; const unlockedAch = achievementsInSelectedSet.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch; 
+  const trackedAchCount = achievementsInSelectedSet.filter(a => isAchievementTracked(a)).length;
+  const missableAchCount = achievementsInSelectedSet.filter(a => a.is_missable && !a.unlocked).length;
+  const spoilerAchCount = achievementsInSelectedSet.filter(a => a.is_spoiler).length;
 
   const missableAlertAchs = useMemo(() => {
     if (!runningAppIds.includes(selectedAppId) && !getGroupAppIds(selectedAppId).some(id => runningAppIds.includes(id))) return [];
     if (selectedChapter === "ALL") return [];
-    return displayedAchievements.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
-  }, [displayedAchievements, runningAppIds, selectedAppId, selectedChapter, gameLinks]);
+    return achievementsInSelectedSet.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
+  }, [achievementsInSelectedSet, runningAppIds, selectedAppId, selectedChapter, gameLinks]);
   
   const filteredAchievements = useMemo(() => {
-    let result = displayedAchievements.filter(ach => {
+    let result = achievementsInSelectedSet.filter(ach => {
       const isTracked = isAchievementTracked(ach);
       const achChapter = ach.chapter?.trim() || "No Chapter";
-
-      if (selectedSetFilter !== "ALL" && ach._appId !== selectedSetFilter) return false;
 
       if (selectedChapter !== "ALL" && achChapter !== selectedChapter) {
         return false;
@@ -1693,7 +1689,7 @@ const handleCreatePR = async () => {
   const { averagePercent, rarityBreakdown, totalPoints, earnedPoints, totalTruePoints, earnedTruePoints, totalGamerscore, earnedGamerscore } = useMemo(() => {
     let sum = 0, valid = 0; const rCount = { C: 0, U: 0, R: 0, VR: 0, UR: 0 };
     let totalPts = 0, earnedPts = 0, totalTruePts = 0, earnedTruePts = 0; let totalGs = 0, earnedGs = 0;
-    achievements.forEach(a => { 
+    achievementsInSelectedSet.forEach(a => { 
       if (a.globalPercent !== undefined && a.globalPercent >= 0) { sum += a.globalPercent; valid++; } 
       const p = a.globalPercent || 0; 
       if (p >= 40) rCount.C++; else if (p >= 20) rCount.U++; else if (p >= 10) rCount.R++; else if (p >= 5) rCount.VR++; else rCount.UR++;
@@ -1797,7 +1793,7 @@ const handleCreatePR = async () => {
         gameHistory={gameHistory}
         currentLink={linkModalForAppId ? linkForAppId(linkModalForAppId) : null}
         onLink={(otherAppId) => { if (linkModalForAppId) handleCreateGameLink(linkModalForAppId, otherAppId); setLinkModalForAppId(null); }}
-        onUnlink={() => { if (linkModalForAppId) handleUnlinkGame(linkModalForAppId); setLinkModalForAppId(null); }}
+        onUnlink={(idToUnlink) => { handleUnlinkGame(idToUnlink); setLinkModalForAppId(null); }}
         onClose={() => setLinkModalForAppId(null)}
         t={t}
       />
@@ -1989,9 +1985,15 @@ const handleCreatePR = async () => {
                           <h3>{t("sec.shortcuts")}</h3>
                           <div className="btn-group">
                             <button onClick={() => setEditMode(!editMode)} className={`btn-small ${editMode ? "btn-small-danger" : ""}`}>{editMode ? <>{t("btn.close_edit")}</> : <><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:"4px"}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>{t("btn.edit_db")}</>}</button>
-                            <button onClick={handleExportJSON} className="btn-small btn-small-success">{t("btn.json")}</button>
-                            <button onClick={handleExportHTML} className="btn-small btn-small-success">{t("btn.html")}</button>
-                            <button onClick={handleCreatePR} className="btn-small btn-small-success"><GitHubIcon size={12}/> {t("btn.pr")}</button>
+                            
+                            {getGroupAppIds(selectedAppId).map(id => (
+                              <div key={id} style={{ display: "flex", gap: "6px", alignItems: "center", borderLeft: getGroupAppIds(selectedAppId).length > 1 ? "1px solid var(--border-color)" : "none", paddingLeft: getGroupAppIds(selectedAppId).length > 1 ? "8px" : "0" }}>
+                                {getGroupAppIds(selectedAppId).length > 1 && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: "bold" }} title={id}>{gameHistory[id]?.name}:</span>}
+                                <button onClick={() => handleExportJSON(id)} className="btn-small btn-small-success">{t("btn.json")}</button>
+                                <button onClick={() => handleExportHTML(id)} className="btn-small btn-small-success">{t("btn.html")}</button>
+                                <button onClick={() => handleCreatePR(id)} className="btn-small btn-small-success"><GitHubIcon size={12}/> {t("btn.pr")}</button>
+                              </div>
+                            ))}
                           </div>
                         </div>
                         <div className="links-list">

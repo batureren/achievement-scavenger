@@ -705,6 +705,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 .btn-group {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 
@@ -1830,6 +1831,47 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   object-position: center top;
   display: block;
   transition: transform 0.3s ease;
+}
+
+.library-card-banner-multi {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.banner-slice {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-right: 2px solid var(--card-bg); 
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.banner-slice:last-child {
+  border-right: none;
+}
+
+.banner-slice img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.library-card:hover .banner-slice img {
+  transform: scale(1.05);
+}
+
+.banner-slice-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
 }
 
 .library-card-banner-placeholder{
@@ -3465,12 +3507,36 @@ video.cl-item-img {
   margin-bottom: 6px;
 }
 
+.game-link-current-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
 .game-link-current-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
   font-size: 0.9rem;
-  padding: 2px 0;
+  transition: background-color 0.2s, border-color 0.2s;
+  width: 100%;
+}
+
+.game-link-current-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.game-link-current-item.active {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-color);
 }
 
 .game-link-unlink-btn {
