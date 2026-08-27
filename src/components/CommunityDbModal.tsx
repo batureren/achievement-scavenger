@@ -90,7 +90,6 @@ export function CommunityDbModal({ isOpen, onClose, gameHistory, setGameHistory,
     let icon: string | undefined = undefined;
 
     try {
-      // 1. Fetch real names, total achievement counts, and box art on the fly!
       if (platform === "STEAM") {
         if (realName === item.appId) {
           const fetchedName = await invoke<string>("get_app_name", { appId: item.appId, lang: "english" });

@@ -2999,8 +2999,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   align-items: flex-start;
 }
 
-/* --- Sidebar: checklist switcher --- */
-
 .checklists-sidebar {
   width: 250px;
   flex-shrink: 0;
@@ -3128,8 +3126,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   border-top: 1px dashed var(--border-color);
 }
 
-/* --- Content: header, progress, toolbar --- */
-
 .checklists-content {
   flex: 1;
   min-width: 0;
@@ -3207,8 +3203,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   margin-left: 8px;
 }
 
-/* --- Item add/edit form --- */
-
 .cl-form-container {
   background-color: rgba(0, 0, 0, 0.2);
   border: 1px dashed var(--border-color);
@@ -3225,8 +3219,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
 .cl-form-container:focus-within {
   border-color: rgba(52, 211, 153, 0.4);
 }
-
-/* --- Item cards --- */
 
 .cl-item-card {
   position: relative;
@@ -3279,7 +3271,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   color: var(--accent-green);
 }
 
-/* Custom circular checkbox with checkmark */
 .cl-item-checkbox {
   flex-shrink: 0;
   margin-top: 2px;
@@ -3446,8 +3437,6 @@ video.cl-item-img {
   opacity: 1;
 }
 
-/* --- Lightbox for enlarged item images --- */
-
 .cl-lightbox-overlay {
   position: fixed;
   inset: 0;
@@ -3480,8 +3469,6 @@ video.cl-item-img {
   .cl-item-hover-actions { position: static; opacity: 1; transform: none; justify-content: flex-end; width: 100%; }
   .cl-item-header-actions { opacity: 1; }
 }
-
-/* GameLinkModal */
 
 .game-link-modal {
   max-width: 440px;
@@ -4370,6 +4357,62 @@ video.cl-item-img {
   color: var(--text-main);
   border-color: var(--text-muted);
   background: var(--border-color);
+}
+
+.companion-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(420px, 92vw);
+}
+
+.qr-code-container {
+  background: #ffffff; 
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  margin-bottom: 24px;
+  border: 4px solid var(--card-bg);
+  outline: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 212px;
+  height: 212px;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.qr-code-container:hover {
+  transform: scale(1.03);
+  box-shadow: 0 16px 40px rgba(52, 211, 153, 0.15);
+}
+
+.qr-code-placeholder {
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.companion-url-row {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.companion-url-row input {
+  flex: 1;
+  text-align: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  color: var(--accent-green);
+  background: rgba(0, 0, 0, 0.2);
+  border-style: dashed;
+}
+
+.companion-url-row input:focus {
+  border-style: solid;
 }
 
 @media (max-width: 850px) {

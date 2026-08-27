@@ -15,6 +15,22 @@ use tauri::{
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
+use axum::{
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    response::Html,
+    routing::get,
+    Router,
+};
+use futures::{sink::SinkExt, stream::StreamExt};
+use local_ip_address::local_ip;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
+use tokio::sync::watch;
+
+static SERVER_RUNNING: AtomicBool = AtomicBool::new(false);
+static TX: OnceLock<watch::Sender<String>> = OnceLock::new();
+
 pub struct DiscordState {
     tx: Mutex<mpsc::Sender<RpcCommand>>,
 }
@@ -90,6 +106,70 @@ fn spawn_discord_thread(rx: mpsc::Receiver<RpcCommand>) {
             }
         }
     });
+}
+
+async fn ws_handler(ws: WebSocketUpgrade) -> axum::response::Response {
+    ws.on_upgrade(handle_socket)
+}
+
+async fn handle_socket(mut socket: WebSocket) {
+    if let Some(tx) = TX.get() {
+        let mut rx = tx.subscribe();
+        
+        let initial = rx.borrow().clone();
+        if !initial.is_empty() {
+            let _ = socket.send(Message::Text(initial)).await;
+        }
+
+        loop {
+            tokio::select! {
+                Ok(()) = rx.changed() => {
+                    let msg = rx.borrow().clone();
+                    if !msg.is_empty() {
+                        if socket.send(Message::Text(msg)).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+                Some(Ok(_)) = socket.next() => {}
+                else => break,
+            }
+        }
+    }
+}
+
+#[tauri::command]
+async fn start_companion_server() -> Result<String, String> {
+    let my_local_ip = local_ip().map_err(|e| e.to_string())?;
+    let port = 14200;
+
+    if SERVER_RUNNING.load(Ordering::SeqCst) {
+        return Ok(format!("http://{}:{}", my_local_ip, port));
+    }
+
+    let (tx, _rx) = watch::channel(String::new());
+    TX.set(tx).unwrap();
+
+    let app = Router::new()
+        .route("/", get(|| async { Html(include_str!("../mobile_ui/index.html")) }))
+        .route("/ws", get(ws_handler));
+
+    tokio::spawn(async move {
+        let addr = SocketAddr::from(([0, 0, 0, 0], port));
+        if let Ok(listener) = tokio::net::TcpListener::bind(addr).await {
+            SERVER_RUNNING.store(true, Ordering::SeqCst);
+            let _ = axum::serve(listener, app).await;
+        }
+    });
+
+    Ok(format!("http://{}:{}", my_local_ip, port))
+}
+
+#[tauri::command]
+fn broadcast_to_phone(data: String) {
+    if let Some(tx) = TX.get() {
+        let _ = tx.send(data);
+    }
 }
 
 #[tauri::command]
@@ -1236,7 +1316,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, broadcast_to_phone
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

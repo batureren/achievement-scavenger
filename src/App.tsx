@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import QRCode from "react-qr-code";
 import { open } from "@tauri-apps/plugin-shell";
 import toast, { Toaster } from "react-hot-toast";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -177,6 +178,22 @@ function App() {
 
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
   const [syncConfig, setSyncConfig] = useState<SyncConfig>({ githubToken: "", gistId: "", lastSync: 0 });
+
+  const [companionUrl, setCompanionUrl] = useState<string>("");
+  const [isCompanionOpen, setIsCompanionOpen] = useState(false);
+  const [isCompanionModalOpen, setIsCompanionModalOpen] = useState(false);
+
+  const handleStartCompanion = async () => {
+    try {
+      const url = await invoke<string>("start_companion_server");
+      setCompanionUrl(url);
+      setIsCompanionOpen(true);
+      setIsCompanionModalOpen(true);
+    } catch (e) {
+      console.error("Failed to start server", e);
+      toast.error("Failed to start mobile companion.");
+    }
+  };
 
   const linkForAppId = (appId: string): GameLink | null =>
     Object.values(gameLinksRef.current).find(l => l.appIds.includes(appId)) || null;
@@ -1057,7 +1074,6 @@ function App() {
                     const prog = progAchs.find((p: any) => p.trophyId === a.trophyId) || {};
                     
                     const isUnlocked = prog.earned === true;
-                    // Sony conveniently returns global rarity exactly as trophyEarnedRate!
                     const rarityPct = prog.trophyEarnedRate ? Number(prog.trophyEarnedRate) : undefined;
 
                     return {
@@ -1758,6 +1774,56 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
     };
   }, []);
 
+useEffect(() => {
+    if (appState === "PLAYING" && isCompanionOpen) {
+    const broadcastState = () => {
+        const gameInfo = gameHistory[selectedAppId] || null;
+        const hiddenHintsForGame = settings.hiddenHints[selectedAppId] || [];
+        
+        const trackedDetails = currentGameTracked.map(id => {
+          const ach = achievements.find(a => a.apiname === id);
+          if (!ach) return null;
+          
+          const isHintHidden = hiddenHintsForGame.includes(ach.apiname);
+
+          return {
+            id: ach.apiname,
+            name: ach.display_name,
+            desc: ach.description,
+            icon: ach.unlocked ? ach.icon : ach.icongray,
+            unlocked: ach.unlocked,
+            hint: (!isHintHidden && ach.hint) ? ach.hint : null,
+            notes: ach.notes,
+            videoUrl: ach.video_url
+          };
+        }).filter(Boolean);
+
+        const recentDetails = sessionUnlocks.slice(0, 5).map(u => ({
+          time: u.time,
+          name: u.ach.display_name,
+          icon: u.ach.icon
+        }));
+
+        const payload = JSON.stringify({
+          gameName: gameName,
+          unlocked: unlockedAch,
+          total: totalAch,
+          platform: gameInfo?.platform || "STEAM",
+          banner: gameInfo?.raImageIcon || null,
+          tracked: trackedDetails,
+          recent: recentDetails
+        });
+        
+        invoke("broadcast_to_phone", { data: payload }).catch(console.error);
+      };
+
+      broadcastState();
+
+      const syncInterval = setInterval(broadcastState, 2000);
+      return () => clearInterval(syncInterval);
+    }
+  }, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId]);
+
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
   if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
 
@@ -1779,7 +1845,9 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
         onOpenScreenshots={handleOpenScreenshots}
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
         onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
-        onOpenCloudSync={() => setIsCloudSyncOpen(true)} 
+        onOpenCloudSync={() => setIsCloudSyncOpen(true)}
+        onOpenCompanion={handleStartCompanion}
+        isCompanionRunning={isCompanionOpen}
       />
 
       <PsnReauthModal
@@ -2308,6 +2376,57 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
       )}
 
       <CloudSyncModal isOpen={isCloudSyncOpen} onClose={() => setIsCloudSyncOpen(false)} syncConfig={syncConfig} setSyncConfig={setSyncConfig} t={t}/>
+
+      {isCompanionModalOpen && (
+        <div className="confirm-dialog-overlay" onClick={() => setIsCompanionModalOpen(false)}>
+          <div className="confirm-dialog companion-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="confirm-dialog-title" style={{ textAlign: "center", marginBottom: "8px" }}>Mobile Companion</h3>
+            <p className="confirm-dialog-message" style={{ textAlign: "center", marginBottom: "20px" }}>
+              Scan this QR code with your phone to open your live tracker. <br/>
+              <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(Make sure you're on the same Wi-Fi network)</span>
+            </p>
+
+            <div className="qr-code-container">
+              {companionUrl ? (
+                <QRCode 
+                  value={companionUrl} 
+                  size={180} 
+                  bgColor="#ffffff" 
+                  fgColor="#000000" 
+                />
+              ) : (
+                <div className="qr-code-placeholder">Generating...</div>
+              )}
+            </div>
+
+            <div className="companion-url-row">
+              <input 
+                type="text" 
+                readOnly 
+                value={companionUrl} 
+                className="edit-input" 
+                onClick={e => (e.target as HTMLInputElement).select()}
+              />
+              <button 
+                className="btn-small btn-small-success" 
+                onClick={() => {
+                  navigator.clipboard.writeText(companionUrl);
+                  toast.success("URL copied!");
+                }}
+              >
+                Copy
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "20px", textAlign: "center" }}>
+              The server will continue running in the background. You can close this window.
+            </p>
+            <div className="confirm-dialog-actions" style={{ justifyContent: "center" }}>
+              <button className="confirm-dialog-btn cancel" onClick={() => setIsCompanionModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog isOpen={!!pendingRemoveGame} title="Remove Game" message={pendingRemoveGame ? `Remove "${pendingRemoveGame.name}" from your history?` : ""} confirmLabel="Remove" onConfirm={confirmRemoveGame} onCancel={() => setPendingRemoveGame(null)} />
     </div>

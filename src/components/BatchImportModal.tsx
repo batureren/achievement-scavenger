@@ -39,8 +39,6 @@ const TABS: { id: Platform; labelKey: string; color: string; available: (p: Batc
   { id: "STEAM", labelKey: "platform.steam", color: "#66c0f4", available: p => !!p.steamApiKey },
 ];
 
-// Fetches a single Steam game's achievement progress via the same command
-// used by the main dashboard, and reduces it to a total/unlocked count.
 async function fetchSteamAchievementCounts(
   steamId: string,
   appId: string,
@@ -61,14 +59,6 @@ async function fetchSteamAchievementCounts(
   }
 }
 
-// The RA "recent games" list only gives us g.ImageIcon, a small square
-// badge icon - not the box art LibraryDashboard actually wants to show on
-// the library card. Fetch each selected game's full info (same endpoint
-// used when you open the game and load its achievements) so imported RA
-// games get the correct card art right away instead of only after you've
-// clicked into them once. Returned as a RAW relative path (e.g.
-// "/Images/012345.png") since that's the convention raImageIcon uses for
-// RA entries - LibraryDashboard prepends the media domain itself.
 async function fetchRABoxArt(
   user: string,
   apiKey: string,
@@ -84,8 +74,6 @@ async function fetchRABoxArt(
   }
 }
 
-// Runs async tasks with a concurrency cap so we don't fire off hundreds of
-// simultaneous requests against Steam's API when importing a large library.
 async function mapWithConcurrency<T, R>(
   list: T[],
   limit: number,
@@ -299,9 +287,6 @@ export function BatchImportModal(props: BatchImportModalProps) {
 
     const toImport = items.filter(i => selected.has(i.appId) && !gameHistory[i.appId]);
 
-    // Steam's "owned games" endpoint doesn't return achievement counts, so
-    // those items come in as 0/0. Fetch each one's real progress now so
-    // imported Steam games don't sit at 0/0 forever.
     const steamItems = toImport.filter(i => i.platform === "STEAM");
     let achCounts = new Map<string, { total: number; unlocked: number }>();
 
@@ -326,10 +311,6 @@ export function BatchImportModal(props: BatchImportModalProps) {
       }
     }
 
-    // RA's "recent games" list only gives us a small badge (ImageIcon), not
-    // the box art LibraryDashboard shows on library cards. Fetch each
-    // selected game's full info to grab the real box art up front, instead
-    // of leaving the badge in place until the user opens the game once.
     const raItems = toImport.filter(i => i.platform === "RA");
     const raBoxArt = new Map<string, string>();
     if (raItems.length > 0) {

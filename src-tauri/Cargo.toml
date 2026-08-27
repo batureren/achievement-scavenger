@@ -28,6 +28,10 @@ image = "0.25.1"
 chrono = "0.4.38"
 tauri-plugin-dialog = "2"
 tauri-plugin-process = "2"
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+local-ip-address = "0.6.1"
+futures = "0.3"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

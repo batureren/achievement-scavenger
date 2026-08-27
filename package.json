@@ -21,7 +21,8 @@
     "@tauri-apps/plugin-updater": "^2.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-hot-toast": "^2.6.0"
+    "react-hot-toast": "^2.6.0",
+    "react-qr-code": "^2.2.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Achievement Companion</title>
+  <style>
+    /* ============================================================
+       MOBILE THEME
+       ============================================================ */
+    :root {
+      --bg-color: #18181b;
+      --card-bg: #27272a;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --accent-green: #34d399;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --border-color: #3f3f46;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 80vh;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 12px;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #app { display: none; padding-bottom: 40px; }
+
+    .hero-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    
+    .hero-banner {
+      width: 100%;
+      height: 120px;
+      background-size: cover;
+      background-position: center top;
+      background-color: #111;
+      position: relative;
+    }
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent, var(--card-bg));
+    }
+
+    .hero-content {
+      padding: 0 16px 16px;
+      margin-top: -20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .platform-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 4px 0 12px;
+    }
+
+    .progress-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .progress-stats span:last-child { color: var(--accent-green); }
+    
+    .progress-track {
+      height: 6px;
+      background: var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow));
+      border-radius: 6px;
+      transition: width 0.5s ease-out;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px; background: var(--border-color);
+    }
+
+    .ach-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    
+    .ach-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .ach-card.unlocked {
+      background: rgba(52, 211, 153, 0.05);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+    .ach-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0,0,0,0.5);
+      background: #111;
+      flex-shrink: 0;
+    }
+    .ach-info { flex: 1; min-width: 0; }
+    .ach-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+    .ach-card.unlocked .ach-title {
+      color: var(--accent-green);
+      text-decoration: line-through;
+    }
+    .ach-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    
+    .info-box {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      padding: 8px 10px;
+      border-radius: 0 4px 4px 0;
+      color: var(--text-main);
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+    .info-box a {
+      color: var(--accent-green);
+      text-decoration: underline;
+    }
+    .hint-box {
+      background: rgba(245, 158, 11, 0.1);
+      border-left: 3px solid var(--accent-yellow);
+    }
+    .hint-box strong { color: var(--accent-yellow); }
+    
+    .notes-box {
+      background: rgba(52, 211, 153, 0.1);
+      border-left: 3px solid var(--accent-green);
+    }
+    .notes-box strong { color: var(--accent-green); }
+
+    .video-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(52, 211, 153, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .video-btn:active {
+      background: var(--accent-green);
+      color: #000;
+    }
+
+    .recent-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: var(--radius-sm);
+    }
+    .recent-card img {
+      width: 32px; height: 32px; border-radius: 4px;
+    }
+    .recent-time { font-size: 0.7rem; color: var(--accent-green); font-weight: bold; }
+    .recent-title { font-size: 0.85rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+    
+    .empty-state {
+      text-align: center; font-size: 0.85rem; color: var(--text-muted); padding: 20px;
+      border: 1px dashed var(--border-color); border-radius: var(--radius-md);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading State -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Waiting for PC connection...<br><span style="font-size: 0.75rem; opacity: 0.6;">Launch a game to start syncing</span></p>
+  </div>
+
+  <!-- Main App State -->
+  <div id="app">
+    <!-- Hero Card -->
+    <div class="hero-card">
+      <div id="hero-banner" class="hero-banner"></div>
+      <div class="hero-content">
+        <div id="hero-platform" class="platform-tag">STEAM</div>
+        <h1 id="hero-title">Loading Game...</h1>
+        
+        <div class="progress-stats">
+          <span id="hero-counts">0 / 0 Achievements</span>
+          <span id="hero-pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="hero-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Unlocks -->
+    <div id="recent-container" style="display: none;">
+      <div class="section-title">⏱ Recent Unlocks</div>
+      <div id="recent-list" class="ach-list"></div>
+    </div>
+
+    <!-- Tracked Achievements -->
+    <div class="section-title">📌 Tracked Achievements</div>
+    <div id="tracked-list" class="ach-list"></div>
+  </div>
+
+  <script>
+    const elLoading = document.getElementById('loading');
+    const elApp = document.getElementById('app');
+    const elBanner = document.getElementById('hero-banner');
+    const elTitle = document.getElementById('hero-title');
+    const elPlatform = document.getElementById('hero-platform');
+    const elCounts = document.getElementById('hero-counts');
+    const elPct = document.getElementById('hero-pct');
+    const elFill = document.getElementById('hero-fill');
+    const elTrackedList = document.getElementById('tracked-list');
+    const elRecentList = document.getElementById('recent-list');
+    const elRecentContainer = document.getElementById('recent-container');
+
+    function formatText(text) {
+      if (!text) return '';
+      let safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      safeText = safeText.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+      return safeText.replace(/\n/g, '<br/>');
+    }
+
+    function connect() {
+      const ws = new WebSocket(`ws://${window.location.host}/ws`);
+      
+      ws.onmessage = (event) => {
+        elLoading.style.display = 'none';
+        elApp.style.display = 'block';
+
+        const data = JSON.parse(event.data);
+        
+        elTitle.textContent = data.gameName;
+        elPlatform.textContent = data.platform;
+        if (data.banner) {
+          elBanner.style.backgroundImage = `url('${data.banner}')`;
+        } else {
+          elBanner.style.backgroundImage = 'none';
+        }
+        
+        const pct = data.total > 0 ? Math.round((data.unlocked / data.total) * 100) : 0;
+        elCounts.textContent = `${data.unlocked} / ${data.total} Achievements`;
+        elPct.textContent = `${pct}%`;
+        elFill.style.width = `${pct}%`;
+
+        if (data.tracked && data.tracked.length > 0) {
+          elTrackedList.innerHTML = data.tracked.map(ach => `
+            <div class="ach-card ${ach.unlocked ? 'unlocked' : ''}">
+              <img src="${ach.icon}" class="ach-icon" />
+              <div class="ach-info">
+                <div class="ach-title">${ach.name}</div>
+                <div class="ach-desc">${ach.desc}</div>
+                
+                ${ach.notes ? `
+                  <div class="info-box notes-box">
+                    <strong>📝 Notes:</strong><br>${formatText(ach.notes)}
+                  </div>
+                ` : ''}
+
+                ${ach.hint ? `
+                  <div class="info-box hint-box">
+                    <strong>💡 Hint:</strong><br>${formatText(ach.hint)}
+                  </div>
+                ` : ''}
+                
+                ${ach.videoUrl ? `
+                  <a href="${ach.videoUrl}" target="_blank" class="video-btn">
+                    ▶ Watch Video
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          elTrackedList.innerHTML = `
+            <div class="empty-state">
+              You aren't tracking any achievements for this game.<br>
+              <span style="opacity: 0.6; font-size: 0.75rem;">Click the flag icon on your PC to track them here.</span>
+            </div>`;
+        }
+
+        if (data.recent && data.recent.length > 0) {
+          elRecentContainer.style.display = 'block';
+          elRecentList.innerHTML = data.recent.map(unl => `
+            <div class="recent-card">
+              <img src="${unl.icon}" />
+              <div style="min-width:0;">
+                <div class="recent-time">${unl.time}</div>
+                <div class="recent-title">${unl.name}</div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          elRecentContainer.style.display = 'none';
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+  </script>
+</body>
+</html>

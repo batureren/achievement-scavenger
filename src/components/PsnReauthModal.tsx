@@ -62,7 +62,6 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReau
         setAutoStatus("failed");
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;

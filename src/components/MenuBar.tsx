@@ -22,13 +22,15 @@ interface MenuBarProps {
   onToggleDiscordRPC: () => void;
   onToggleMinimizeToTray: () => void;
   onOpenCloudSync: () => void;
+  onOpenCompanion: () => void;
+  isCompanionRunning?: boolean;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -162,6 +164,15 @@ export function MenuBar({
 
             <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }}>
               {t("menu.screenshots")}
+            </button>
+
+            <button className="menu-option" onClick={() => { onOpenCompanion(); setOpenMenu(null); }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                <span>Mobile Companion</span>
+                {isCompanionRunning && (
+                  <span className="live-dot" style={{ width: "8px", height: "8px", position: "relative" }} title="Server Online"></span>
+                )}
+              </div>
             </button>
             
             <div className="menu-divider"></div>
