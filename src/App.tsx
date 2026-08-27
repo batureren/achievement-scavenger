@@ -1616,7 +1616,16 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
     return displayedAchievements.filter(a => a._appId === selectedSetFilter);
   }, [displayedAchievements, selectedSetFilter]);
 
-  const chapterCounts = useMemo(() => { const counts: Record<string, number> = {}; achievementsInSelectedSet.forEach(a => { const c = a.chapter?.trim() || "No Chapter"; counts[c] = (counts[c] || 0) + 1; }); return counts; }, [achievementsInSelectedSet]);
+  const chapterCounts = useMemo(() => { 
+    const counts: Record<string, { total: number; unlocked: number }> = {}; 
+    achievementsInSelectedSet.forEach(a => { 
+      const c = a.chapter?.trim() || "No Chapter"; 
+      if (!counts[c]) counts[c] = { total: 0, unlocked: 0 };
+      counts[c].total += 1;
+      if (a.unlocked) counts[c].unlocked += 1;
+    }); 
+    return counts; 
+  }, [achievementsInSelectedSet]);
 
   const allKnownChaptersForDropdown = useMemo(() => {
     const list = [...currentGameChapters];
@@ -2165,13 +2174,15 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
                   </div>
                   <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select">
                     <option value="ALL">{t("chap.all")}</option>
-                    {(chapterCounts["No Chapter"] > 0 || selectedChapter === "No Chapter") && (
-                      <option value="No Chapter">{t("chap.fallback")} ({chapterCounts["No Chapter"] || 0})</option>
+                    {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
+                      <option value="No Chapter">
+                        {t("chap.fallback")} ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
+                      </option>
                     )}
                     {allKnownChaptersForDropdown.map((chap) => { 
-                      const count = chapterCounts[chap] || 0; 
-                      if (count === 0 && !editMode) return null; 
-                      return <option key={chap} value={chap}>{chap} ({count})</option>; 
+                      const stats = chapterCounts[chap] || { total: 0, unlocked: 0 }; 
+                      if (stats.total === 0 && !editMode) return null; 
+                      return <option key={chap} value={chap}>{chap} ({stats.unlocked}/{stats.total})</option>; 
                     })}
                   </select>
                 </div>
