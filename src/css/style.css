@@ -4415,6 +4415,69 @@ video.cl-item-img {
   border-style: solid;
 }
 
+.icon-btn:disabled {
+  opacity: 0.25 !important;
+  cursor: not-allowed !important;
+  background: transparent !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+}
+
+.guided-media-zoomable {
+  cursor: zoom-in;
+  transition: transform var(--transition), border-color var(--transition);
+}
+
+.guided-media-zoomable:hover {
+  transform: scale(1.02);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.lightbox-zoom-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lightbox-zoom-controls {
+  position: absolute;
+  top: 24px;
+  display: flex;
+  gap: 8px;
+  background: var(--card-bg);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-card);
+  z-index: 10;
+}
+
+.lightbox-zoom-scroll-area {
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  scrollbar-width: none; 
+  -ms-overflow-style: none;
+}
+
+.lightbox-zoom-scroll-area::-webkit-scrollbar {
+  display: none; 
+}
+
+.lightbox-zoom-scroll-area img {
+  margin: auto;
+  display: block;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
 @media (max-width: 850px) {
   .guided-layout {
     flex-direction: column-reverse;
