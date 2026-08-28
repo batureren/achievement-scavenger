@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import toast from "react-hot-toast";
 import { CustomGuide, GuidePlaythrough, GuideBlock, GuideIndex, MergedAchievement, CustomChecklist, GuideBlockType } from "../types";
-import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks, renderMarkdown } from "../utils";import { CollapsibleBox } from "./CollapsibleBox";
+import { getYouTubeEmbedUrl, getMediaKind, renderMarkdown } from "../utils";import { CollapsibleBox } from "./CollapsibleBox";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 const XIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
