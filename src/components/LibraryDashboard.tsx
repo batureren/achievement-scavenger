@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
@@ -54,6 +54,26 @@ export function LibraryDashboard({
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("ALL");
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDbBrowserOpen, setIsDbBrowserOpen] = useState(false);
+
+  const [visibleCount, setVisibleCount] = useState(40);
+
+  useEffect(() => {
+    setVisibleCount(40);
+  }, [libraryFilter, platformFilter, librarySearch, librarySort]);
+
+  const observer = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = (node: HTMLDivElement | null) => {
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + 40);
+      }
+    }, { rootMargin: "800px" });
+
+    if (node) observer.current.observe(node);
+  };
+
   const groupedGames: any[] = [];
   const processedLinkIds = new Set<string>();
 
@@ -146,6 +166,8 @@ export function LibraryDashboard({
     return 0;
   });
 
+  const visibleGames = games.slice(0, visibleCount);
+
   const playNextCandidates = Object.values(gameHistory)
     .filter(g => g.easiestNext && g.completionStatus !== "abandoned" && g.completionStatus !== "complete" && g.unlockedAch < g.totalAch)
     .sort((a, b) => (b.easiestNext!.percent - a.easiestNext!.percent))
@@ -180,17 +202,17 @@ export function LibraryDashboard({
           t={t}
         />
 
-<CommunityDbModal
-        isOpen={isDbBrowserOpen}
-        onClose={() => setIsDbBrowserOpen(false)}
-        gameHistory={gameHistory}
-        setGameHistory={setGameHistory}
-        steamApiKey={steamApiKey}
-        raCreds={raCreds}
-        xboxCreds={xboxCreds}
-        psnCreds={psnCreds}
-        t={t}
-      />
+        <CommunityDbModal
+          isOpen={isDbBrowserOpen}
+          onClose={() => setIsDbBrowserOpen(false)}
+          gameHistory={gameHistory}
+          setGameHistory={setGameHistory}
+          steamApiKey={steamApiKey}
+          raCreds={raCreds}
+          xboxCreds={xboxCreds}
+          psnCreds={psnCreds}
+          t={t}
+        />
       </div>
     );
   }
@@ -252,8 +274,8 @@ export function LibraryDashboard({
       {games.length === 0 ? (
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "32px 0" }}>{t("lib.empty")}</p>
       ) : (
-<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" }}>
-          {games.map(game => {
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" }}>
+          {visibleGames.map(game => {
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
             const isRunning = game.linkedGames.some((sub: any) => runningAppIds.includes(sub.appId));
 
@@ -412,6 +434,10 @@ export function LibraryDashboard({
             );
           })}
         </div>
+      )}
+
+      {visibleCount < games.length && (
+        <div ref={loadMoreRef} style={{ height: "1px", margin: "20px 0" }} />
       )}
 
       {playNextCandidates.length > 0 && (
