@@ -1,15 +1,15 @@
 {
-  "version": "0.1.9",
+  "version": "0.2.0",
   "notes": "Check related version on releases",
   "pub_date": "2026-07-15T12:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc3BMQ1ZOOGNJa05MVlluY3dBaGlKa05rSjUrWEpiRndTTWk1Z2huVDNKRXpIaldVdXB2RExFUktnYUtPaUZuUy9VdHVUVkVwcm9vUGJneS9FTHd2ZUFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3OTEyNTY0CWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4xLjlfeDY0LXNldHVwLmV4ZQpPMUh0N3gxcDNRMFpGUkRZbXZCd0lyYWxTUGdPdTRkYkZ2Z09KS2hzck5HRmZtTDhtMXVwRmxlVEV2VFNwRSttUituMmdqRXVmN29QQTdIRUljZlNCQT09Cg==",
-      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.9/AchievementScavenger_0.1.9_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc2pzd29NQUZ6MHNNZVhydzZKenFINVNmZnVyT285R2tTbUhsd2NzTHhMQjE5OVVkWmc4bFIxWVZESlJpeHZvS1dVWFdzMzNZMWx1ZTVjY0ZVaE5sYXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3OTE5MTI5CWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4yLjBfeDY0LXNldHVwLmV4ZQpFT1BZak5LcVIvazRYclZYSmozZFFVMnRzVGNZQVlvL2VVbldWWDNoSXJhVzA2WTRmVFdWRFZLaHU4SWs1Q01uRWJYWEE0RVhDa1dSaEV2ZG14RmJCQT09Cg==",
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.2.0/AchievementScavenger_0.2.0_x64-setup.exe"
     },
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc2tiSkZDbnNBeFFNY0VBdkVVKzZvZENuV2YvT3A5a05aQXRNeWk5amYvcVVYVlE0NVhJVlptZXNib2JTeFNiVWdQbVd6WWdTbTBicUs4WDFkZEE5SEE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3OTEzMTAwCWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4xLjlfYW1kNjQuQXBwSW1hZ2UKK1VzRUVsckFQeksyS1RjN2RFSmdFY21wamJUSEhleHROZTFBNUxwcGIzN2h6YXJPT2ZpVnpUcVBVYitmMm9zRGRkZDhVTG5ndC9vb0x4MGxlMTZTQ0E9PQo=",
-      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.1.9/AchievementScavenger_0.1.9_amd64.AppImage"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSenJPT2d0SnMyc3J5ZXZlejlBQ295V0RXakptalVwRHNudmhvbHFMS2M4UFU4OUZpVURhRlFRVHdSTTJMSGlwRnBlQmFkNXNNM3JGQzM4K2hLVXFuQ2xHUVdLOU1mYVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg3OTIwMTk2CWZpbGU6QWNoaWV2ZW1lbnRTY2F2ZW5nZXJfMC4yLjBfYW1kNjQuQXBwSW1hZ2UKa1o3NnNRUEQ1aXpWTFl1SmhBSlBPTDZOQW5PRVdrRWhISkgwZHE2eEpTM1lRSEtNLy82cVRjQ2lwSHJudXhGeWZTZUpZcVlPWm1OUnVmUHhTYjJ1RGc9PQo=",
+      "url": "https://github.com/batureren/achievement-scavenger/releases/download/v.0.2.0/AchievementScavenger_0.2.0_amd64.AppImage"
     }
   }
 }
