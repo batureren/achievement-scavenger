@@ -21,16 +21,17 @@ use axum::{
     routing::get,
     Router,
 };
-use futures::{sink::SinkExt, stream::StreamExt};
+use futures::stream::StreamExt;
 use local_ip_address::local_ip;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
-use tokio::sync::watch;
+use tokio::sync::{watch, oneshot};
 
 static SERVER_RUNNING: AtomicBool = AtomicBool::new(false);
 static TX: OnceLock<watch::Sender<String>> = OnceLock::new();
 static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
+static SHUTDOWN_TX: std::sync::Mutex<Option<oneshot::Sender<()>>> = std::sync::Mutex::new(None);
 
 pub struct DiscordState {
     tx: Mutex<mpsc::Sender<RpcCommand>>,
@@ -155,8 +156,13 @@ async fn start_companion_server(app_handle: tauri::AppHandle) -> Result<String, 
         return Ok(format!("http://{}:{}", my_local_ip, port));
     }
 
-    let (tx, _rx) = watch::channel(String::new());
-    TX.set(tx).unwrap();
+    if TX.get().is_none() {
+        let (tx, _rx) = watch::channel(String::new());
+        let _ = TX.set(tx);
+    }
+
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+    *SHUTDOWN_TX.lock().unwrap() = Some(shutdown_tx);
 
     let app = Router::new()
         .route("/", get(|| async { Html(include_str!("../mobile_ui/index.html")) }))
@@ -166,11 +172,26 @@ async fn start_companion_server(app_handle: tauri::AppHandle) -> Result<String, 
         let addr = SocketAddr::from(([0, 0, 0, 0], port));
         if let Ok(listener) = tokio::net::TcpListener::bind(addr).await {
             SERVER_RUNNING.store(true, Ordering::SeqCst);
-            let _ = axum::serve(listener, app).await;
+            
+            let _ = axum::serve(listener, app)
+                .with_graceful_shutdown(async move {
+                    let _ = shutdown_rx.await;
+                })
+                .await;
+                
+            SERVER_RUNNING.store(false, Ordering::SeqCst);
         }
     });
 
     Ok(format!("http://{}:{}", my_local_ip, port))
+}
+
+#[tauri::command]
+fn stop_companion_server() {
+    if let Some(tx) = SHUTDOWN_TX.lock().unwrap().take() {
+        let _ = tx.send(());
+    }
+    SERVER_RUNNING.store(false, Ordering::SeqCst);
 }
 
 #[tauri::command]
@@ -1324,7 +1345,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, broadcast_to_phone
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

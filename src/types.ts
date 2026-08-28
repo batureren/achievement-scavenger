@@ -38,7 +38,7 @@ export interface AppSettings {
   windowMode?: "WINDOWED" | "BORDERLESS" | "FULLSCREEN"; uiScale?: number;
   isMiniMode?: boolean; language: string; overlayStyle?: OverlayStyle;
   enableTransparency?: boolean; runOnStartup?: boolean; discordRPCEnabled?: boolean;
-  minimizeToTray?: boolean;
+  minimizeToTray?: boolean; companionAutoStart?: boolean; 
 }
 
 export interface GameHistory {

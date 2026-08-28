@@ -237,16 +237,32 @@ function App() {
   const [isCompanionOpen, setIsCompanionOpen] = useState(false);
   const [isCompanionModalOpen, setIsCompanionModalOpen] = useState(false);
 
-  const handleStartCompanion = async () => {
+const handleStartCompanion = async (silent = false) => {
     try {
       const url = await invoke<string>("start_companion_server");
       setCompanionUrl(url);
       setIsCompanionOpen(true);
-      setIsCompanionModalOpen(true);
+      if (!silent) setIsCompanionModalOpen(true);
     } catch (e) {
       console.error("Failed to start server", e);
-      toast.error("Failed to start mobile companion.");
+      if (!silent) toast.error("Failed to start mobile companion.");
     }
+  };
+
+  const handleStopCompanion = async () => {
+    try {
+      await invoke("stop_companion_server");
+      setIsCompanionOpen(false);
+      setCompanionUrl("");
+      toast.success("Companion server stopped.");
+    } catch (e) {
+      console.error("Failed to stop server", e);
+      toast.error("Failed to stop server. (Ensure stop_companion_server is implemented in Rust)");
+    }
+  };
+
+  const handleOpenCompanionModal = () => {
+    setIsCompanionModalOpen(true);
   };
 
   const linkForAppId = (appId: string): GameLink | null =>
@@ -609,6 +625,10 @@ function App() {
 
         if (initialTab && savedSettings.gameSortOrders?.[initialTab]) {
           setSortOrder(savedSettings.gameSortOrders[initialTab]);
+        }
+
+        if (savedSettings.companionAutoStart) {
+          handleStartCompanion(true);
         }
       } catch (e) { 
         setAppState("SETUP"); 
@@ -1922,7 +1942,7 @@ const broadcastState = () => {
         onToggleDiscordRPC={() => saveSettings({ ...settingsRef.current, discordRPCEnabled: !(settingsRef.current.discordRPCEnabled !== false) })}
         onToggleMinimizeToTray={() => saveSettings({ ...settingsRef.current, minimizeToTray: !settingsRef.current.minimizeToTray })}
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
-        onOpenCompanion={handleStartCompanion}
+        onOpenCompanion={handleOpenCompanionModal}
         isCompanionRunning={isCompanionOpen}
       />
 
@@ -2630,48 +2650,68 @@ const broadcastState = () => {
         <div className="confirm-dialog-overlay" onClick={() => setIsCompanionModalOpen(false)}>
           <div className="confirm-dialog companion-modal" onClick={e => e.stopPropagation()}>
             <h3 className="confirm-dialog-title" style={{ textAlign: "center", marginBottom: "8px" }}>Mobile Companion</h3>
-            <p className="confirm-dialog-message" style={{ textAlign: "center", marginBottom: "20px" }}>
-              Scan this QR code with your phone to open your live tracker. <br/>
-              <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(Make sure you're on the same Wi-Fi network)</span>
-            </p>
+            
+            {isCompanionOpen ? (
+              <>
+                <p className="confirm-dialog-message" style={{ textAlign: "center", marginBottom: "16px" }}>
+                  Scan this QR code with your phone to open your live tracker. <br/>
+                  <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(Make sure you're on the same Wi-Fi network)</span>
+                </p>
 
-            <div className="qr-code-container">
-              {companionUrl ? (
-                <QRCode 
-                  value={companionUrl} 
-                  size={180} 
-                  bgColor="#ffffff" 
-                  fgColor="#000000" 
+                <div className="qr-code-container" style={{ marginBottom: "16px" }}>
+                  {companionUrl ? (
+                    <QRCode value={companionUrl} size={160} bgColor="#ffffff" fgColor="#000000" />
+                  ) : (
+                    <div className="qr-code-placeholder">Generating...</div>
+                  )}
+                </div>
+
+                <div className="companion-url-row">
+                  <input type="text" readOnly value={companionUrl} className="edit-input" onClick={e => (e.target as HTMLInputElement).select()} />
+                  <button className="btn-small btn-small-success" onClick={() => { navigator.clipboard.writeText(companionUrl); toast.success("URL copied!"); }}>Copy</button>
+                </div>
+              </>
+            ) : (
+              <div style={{ padding: "30px 0", textAlign: "center", color: "var(--text-muted)" }}>
+                <p>The server is currently offline.</p>
+                <p style={{ fontSize: "0.8rem", marginTop: "4px" }}>Turn it on below to generate a connection link.</p>
+              </div>
+            )}
+
+            <div style={{ width: "100%", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-color)", marginBottom: "16px" }}>
+              <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem", marginBottom: "12px" }}>
+                <span><strong>Server Status</strong> ({isCompanionOpen ? "Online" : "Offline"})</span>
+                <input 
+                  type="checkbox" 
+                  checked={isCompanionOpen} 
+                  onChange={(e) => {
+                    if (e.target.checked) handleStartCompanion(true);
+                    else handleStopCompanion();
+                  }}
+                  style={{ width: "18px", height: "18px", accentColor: "var(--accent-green)", cursor: "pointer" }}
                 />
-              ) : (
-                <div className="qr-code-placeholder">Generating...</div>
-              )}
+              </label>
+              
+              <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem" }}>
+                <span>Auto-start on app launch</span>
+                <input 
+                  type="checkbox" 
+                  checked={settings.companionAutoStart || false} 
+                  onChange={(e) => {
+                    const newVal = e.target.checked;
+                    saveSettings({ ...settingsRef.current, companionAutoStart: newVal });
+                  }}
+                  style={{ width: "18px", height: "18px", accentColor: "var(--accent-green)", cursor: "pointer" }}
+                />
+              </label>
             </div>
 
-            <div className="companion-url-row">
-              <input 
-                type="text" 
-                readOnly 
-                value={companionUrl} 
-                className="edit-input" 
-                onClick={e => (e.target as HTMLInputElement).select()}
-              />
-              <button 
-                className="btn-small btn-small-success" 
-                onClick={() => {
-                  navigator.clipboard.writeText(companionUrl);
-                  toast.success("URL copied!");
-                }}
-              >
-                Copy
-              </button>
-            </div>
-
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "20px", textAlign: "center" }}>
-              The server will continue running in the background. You can close this window.
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "16px", textAlign: "center" }}>
+              The server will continue running in the background while online.
             </p>
+
             <div className="confirm-dialog-actions" style={{ justifyContent: "center" }}>
-              <button className="confirm-dialog-btn cancel" onClick={() => setIsCompanionModalOpen(false)}>Close</button>
+              <button className="confirm-dialog-btn cancel" onClick={() => setIsCompanionModalOpen(false)}>Close Window</button>
             </div>
           </div>
         </div>

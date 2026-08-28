@@ -20,7 +20,16 @@ let lastGuidesListFetch = 0;
 function RichTextEditor({ value, onChange, placeholder }: { value: string, onChange: (v: string) => void, placeholder: string }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  const applyFormat = (prefix: string, suffix: string = "") => {
+  const [pickerColor, setPickerColor] = useState("#34d399");
+  const [recentColors, setRecentColors] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("scavenger_recent_colors");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ["#34d399", "#f59e0b", "#ef4444", "#60a5fa", "#a78bfa"];
+  });
+
+  const applyFormat = (prefix: string, suffix: string = "", type: "wrap" | "list" = "wrap") => {
      const el = textareaRef.current;
      if(!el) return;
      const start = el.selectionStart;
@@ -29,27 +38,92 @@ function RichTextEditor({ value, onChange, placeholder }: { value: string, onCha
      const selected = value.substring(start, end);
      const after = value.substring(end);
      
-     onChange(`${before}${prefix}${selected || (suffix ? "text" : "")}${suffix}${after}`);
+     if (type === "list") {
+       const lines = selected ? selected.split('\n') : [""];
+       const isNumbered = prefix.trim() === "1.";
+       const newText = lines.map((line, i) => {
+           const pre = isNumbered ? `${i + 1}. ` : prefix;
+           return `${pre}${line}`;
+       }).join('\n');
+       
+       onChange(`${before}${newText}${after}`);
+       setTimeout(() => {
+         el.focus();
+         el.setSelectionRange(start, start + newText.length);
+       }, 0);
+       return;
+     }
+
+     const insertion = selected || (suffix ? "text" : "");
+     onChange(`${before}${prefix}${insertion}${suffix}${after}`);
      
      setTimeout(() => {
        el.focus();
-       el.setSelectionRange(start + prefix.length, end + prefix.length + (selected ? 0 : (suffix ? 4 : 0)));
+       if (selected) {
+         el.setSelectionRange(start + prefix.length, end + prefix.length);
+       } else {
+         el.setSelectionRange(start + prefix.length, start + prefix.length + insertion.length);
+       }
      }, 0);
+  };
+
+  const handleColorPick = (color: string) => {
+    applyFormat(`[color=${color}]`, "[/color]");
+    setRecentColors(prev => {
+      const next = [color, ...prev.filter(c => c !== color)].slice(0, 5);
+      localStorage.setItem("scavenger_recent_colors", JSON.stringify(next));
+      return next;
+    });
   };
 
   return (
     <div className="rich-text-container">
       <div className="rich-text-toolbar">
-        <button type="button" onClick={() => applyFormat("# ", "")}>H1</button>
-        <button type="button" onClick={() => applyFormat("## ", "")}>H2</button>
-        <button type="button" onClick={() => applyFormat("### ", "")}>H3</button>
+        <button type="button" title="Heading 1" onClick={() => applyFormat("# ", "")}>H1</button>
+        <button type="button" title="Heading 2" onClick={() => applyFormat("## ", "")}>H2</button>
+        <button type="button" title="Heading 3" onClick={() => applyFormat("### ", "")}>H3</button>
         <span className="rich-text-divider"></span>
-        <button type="button" onClick={() => applyFormat("**", "**")}><b>B</b></button>
-        <button type="button" onClick={() => applyFormat("*", "*")}><i>I</i></button>
-        <button type="button" onClick={() => applyFormat("__", "__")}><u>U</u></button>
+        <button type="button" title="Bold" onClick={() => applyFormat("**", "**")}><b>B</b></button>
+        <button type="button" title="Italic" onClick={() => applyFormat("*", "*")}><i>I</i></button>
+        <button type="button" title="Underline" onClick={() => applyFormat("__", "__")}><u>U</u></button>
+        <button type="button" title="Spoiler" onClick={() => applyFormat("||", "||")} style={{ background: "#000", color: "#666", padding: "4px 6px" }}>👁</button>
         <span className="rich-text-divider"></span>
-        <button type="button" onClick={() => applyFormat("- ", "")}>• List</button>
-        <button type="button" onClick={() => applyFormat("1. ", "")}>1. List</button>
+        <button type="button" title="Bulleted List" onClick={() => applyFormat("- ", "", "list")}>• List</button>
+        <button type="button" title="Numbered List" onClick={() => applyFormat("1. ", "", "list")}>1. List</button>
+        <span className="rich-text-divider"></span>
+        <button type="button" title="Link" onClick={() => applyFormat("[", "](https://)")}>🔗</button>
+        
+        <span className="rich-text-divider"></span>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center", marginLeft: "2px" }}>
+          <input 
+            type="color" 
+            value={pickerColor} 
+            onChange={e => setPickerColor(e.target.value)} 
+            title="Choose custom color"
+            className="rich-text-color-input"
+          />
+          <button 
+            type="button" 
+            onClick={() => handleColorPick(pickerColor)} 
+            style={{ color: pickerColor, fontWeight: 800, padding: "2px 6px" }}
+            title="Apply chosen color"
+          >
+            Aa
+          </button>
+          
+          <span style={{ borderLeft: "1px solid var(--border-color)", height: "14px", margin: "0 2px" }}></span>
+          
+          {recentColors.map((c, i) => (
+            <button 
+              key={`${c}-${i}`} 
+              type="button" 
+              title={`Use ${c}`} 
+              onClick={() => handleColorPick(c)} 
+              className="rich-text-recent-color"
+              style={{ background: c }}
+            />
+          ))}
+        </div>
       </div>
       <textarea 
         ref={textareaRef} 

@@ -4575,6 +4575,80 @@ video.cl-item-img {
 .guided-text li { margin-bottom: 4px; }
 .guided-text strong { color: var(--text-main); }
 .guided-text u { text-decoration-color: var(--accent-green); text-underline-offset: 2px;}
+.guided-text span[style*="color"] h1,
+.guided-text span[style*="color"] h2,
+.guided-text span[style*="color"] h3,
+.guided-text span[style*="color"] h4,
+.guided-text span[style*="color"] h5,
+.guided-text span[style*="color"] ul,
+.guided-text span[style*="color"] ol,
+.guided-text span[style*="color"] li,
+.guided-text span[style*="color"] strong,
+.guided-text span[style*="color"] u,
+.guided-text span[style*="color"] em {
+    color: inherit !important;
+}
+
+.rich-text-color-input {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  outline: none;
+}
+
+.rich-text-color-input::-webkit-color-swatch-wrapper {
+  padding: 1px;
+}
+
+.rich-text-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.rich-text-recent-color {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, border-color 0.15s ease !important;
+}
+
+.rich-text-recent-color:hover {
+  transform: scale(1.2);
+  border-color: #fff !important;
+}
+
+.markdown-spoiler {
+  background-color: #1a1a1a;
+  color: transparent !important;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0 4px;
+  user-select: none;
+}
+
+.markdown-spoiler * {
+  color: transparent !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+
+.markdown-spoiler:hover,
+.markdown-spoiler:active {
+  background-color: #333;
+  color: inherit !important;
+}
+
+.markdown-spoiler:hover *,
+.markdown-spoiler:active * {
+  color: inherit !important;
+}
 
 @media (max-width: 850px) {
   .guided-layout {
