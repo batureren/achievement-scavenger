@@ -2553,7 +2553,7 @@ const broadcastState = () => {
 
             <div className="search-sort-bar">
                   <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
-                  <select 
+                  <select id="grid-control"
                     value={settings.gridColumns || 2} 
                     onChange={e => {
                         const cols = Number(e.target.value);

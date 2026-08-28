@@ -2309,6 +2309,9 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
    ============================================================ */
 
 @media (max-width: 700px) {
+  #grid-control{
+    display: none;
+  }
   .tracking-screen {
     padding: 14px 12px 28px;
   }
