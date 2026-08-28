@@ -1,6 +1,6 @@
 # Achievement Scavenger: Tracker & Guides
 
-A cross-platform desktop companion app for hunting achievements. Achievement Scavenger sits alongside your games, automatically detects what you're playing, and gives you live progress tracking, interactive collectible checklists, step-by-step walkthroughs, missable warnings, community hints, and Discord integration. All in one lightweight window.
+A cross-platform desktop companion app for hunting achievements. Achievement Scavenger sits alongside your games, automatically detects what you're playing, and gives you live progress tracking, interactive collectible checklists, step-by-step walkthroughs, missable warnings, community hints, a **Mobile Companion**, and Discord integration. All in one lightweight window.
 
 Built with **Tauri (Rust + React/TypeScript)**.
 
@@ -10,8 +10,13 @@ Built with **Tauri (Rust + React/TypeScript)**.
 
 ## Features
 
+### Mobile Companion App
+- **Live Local Server**: Start a lightweight local server directly from the app and scan a QR code to pull up a mobile-optimized tracker on your phone.
+- **Seamless Sync**: Track achievements, check off interactive collectibles, and read guide walkthroughs on your phone while playing your game on the big screen.
+- **Auto-Start**: Configure the companion server to start silently in the background every time you launch the app.
+
 ### Multi-Platform Tracking
-- **Steam**: Auto-detects running games via the Windows registry, pulls live achievement status and global unlock percentages from the Steam Web API.
+- **Steam**: Auto-detects running games via the Windows registry (and Linux/Steam Deck VDF files), pulling live achievement status and global unlock percentages from the Steam Web API.
 - **PlayStation Network (PSN)**: Connects securely via an NPSSO token to track PS4/PS5 trophies, game progress, and global rarity directly from Sony's servers.
 - **Xbox Live**: Connects via OpenXBL to track Xbox titles, gamerscore, and achievement rarity.
 - **RetroAchievements**: Tracks your recently played retro titles and syncs achievement progress, points, and TrueRatio.
@@ -23,12 +28,13 @@ Built with **Tauri (Rust + React/TypeScript)**.
 
 ### Guides, Checklists & Walkthroughs
 - **Guide Playthroughs**: Follow step-by-step community walkthroughs that combine text instructions, embedded media, live achievement tracking, and checklist items into a single unified timeline.
-- **Interactive Checklists**: Track collectibles, side-quests, and hidden items. Mark them off as you find them, complete with location tags, categories, and video links.
+- **Interactive Checklists**: Track collectibles, side-quests, and hidden items. Mark them off as you find them, complete with location tags, categories, and embedded video links.
 - Pulls a community-maintained achievement database (hints, descriptions, chapters, missable flags, and guide links) from GitHub for supported games.
 - **Missable achievement alerts** warn you before you progress past a point of no return.
 - Spoiler-protected hints (blurred until hovered).
 
 ### Personalization & Organization
+- **Customizable Layouts**: Adjust the achievement grid from 2 up to 6 columns to perfectly fit your monitor.
 - Custom chapters/sections to organize achievements by story progress.
 - Track specific achievements to a personal watchlist.
 - Local notes and edits per achievement, saved independently of the community database.
@@ -36,13 +42,14 @@ Built with **Tauri (Rust + React/TypeScript)**.
 - Filter out the noise: toggle filters to hide everything except what's relevant to your current chapter and tracked list.
 
 ### Quality of Life
+- **Smart Window Memory**: Remembers your exact window coordinates, custom sizes, and maximized states perfectly across monitors and launches.
 - **Cloud Sync**: Backup and restore your local history, settings, and custom checklists across multiple devices (like your PC and Steam Deck) using GitHub Gists.
+- **Mini/Compact Mode**: A slimmed-down, always-on-top overlay with dedicated tabs for tracked achievements, checklists, and guides.
 - **Discord Rich Presence** shows your current game and achievement hunting progress to friends.
-- **Mini Mode**: A compact, always-on-top overlay showing just your tracked achievements.
 - Multiple overlay styles (ghost, neon, tactical, frosted, MMO-style) with adjustable transparency.
 - Adjustable window opacity, UI scale, and windowed/borderless/fullscreen modes.
 - Global hotkey (`Ctrl+Shift+T`) to show/hide the tracker instantly.
-- System tray icon with quick show/quit controls.
+- System tray icon with quick show/quit controls and minimize-to-tray support.
 - Runs on startup (optional).
 - Export your achievement checklist as JSON or a styled, shareable HTML page.
 - Multi-language UI support.
@@ -54,7 +61,7 @@ Built with **Tauri (Rust + React/TypeScript)**.
 Download the latest installer from the [Releases](../../releases) page and run the `setup.exe`. The app will keep itself up to date automatically.
 
 **Requirements:**
-- Windows 10/11 (Steam status detection relies on the Windows registry)
+- Windows 10/11 or Linux/Steam Deck.
 - A [Steam Web API key](https://steamcommunity.com/dev/apikey), a PlayStation Network account (NPSSO token), an [OpenXBL](https://xbl.io) API key, and/or a RetroAchievements account, depending on which platforms you want to track.
 
 ---
@@ -63,8 +70,9 @@ Download the latest installer from the [Releases](../../releases) page and run t
 
 1. Launch Achievement Scavenger and enter your API key(s) for the platform(s) you use.
 2. Start playing a game, the app detects it automatically and pulls up its achievement list.
-3. Track achievements you're hunting, add notes, and organize by chapter.
-4. Get warned before missable achievements slip by, and let Discord show off your progress.
+3. Turn on the **Mobile Companion** to track items on your phone, or switch to **Mini Mode** to keep a compact overlay on your screen.
+4. Track achievements you're hunting, add notes, and organize by chapter.
+5. Get warned before missable achievements slip by, and let Discord show off your progress.
 
 ---
 
@@ -74,6 +82,7 @@ Download the latest installer from the [Releases](../../releases) page and run t
 |---|---|
 | App shell | [Tauri 2](https://tauri.app/) |
 | Backend | Rust |
+| Local Server | Axum + Tokio (WebSockets) |
 | Frontend | React + TypeScript |
 | Discord integration | `discord-rich-presence` |
 | Screen capture | `xcap` + `image` |
