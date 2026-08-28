@@ -796,6 +796,8 @@ if (savedSettings.isMiniMode) {
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.Title) continue;
 
+                  if (!existing && !isLive) continue;
+
                   historyUpdated = {
                     ...base,
                     [gameIdStr]: { appId: gameIdStr, name: recentGame.Title, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "RA" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: recentGame.ImageBoxArt || recentGame.ImageTitle || recentGame.ImageIcon || existing?.raImageIcon }
@@ -836,6 +838,8 @@ if (savedSettings.isMiniMode) {
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === (recentGame.name || recentGame.titleName)) return prev;
 
+                  if (!existing && !isLive) return prev;
+
                   const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.name || recentGame.titleName || `Title ${recentGame.titleId}`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "XBOX" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: boxArt || existing?.raImageIcon } };
                   invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
                   return updated;
@@ -871,6 +875,8 @@ if (savedSettings.isMiniMode) {
                   const existing = prev[gameIdStr];
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.trophyTitleName) return prev;
+
+                  if (!existing && !isLive) return prev;
 
                   const updated = { ...prev, [gameIdStr]: { appId: gameIdStr, name: recentGame.trophyTitleName || `PSN Title`, totalAch: existing?.totalAch || 0, unlockedAch: existing?.unlockedAch || 0, lastPlayed: timeToSave, platform: "PSN" as const, pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked: existing?.rarestUnlocked, easiestNext: existing?.easiestNext, raImageIcon: recentGame.trophyTitleIconUrl || existing?.raImageIcon } };
                   invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
