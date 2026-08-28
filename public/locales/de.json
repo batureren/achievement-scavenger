@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Community-Datenbanken",
+    "db.browse_desc": "Durchsuche und füge Spiele hinzu, die von der Community bereitgestellte Hinweise, Kapitel und Bearbeitungen enthalten.",
+    "db.add_btn": "+ Hinzufügen",
+    "db.added_btn": "In Bibliothek",
+    "lib.browse_db": "DBs durchsuchen",
+    "db.fetching": "Datenbankliste wird abgerufen...",
+    "db.no_dbs": "Keine Datenbanken entsprechen deiner Suche.",
+    "ach.privacy_warning": "Live-Fortschritt kann nicht überprüft werden: Du besitzt dieses Spiel nicht, hast keine Spielzeit oder deine Steam-„Spieldetails“ sind privat.",
     "menu.view": "Ansicht",
     "menu.themes": "Designs",
     "menu.accounts": "Konten",

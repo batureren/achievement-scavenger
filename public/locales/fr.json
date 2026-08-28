@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Bases de données communautaires",
+    "db.browse_desc": "Parcourez et ajoutez des jeux disposant d'indices, de chapitres et de modifications fournis par la communauté.",
+    "db.add_btn": "+ Ajouter",
+    "db.added_btn": "Dans la bibliothèque",
+    "lib.browse_db": "Parcourir les BD",
+    "db.fetching": "Récupération de la liste des bases de données...",
+    "db.no_dbs": "Aucune base de données ne correspond à votre recherche.",
+    "ach.privacy_warning": "Impossible de vérifier la progression en direct : Vous ne possédez pas ce jeu, vous n'y avez jamais joué, ou vos \"Détails des jeux\" Steam sont privés.",
     "menu.view": "Affichage",
     "menu.themes": "Thèmes",
     "menu.accounts": "Comptes",

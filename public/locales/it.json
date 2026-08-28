@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Database della Community",
+    "db.browse_desc": "Sfoglia e aggiungi giochi che includono suggerimenti, capitoli e modifiche fornite dalla community.",
+    "db.add_btn": "+ Aggiungi",
+    "db.added_btn": "Nella Libreria",
+    "lib.browse_db": "Sfoglia DB",
+    "db.fetching": "Recupero lista database...",
+    "db.no_dbs": "Nessun database corrisponde alla tua ricerca.",
+    "ach.privacy_warning": "Impossibile verificare i progressi in tempo reale: Non possiedi questo gioco, non ci hai mai giocato oppure i tuoi \"Dettagli di gioco\" di Steam sono privati.",
     "menu.view": "Visualizza",
     "menu.themes": "Temi",
     "menu.accounts": "Account",

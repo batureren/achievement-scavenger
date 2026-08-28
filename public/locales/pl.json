@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Bazy danych społeczności",
+    "db.browse_desc": "Przeglądaj i dodawaj gry, które posiadają wskazówki, rozdziały i edycje dostarczone przez społeczność.",
+    "db.add_btn": "+ Dodaj",
+    "db.added_btn": "W bibliotece",
+    "lib.browse_db": "Przeglądaj bazy",
+    "db.fetching": "Pobieranie listy baz danych...",
+    "db.no_dbs": "Żadna baza danych nie pasuje do wyszukiwania.",
+    "ach.privacy_warning": "Nie można sprawdzić postępów na żywo: Nie posiadasz tej gry, masz zero czasu gry lub Twoje „Szczegóły gry” na Steam są prywatne.",
     "menu.view": "Widok",
     "menu.themes": "Motywy",
     "menu.accounts": "Konta",

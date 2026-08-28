@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Bases de datos de la comunidad",
+    "db.browse_desc": "Explora y agrega juegos que tengan pistas, capítulos y ediciones proporcionadas por la comunidad.",
+    "db.add_btn": "+ Agregar",
+    "db.added_btn": "En la biblioteca",
+    "lib.browse_db": "Explorar BD",
+    "db.fetching": "Obteniendo lista de bases de datos...",
+    "db.no_dbs": "Ninguna base de datos coincide con tu búsqueda.",
+    "ach.privacy_warning": "No se puede comprobar el progreso en vivo: No tienes este juego, no has jugado nada o los \"Detalles de los juegos\" de tu perfil de Steam son privados.",
     "menu.view": "Ver",
     "menu.themes": "Temas",
     "menu.accounts": "Cuentas",

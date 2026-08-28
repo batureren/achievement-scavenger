@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "社群資料庫",
+    "db.browse_desc": "瀏覽並新增包含社群提供的提示、章節和編輯資訊的遊戲。",
+    "db.add_btn": "+ 新增",
+    "db.added_btn": "已在庫中",
+    "lib.browse_db": "瀏覽資料庫",
+    "db.fetching": "正在取得資料庫清單...",
+    "db.no_dbs": "沒有符合您搜尋的資料庫。",
+    "ach.privacy_warning": "無法檢查即時進度：您未擁有此遊戲、遊玩時間為零，或您的 Steam「遊戲詳情」設為私人。",
     "menu.view": "檢視",
     "menu.themes": "主題",
     "menu.accounts": "帳戶",

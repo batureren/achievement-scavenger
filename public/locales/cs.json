@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Komunitní databáze",
+    "db.browse_desc": "Prohlížejte a přidávejte hry, které obsahují komunitní nápovědy, kapitoly a úpravy.",
+    "db.add_btn": "+ Přidat",
+    "db.added_btn": "V knihovně",
+    "lib.browse_db": "Procházet DB",
+    "db.fetching": "Načítání seznamu databází...",
+    "db.no_dbs": "Vašemu vyhledávání neodpovídají žádné databáze.",
+    "ach.privacy_warning": "Nelze kontrolovat aktuální postup: Tuto hru nevlastníte, máte odehráno nula hodin, nebo jsou vaše „Herní detaily“ na Steamu soukromé.",
     "menu.view": "Zobrazit",
     "menu.themes": "Motivy",
     "menu.accounts": "Účty",

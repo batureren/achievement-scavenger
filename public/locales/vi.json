@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Cơ sở dữ liệu cộng đồng",
+    "db.browse_desc": "Duyệt và thêm các game có gợi ý, chương và chỉnh sửa do cộng đồng cung cấp.",
+    "db.add_btn": "+ Thêm",
+    "db.added_btn": "Trong thư viện",
+    "lib.browse_db": "Duyệt DB",
+    "db.fetching": "Đang lấy danh sách cơ sở dữ liệu...",
+    "db.no_dbs": "Không có cơ sở dữ liệu nào khớp với tìm kiếm của bạn.",
+    "ach.privacy_warning": "Không thể kiểm tra tiến trình trực tiếp: Bạn không sở hữu game này, chưa chơi phút nào hoặc \"Chi tiết game\" trên Steam của bạn đang ở chế độ riêng tư.",
     "menu.view": "Hiển thị",
     "menu.themes": "Giao diện",
     "menu.accounts": "Tài khoản",

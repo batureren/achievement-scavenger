@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "社区数据库",
+    "db.browse_desc": "浏览并添加包含社区提供的提示、章节和编辑信息的游戏。",
+    "db.add_btn": "+ 添加",
+    "db.added_btn": "已在库中",
+    "lib.browse_db": "浏览数据库",
+    "db.fetching": "正在获取数据库列表...",
+    "db.no_dbs": "没有匹配您搜索的数据库。",
+    "ach.privacy_warning": "无法检查实时进度：您未拥有此游戏、游玩时间为零，或您的 Steam “游戏详情” 设为私密。",
     "menu.view": "视图",
     "menu.themes": "主题",
     "menu.accounts": "账户",

@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "커뮤니티 데이터베이스",
+    "db.browse_desc": "커뮤니티에서 제공한 힌트, 챕터 및 편집 내용이 포함된 게임을 찾아보고 추가하세요.",
+    "db.add_btn": "+ 추가",
+    "db.added_btn": "라이브러리에 있음",
+    "lib.browse_db": "DB 찾아보기",
+    "db.fetching": "데이터베이스 목록 가져오는 중...",
+    "db.no_dbs": "검색 조건과 일치하는 데이터베이스가 없습니다.",
+    "ach.privacy_warning": "실시간 진행 상황을 확인할 수 없습니다: 이 게임을 보유하고 있지 않거나 플레이 시간이 없거나 Steam \"게임 세부 정보\"가 비공개로 설정되어 있습니다.",
     "menu.view": "보기",
     "menu.themes": "테마",
     "menu.accounts": "계정",

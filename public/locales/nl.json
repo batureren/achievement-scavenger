@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Community-databases",
+    "db.browse_desc": "Blader en voeg spellen toe met door de community geleverde hints, hoofdstukken en bewerkingen.",
+    "db.add_btn": "+ Toevoegen",
+    "db.added_btn": "In bibliotheek",
+    "lib.browse_db": "Bladeren in DB's",
+    "db.fetching": "Databaselijst ophalen...",
+    "db.no_dbs": "Geen databases komen overeen met je zoekopdracht.",
+    "ach.privacy_warning": "Kan live-voortgang niet controleren: Je bezit dit spel niet, hebt geen speeltijd, of je Steam \"Spelgegevens\" zijn privé.",
     "menu.view": "Weergave",
     "menu.themes": "Thema's",
     "menu.accounts": "Accounts",

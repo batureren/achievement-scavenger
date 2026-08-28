@@ -1,4 +1,12 @@
 {
+    "db.browse_title": "Topluluk Veritabanları",
+    "db.browse_desc": "Topluluk tarafından sağlanan ipuçları, bölümler ve düzenlemeler içeren oyunlara göz atın ve ekleyin.",
+    "db.add_btn": "+ Ekle",
+    "db.added_btn": "Kütüphanede",
+    "lib.browse_db": "DB'lere Göz At",
+    "db.fetching": "Veritabanı listesi getiriliyor...",
+    "db.no_dbs": "Aramanızla eşleşen veritabanı yok.",
+    "ach.privacy_warning": "Canlı ilerleme kontrol edilemiyor: Bu oyuna sahip değilsiniz, oynama süreniz sıfır veya Steam \"Oyun Detayları\" gizliliğiniz özel.",
     "menu.view": "Görünüm",
     "menu.themes": "Temalar",
     "menu.accounts": "Hesaplar",
