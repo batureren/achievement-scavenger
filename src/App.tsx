@@ -115,6 +115,18 @@ function App() {
         });
       } else if (data?.action === "TOGGLE_CHECKLIST_ITEM" && data.checklistId && data.itemId) {
         handleToggleChecklistItem(data.checklistId, data.itemId);
+      } else if (data?.action === "TOGGLE_TRACK" && data.apiname) {
+        setTrackedData(prev => { 
+          const appId = selectedAppIdRef.current;
+          if (!appId) return prev;
+          const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {}; 
+          const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : []; 
+          const isCurrentlyTracked = gameTracked.includes(data.apiname); 
+          const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter((id: string) => id !== data.apiname) : [...gameTracked, data.apiname]; 
+          const newState = { ...safePrev, [appId]: updatedGameTracked }; 
+          invoke("save_tracked", { data: JSON.stringify(newState) }).catch(console.error); 
+          return newState; 
+        });
       }
     });
 
@@ -154,6 +166,7 @@ function App() {
   const [guidedMode, setGuidedMode] = useState(false);
   const [isMiniMode, setIsMiniMode] = useState(false);
   const [miniTab, setMiniTab] = useState<"ACH" | "CL" | "GUIDE">("ACH");
+  const [miniAchTab, setMiniAchTab] = useState<"LOCKED" | "TRACKED">("TRACKED");
   const [expandedMiniVideoId, setExpandedMiniVideoId] = useState<string | null>(null);
   const [sessionUnlocks, setSessionUnlocks] = useState<{ time: string; ach: MergedAchievement }[]>([]);
   const [librarySort, setLibrarySort] = useState<LibrarySortOrder>("LAST_PLAYED");
@@ -1934,7 +1947,12 @@ const broadcastState = () => {
           recent: recentDetails,
           checklists: allChecklists[selectedAppId] || [],
           guide: allGuides[selectedAppId] || null,
-          guideAchs: lightAchs
+          guideAchs: lightAchs,
+          allAchievements: achievements,
+          trackedIds: currentGameTracked,
+          hiddenHints: hiddenHintsForGame,
+          chapterCounts: chapterCounts,
+          knownChapters: allKnownChaptersForDropdown
         });
         
         invoke("broadcast_to_phone", { data: payload }).catch(console.error);
@@ -2090,24 +2108,67 @@ const broadcastState = () => {
           <div className="mini-content-area">
              {miniTab === "ACH" && (
                <>
-                 {filteredAchievements.filter(a => currentGameTracked.includes(a.apiname)).map(ach => {
+                 <div className="mini-ach-toggle">
+                   <button className={miniAchTab === "LOCKED" ? "active" : ""} onClick={() => { setMiniAchTab("LOCKED"); if(filter === "UNLOCKED") setFilter("ALL"); }}>Locked</button>
+                   <button className={miniAchTab === "TRACKED" ? "active" : ""} onClick={() => setMiniAchTab("TRACKED")}>Tracked</button>
+                 </div>
+
+                 {miniAchTab === "LOCKED" && (
+                   <div className="mini-filters">
+                    <div className="mini-filter-row">
+                     <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input mini-search" />
+                      <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)} className="control-select mini-select">
+                         <option value="DEFAULT">API Order</option>
+                         <option value="A_Z">A-Z</option>
+                         <option value="Z_A">Z-A</option>
+                         <option value="RARITY_ASC">Rare</option>
+                         <option value="RARITY_DESC">Common</option>
+                         <option value="CHAPTER">Chapter Order</option>
+                       </select>
+                      </div>
+                     <div className="mini-filter-row">
+                       <button className={`filter-btn mini-filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""}`} onClick={() => setFilter(filter === "MISSABLE" ? "ALL" : "MISSABLE")} title="Missable">⚠️</button>
+                       <button className={`filter-btn mini-filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""}`} onClick={() => setFilter(filter === "SPOILER" ? "ALL" : "SPOILER")} title="Spoiler">👁</button>
+                      <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select mini-select">
+                         <option value="ALL">All Chapters</option>
+                         {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
+                           <option value="No Chapter">
+                             No Chapter ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
+                           </option>
+                         )}
+                         {allKnownChaptersForDropdown.map(chap => {
+                           const stats = chapterCounts[chap] || { total: 0, unlocked: 0 };
+                           if (stats.total === 0 && !editMode) return null;
+                           return (
+                             <option key={chap} value={chap}>
+                               {chap} ({stats.unlocked}/{stats.total})
+                             </option>
+                           );
+                         })}
+                       </select>
+                     </div>
+                   </div>
+                 )}
+
+                 {(miniAchTab === "TRACKED" 
+                    ? filteredAchievements.filter(a => currentGameTracked.includes(a.apiname))
+                    : filteredAchievements.filter(a => !a.unlocked)
+                 ).map(ach => {
                    const isHintHidden = hiddenHintsForGame.includes(ach.apiname);
                    return (
-                     <div key={ach.apiname} className={`achievement-card mini-card ${ach.unlocked ? "unlocked" : ""}`}>
+                    <div key={ach.apiname} className={`achievement-card mini-card ${ach.unlocked ? "unlocked" : ""}`}>
                         <img src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon mini-icon" style={{ alignSelf: "flex-start" }} />
-                        <div className="card-header-content">
-                          <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""}`} style={{ fontSize: "0.85rem", marginBottom: "4px" }}>
+                        <div className={`card-header-content ${ach.is_spoiler ? 'spoiler-wrap' : ''}`}>
+                          <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""} ${ach.is_spoiler ? 'spoiler-blur' : ''}`} style={{ fontSize: "0.85rem", marginBottom: "4px" }}>
                             {ach.display_name}
                           </h3>
-                          <p className="ach-desc" style={{ fontSize: "0.75rem", lineHeight: "1.3" }}>
+                          <p className={`ach-desc ${ach.is_spoiler ? 'spoiler-blur' : ''}`} style={{ fontSize: "0.75rem", lineHeight: "1.3" }}>
                             {ach.description}
                           </p>
                           {ach.hint && !isHintHidden && (
-                            <div className="hint-box" style={{ padding: "6px", fontSize: "0.75rem", marginTop: "6px", marginBottom: "2px" }}>
+                            <div className={`hint-box ${ach.is_spoiler ? 'spoiler-blur' : ''}`} style={{ padding: "6px", fontSize: "0.75rem", marginTop: "6px", marginBottom: "2px" }}>
                               <span className="hint-label">💡 </span>
-                              <span style={ach.is_spoiler ? { filter: "blur(3px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(3px)" }}>
-                                {ach.hint}
-                              </span>
+                              <span>{ach.hint}</span>
                             </div>
                           )}
                           <button className={`track-btn ${currentGameTracked.includes(ach.apiname) ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname)} style={{ position: "absolute", top: 4, right: 4, padding: 2 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
@@ -2115,7 +2176,9 @@ const broadcastState = () => {
                      </div>
                    );
                  })}
-                 {trackedAchCount === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No achievements tracked.</p>}
+                 
+                 {miniAchTab === "TRACKED" && trackedAchCount === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No achievements tracked.</p>}
+                 {miniAchTab === "LOCKED" && filteredAchievements.filter(a => !a.unlocked).length === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No locked achievements match your filters.</p>}
                </>
              )}
 
@@ -2219,7 +2282,7 @@ const broadcastState = () => {
                             {idx.blocks.map(block => {
                                const isCurrent = guide.currentProgressBlockId === block.id;
                                return (
-                                 <div key={block.id} className={`guided-block ${isCurrent ? "is-current" : ""}`} style={{ padding: "12px", minHeight: "auto" }}>
+                                 <div key={block.id} id={`mini-guided-block-${block.id}`} className={`guided-block ${isCurrent ? "is-current" : ""}`} style={{ padding: "12px", minHeight: "auto" }}>
                                    <button 
                                      className="guided-set-progress-btn" 
                                      style={{ top: "6px", right: "6px", padding: "2px 6px", fontSize: "0.65rem" }}
@@ -2267,6 +2330,18 @@ const broadcastState = () => {
                           </div>
                         </div>
                      ))}
+                     
+                     {guide.currentProgressBlockId && (
+                       <button id="jump-current"
+                         onClick={() => {
+                           const el = document.getElementById(`mini-guided-block-${guide.currentProgressBlockId}`);
+                           if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                         }}
+                         title="Jump to Current"
+                       >
+                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+                       </button>
+                     )}
                    </div>
                  )
                })()

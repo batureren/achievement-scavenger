@@ -152,7 +152,7 @@ function AchievementSearchSelect({ value, onChange, achievements, t }: { value: 
   const selected = achievements.find(a => a.apiname === value);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "500px" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: "500px", zIndex: isOpen ? 100 : 1 }}>
       <button type="button" className="edit-input control-select" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", textAlign: "left", cursor: "pointer", padding: "6px 12px", minHeight: "36px" }} onClick={() => setIsOpen(!isOpen)}>
         {selected ? (
           <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>
@@ -191,7 +191,7 @@ function ChecklistItemSearchSelect({ value, onChange, items, t }: { value: strin
   const selected = items.find(i => i.id === value);
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: "500px" }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: "500px", zIndex: isOpen ? 100 : 1 }}>
       <button type="button" className="edit-input control-select" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", textAlign: "left", cursor: "pointer", padding: "6px 12px", minHeight: "36px" }} onClick={() => setIsOpen(!isOpen)}>
         {selected ? (
           <span style={{ display: "flex", alignItems: "center", gap: "8px", overflow: "hidden" }}>

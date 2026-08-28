@@ -13,7 +13,7 @@ use tauri::{
     Manager, Emitter,
 };
 use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
@@ -1369,6 +1369,11 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyT);
+            if let Err(e) = app.global_shortcut().register(shortcut) {
+                eprintln!("Failed to register global shortcut: {}", e);
+            }
 
             Ok(())
         })

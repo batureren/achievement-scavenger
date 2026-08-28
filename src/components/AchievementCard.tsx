@@ -72,9 +72,9 @@ function AchievementCardBase({
           {!ach.unlocked && <div className="lock-overlay">🔒</div>}
         </div>
 
-        <div className="card-header-content">
+        <div className={`card-header-content ${ach.is_spoiler ? 'spoiler-wrap' : ''}`}>
           <div className="title-row">
-            <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""}`} style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+            <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""} ${ach.is_spoiler ? 'spoiler-blur' : ''}`} style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
               {ach.display_name}
               
               {ach.ra_points !== undefined && (
@@ -135,7 +135,7 @@ function AchievementCardBase({
             </div>
           </div>
           <CollapsibleBox maxHeight={60}>
-            <p className="ach-desc" style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>{ach.description}</p>
+            <p className={`ach-desc ${ach.is_spoiler ? 'spoiler-blur' : ''}`}>{ach.description}</p>
           </CollapsibleBox>
         </div>
       </div>
@@ -248,9 +248,9 @@ function AchievementCardBase({
           )}
           
           {ach.hint && !isHintHidden && (
-            <div className="hint-box">
+            <div className={`hint-box ${ach.is_spoiler ? 'spoiler-blur' : ''}`}>
               <CollapsibleBox maxHeight={150}>
-                <p style={ach.is_spoiler ? { filter: "blur(5px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(5px)" }}>
+                <p>
                   <span className="hint-label">{t("ach.hint_label")}</span>{renderHintWithLinks(ach.hint)}
                 </p>
                 {ach.video_url && getYouTubeEmbedUrl(ach.video_url) && (

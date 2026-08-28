@@ -158,10 +158,34 @@
       color: inherit !important;
     }
 
-    .markdown-spoiler:hover *,
+   .markdown-spoiler:hover *,
     .markdown-spoiler:active * {
       color: inherit !important;
     }
+
+    .spoiler-wrap { cursor: pointer; }
+    .spoiler-blur { filter: blur(5px); transition: filter 0.2s; }
+    .spoiler-wrap:hover .spoiler-blur,
+    .spoiler-wrap.unblurred .spoiler-blur { filter: none; }
+
+    .nav-toggle-btn {
+      flex: 1; padding: 8px 0; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .nav-toggle-btn.active { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+    .filter-btn {
+      padding: 6px 12px; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.9rem; transition: all 0.2s;
+    }
+    .filter-btn.active { background: var(--accent-green); color: #000; border-color: var(--accent-green); }
+    .filter-btn-missable.active { background: rgba(245, 158, 11, 0.15); border-color: var(--accent-yellow); color: var(--accent-yellow); }
+    .filter-btn-spoiler.active { background: rgba(192, 132, 252, 0.15); border-color: #c084fc; color: #c084fc; }
+    
+    .track-btn-mobile {
+      position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 4px; color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+    }
+    .track-btn-mobile.tracked {
+      background: rgba(245, 158, 11, 0.16); border-color: rgba(245, 158, 11, 0.55); color: var(--accent-yellow);
+    }
+
     .hero-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -372,13 +396,39 @@
       </div>
     </div>
 
-    <div id="tab-ach" class="tab-content active">
-      <div id="recent-container" style="display: none;">
+   <div id="tab-ach" class="tab-content active">
+      <div style="display:flex; width:100%; gap:8px; margin-bottom:12px;">
+        <button id="btn-tab-locked" class="nav-toggle-btn" onclick="setAchTab('LOCKED')">Locked</button>
+        <button id="btn-tab-tracked" class="nav-toggle-btn active" onclick="setAchTab('TRACKED')">Tracked</button>
+      </div>
+
+      <div id="ach-filters" style="display:none; flex-direction:column; gap:8px; margin-bottom:16px;">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="ach-search" placeholder="Search achievements..." class="guide-select" style="margin-bottom:0; padding:8px 10px; flex:1;" oninput="updateAchFilters()">
+          <select id="ach-sort" class="guide-select" style="margin-bottom:0; padding:8px 10px; width:auto; flex:1;" onchange="updateAchFilters()">
+            <option value="DEFAULT">API Order</option>
+            <option value="A_Z">A-Z</option>
+            <option value="Z_A">Z-A</option>
+            <option value="RARITY_ASC">Rare</option>
+            <option value="RARITY_DESC">Common</option>
+            <option value="CHAPTER">Chapter Order</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="btn-filter-missable" class="filter-btn filter-btn-missable" onclick="toggleFilter('MISSABLE')" title="Missable">⚠️</button>
+          <button id="btn-filter-spoiler" class="filter-btn filter-btn-spoiler" onclick="toggleFilter('SPOILER')" title="Spoiler">👁</button>
+          <select id="ach-chapter" class="guide-select" style="margin-bottom:0; padding:8px 10px; flex:1;" onchange="updateAchFilters()">
+            <option value="ALL">All Chapters</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="recent-container" style="display: none; margin-bottom: 24px;">
         <div class="section-title">⏱ Recent Unlocks</div>
         <div id="recent-list" class="ach-list"></div>
       </div>
-      <div class="section-title">📌 Tracked Achievements</div>
-      <div id="tracked-list" class="ach-list"></div>
+
+      <div id="ach-list-container" class="ach-list"></div>
     </div>
 
     <div id="tab-cl" class="tab-content">
@@ -390,6 +440,11 @@
       <div class="section-title">📚 Guides</div>
       <div id="guide-selector-container"></div>
       <div id="guide-content-container"></div>
+      <div id="mobile-guide-float" style="display:none; position: fixed; bottom: 80px; right: 20px; z-index: 1000;">
+        <button style="width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); background: var(--card-bg); border: 1px solid var(--accent-yellow); color: var(--accent-yellow); cursor: pointer;" onclick="jumpToGuideProgress()">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
+      </div>
     </div>
 
   </div>
@@ -418,7 +473,6 @@ const elLoading = document.getElementById('loading');
     const elCounts = document.getElementById('hero-counts');
     const elPct = document.getElementById('hero-pct');
     const elFill = document.getElementById('hero-fill');
-    const elTrackedList = document.getElementById('tracked-list');
     const elRecentList = document.getElementById('recent-list');
     const elRecentContainer = document.getElementById('recent-container');
 
@@ -491,11 +545,163 @@ function parseMarkdown(text) {
     let lastGuideSelectorHash = "";
     let lastGuideContentHTML = "";
     let lastChecklistHTML = "";
-    let lastTrackedHTML = "";
     let lastRecentHTML = "";
+    let lastChapterHTML = "";
     let latestChecklists = [];
     let expandedMobileVideoId = null;
     let wsConnection = null;
+
+    let globalAchievements = [];
+    let globalTrackedIds = [];
+    let globalHiddenHints = [];
+    let globalChapters = [];
+    let globalChapterCounts = {};
+    let globalUnblurredIds = [];
+    let globalCurrentProgressId = null;
+    
+    let currentAchTab = 'TRACKED'; 
+    let currentFilter = 'ALL'; 
+
+    window.jumpToGuideProgress = function() {
+      if (globalCurrentProgressId) {
+        const el = document.getElementById(`mobile-guide-block-${globalCurrentProgressId}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+    
+    window.setAchTab = function(tab) {
+      currentAchTab = tab;
+      document.getElementById('btn-tab-locked').classList.toggle('active', tab === 'LOCKED');
+      document.getElementById('btn-tab-tracked').classList.toggle('active', tab === 'TRACKED');
+      
+      if(tab === 'LOCKED') {
+         document.getElementById('ach-filters').style.display = 'flex';
+      } else {
+         document.getElementById('ach-filters').style.display = 'none';
+      }
+      renderAchievements();
+    };
+
+    window.toggleFilter = function(type) {
+      if (currentFilter === type) currentFilter = 'ALL';
+      else currentFilter = type;
+      
+      document.getElementById('btn-filter-missable').classList.toggle('active', currentFilter === 'MISSABLE');
+      document.getElementById('btn-filter-spoiler').classList.toggle('active', currentFilter === 'SPOILER');
+      renderAchievements();
+    };
+
+    window.updateAchFilters = function() {
+      renderAchievements();
+    };
+
+    window.sendToggleTrack = function(apiname) {
+       if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+         wsConnection.send(JSON.stringify({ action: "TOGGLE_TRACK", apiname }));
+         if (globalTrackedIds.includes(apiname)) {
+           globalTrackedIds = globalTrackedIds.filter(id => id !== apiname);
+         } else {
+           globalTrackedIds.push(apiname);
+         }
+         renderAchievements();
+       }
+    };
+
+    window.toggleSpoiler = function(e, apiname) {
+      e.stopPropagation();
+      if (globalUnblurredIds.includes(apiname)) {
+        globalUnblurredIds = globalUnblurredIds.filter(id => id !== apiname);
+      } else {
+        globalUnblurredIds.push(apiname);
+      }
+      renderAchievements();
+    };
+
+    function renderAchievements() {
+      const search = document.getElementById('ach-search').value.toLowerCase();
+      const sort = document.getElementById('ach-sort').value;
+      const chapter = document.getElementById('ach-chapter').value;
+      
+      let filtered = globalAchievements;
+
+      if (currentAchTab === 'TRACKED') {
+        filtered = filtered.filter(a => globalTrackedIds.includes(a.apiname));
+      } else {
+        filtered = filtered.filter(a => !a.unlocked);
+        
+        if (currentFilter === 'MISSABLE') filtered = filtered.filter(a => a.is_missable);
+        if (currentFilter === 'SPOILER') filtered = filtered.filter(a => a.is_spoiler);
+        
+        if (chapter !== 'ALL') {
+           filtered = filtered.filter(a => (a.chapter?.trim() || "No Chapter") === chapter);
+        }
+        
+        if (search) {
+           filtered = filtered.filter(a => (a.display_name && a.display_name.toLowerCase().includes(search)) || (a.description && a.description.toLowerCase().includes(search)));
+        }
+
+        if (sort === "A_Z") filtered.sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
+        else if (sort === "Z_A") filtered.sort((a, b) => (b.display_name || "").localeCompare(a.display_name || ""));
+        else if (sort === "RARITY_ASC") filtered.sort((a, b) => (a.globalPercent || 0) - (b.globalPercent || 0));
+        else if (sort === "RARITY_DESC") filtered.sort((a, b) => (b.globalPercent || 0) - (a.globalPercent || 0));
+        else if (sort === "CHAPTER") {
+          filtered.sort((a, b) => {
+            const chapA = a.chapter?.trim() || ""; const chapB = b.chapter?.trim() || "";
+            if (chapA !== chapB) {
+              const idxA = globalChapters.indexOf(chapA); const idxB = globalChapters.indexOf(chapB);
+              const finalIdxA = idxA === -1 ? 9999 : idxA; const finalIdxB = idxB === -1 ? 9999 : idxB;
+              if (finalIdxA !== finalIdxB) return finalIdxA - finalIdxB;
+            }
+            return (b.globalPercent || 0) - (a.globalPercent || 0);
+          });
+        }
+      }
+
+      let html = '';
+      if (filtered.length === 0) {
+        html = `<div class="empty-state">No achievements match your filters.</div>`;
+      } else {
+        html = filtered.map(ach => {
+          const isTracked = globalTrackedIds.includes(ach.apiname);
+          const isHintHidden = globalHiddenHints.includes(ach.apiname);
+          const isUnlocked = ach.unlocked;
+          const isUnblurred = globalUnblurredIds.includes(ach.apiname);
+          
+          return `
+            <div class="ach-card ${isUnlocked ? 'unlocked' : ''}" style="position:relative;">
+              <img src="${isUnlocked ? ach.icon : ach.icongray}" class="ach-icon" />
+              <div class="ach-info ${ach.is_spoiler ? 'spoiler-wrap' : ''} ${isUnblurred ? 'unblurred' : ''}" style="padding-right: 32px;" ${ach.is_spoiler ? `onclick="toggleSpoiler(event, '${ach.apiname}')"` : ''}>
+                <div class="ach-title ${ach.is_spoiler ? 'spoiler-blur' : ''}">${ach.display_name}</div>
+                <div class="ach-desc ${ach.is_spoiler ? 'spoiler-blur' : ''}">${ach.description}</div>
+                
+                ${ach.notes ? `
+                  <div class="info-box notes-box">
+                    <strong>📝 Notes:</strong><br>${formatText(ach.notes)}
+                  </div>
+                ` : ''}
+
+                ${(ach.hint && !isHintHidden) ? `
+                  <div class="info-box hint-box ${ach.is_spoiler ? 'spoiler-blur' : ''}">
+                    <strong>💡 Hint:</strong><br>${formatText(ach.hint)}
+                  </div>
+                ` : ''}
+                
+                ${ach.video_url ? `
+                  <a href="${ach.video_url}" target="_blank" class="video-btn">
+                    ▶ Watch Video
+                  </a>
+                ` : ''}
+              </div>
+              <button class="track-btn-mobile ${isTracked ? 'tracked' : ''}" onclick="sendToggleTrack('${ach.apiname}')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="${isTracked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+              </button>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('ach-list-container').innerHTML = html;
+    }
 
     window.toggleMobileVideo = function(e, itemId) {
       e.stopPropagation();
@@ -635,7 +841,7 @@ function renderChecklists(checklists) {
           const isCurrent = guideData.currentProgressBlockId === block.id;
           
           contentHtml += `
-            <div class="guide-block ${isCurrent ? 'is-current' : ''}">
+            <div id="mobile-guide-block-${block.id}" class="guide-block ${isCurrent ? 'is-current' : ''}">
               <button class="guided-set-progress-btn" onclick="sendSetProgress('${block.id}')">
                 ${isCurrent ? 'You are here' : 'Set Progress'}
               </button>
@@ -691,6 +897,13 @@ function renderChecklists(checklists) {
         elContent.innerHTML = contentHtml;
         lastGuideContentHTML = contentHtml;
       }
+
+      globalCurrentProgressId = guideData.currentProgressBlockId;
+      if (globalCurrentProgressId) {
+        document.getElementById('mobile-guide-float').style.display = 'block';
+      } else {
+        document.getElementById('mobile-guide-float').style.display = 'none';
+      }
     }
 
     function connect() {
@@ -715,47 +928,36 @@ function renderChecklists(checklists) {
         elPct.textContent = `${pct}%`;
         elFill.style.width = `${pct}%`;
 
-        let trackedHtml = '';
-        if (data.tracked && data.tracked.length > 0) {
-          trackedHtml = data.tracked.map(ach => `
-            <div class="ach-card ${ach.unlocked ? 'unlocked' : ''}">
-              <img src="${ach.icon}" class="ach-icon" />
-              <div class="ach-info">
-                <div class="ach-title">${ach.name}</div>
-                <div class="ach-desc">${ach.desc}</div>
-                
-                ${ach.notes ? `
-                  <div class="info-box notes-box">
-                    <strong>📝 Notes:</strong><br>${formatText(ach.notes)}
-                  </div>
-                ` : ''}
-
-                ${ach.hint ? `
-                  <div class="info-box hint-box">
-                    <strong>💡 Hint:</strong><br>${formatText(ach.hint)}
-                  </div>
-                ` : ''}
-                
-                ${ach.videoUrl ? `
-                  <a href="${ach.videoUrl}" target="_blank" class="video-btn">
-                    ▶ Watch Video
-                  </a>
-                ` : ''}
-              </div>
-            </div>
-          `).join('');
-        } else {
-          trackedHtml = `
-            <div class="empty-state">
-              You aren't tracking any achievements for this game.<br>
-              <span style="opacity: 0.6; font-size: 0.75rem;">Click the flag icon on your PC to track them here.</span>
-            </div>`;
+        let chapSelectHtml = '<option value="ALL">All Chapters</option>';
+        if ((data.chapterCounts && data.chapterCounts["No Chapter"]?.total > 0) || document.getElementById('ach-chapter').value === "No Chapter") {
+           chapSelectHtml += `<option value="No Chapter">No Chapter (${data.chapterCounts["No Chapter"]?.unlocked || 0}/${data.chapterCounts["No Chapter"]?.total || 0})</option>`;
         }
+        (data.knownChapters || []).forEach(chap => {
+           const stats = data.chapterCounts ? data.chapterCounts[chap] : null;
+           const sTotal = stats ? stats.total : 0;
+           const sUnl = stats ? stats.unlocked : 0;
+           if (sTotal > 0) {
+             chapSelectHtml += `<option value="${chap}">${chap} (${sUnl}/${sTotal})</option>`;
+           }
+        });
         
-        if (trackedHtml !== lastTrackedHTML) {
-          elTrackedList.innerHTML = trackedHtml;
-          lastTrackedHTML = trackedHtml;
+        if (chapSelectHtml !== lastChapterHTML) {
+            const chapSelect = document.getElementById('ach-chapter');
+            const prevChapVal = chapSelect.value;
+            chapSelect.innerHTML = chapSelectHtml;
+            if (chapSelectHtml.includes(`value="${prevChapVal}"`)) {
+              chapSelect.value = prevChapVal;
+            }
+            lastChapterHTML = chapSelectHtml;
         }
+
+        globalAchievements = data.allAchievements || [];
+        globalTrackedIds = data.trackedIds || [];
+        globalHiddenHints = data.hiddenHints || [];
+        globalChapters = data.knownChapters || [];
+        globalChapterCounts = data.chapterCounts || {};
+        
+        renderAchievements();
 
         if (data.recent && data.recent.length > 0) {
           elRecentContainer.style.display = 'block';

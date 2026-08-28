@@ -29,6 +29,24 @@
   padding: 0;
 }
 
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-muted);
+}
+
 html { font-size: calc(16px * var(--ui-scale)); }
 
 body {
@@ -1275,6 +1293,23 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 /* ============================================================
    COMPACT MINI MODE
    ============================================================ */
+#jump-current{
+  position: fixed;
+  bottom: 75px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 1px solid var(--accent-yellow);
+  color: var(--accent-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  z-index: 100;
+  cursor: pointer;
+}
 
 .mini-mode-screen {
   padding: 10px;
@@ -1302,6 +1337,67 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   flex-direction: column;
   gap: 10px;
   padding-right: 4px;
+}
+
+.mini-ach-toggle {
+  display: flex;
+  width: 100%;
+  gap: 4px;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.mini-ach-toggle button {
+  flex: 1;
+  padding: 6px 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mini-ach-toggle button.active {
+  background: var(--accent-green);
+  color: #000;
+  border-color: var(--accent-green);
+}
+
+.mini-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.mini-search {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.mini-filter-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.mini-filter-btn {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.mini-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  height: 28px;
 }
 
 .mini-card {
@@ -1623,6 +1719,10 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 /* ============================================================
    MISSABLE & SPOILER FILTER BUTTONS
    ============================================================ */
+
+.spoiler-wrap { cursor: pointer; }
+.spoiler-blur { filter: blur(5px); transition: filter 0.2s; }
+.spoiler-wrap:hover .spoiler-blur { filter: none; }
 
 .filter-badge {
   display: inline-flex;
@@ -3988,7 +4088,11 @@ video.cl-item-img {
   border-radius: var(--radius-md);
   padding: 14px;
   box-shadow: var(--shadow-card);
-  transition: border-color var(--transition), transform var(--transition);
+  transition: border-color var(--transition), transform var(--transition), z-index 0s;
+}
+
+.guided-block:focus-within {
+  z-index: 50;
 }
 
 .guided-block:hover {
