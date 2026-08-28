@@ -27,9 +27,8 @@ import {
   CustomChecklist, GameLink, CustomGuide
 } from "./types";
 import { GuidedModePanel } from "./components/GuidedModePanel";
-import { 
-  BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
-} from "./constants";
+import { BUILTIN_THEMES, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL } from "./constants";
+import { useTranslation } from "react-i18next";
 import { 
   safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData, renderHintWithLinks, getYouTubeEmbedUrl
 } from "./utils";
@@ -43,15 +42,7 @@ function App() {
     windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false
   });
 
-  const t = (key: string, vars?: Record<string, string | number>) => {
-    const langDict = TRANSLATIONS[settings.language] || TRANSLATIONS["en"];
-    let str = langDict[key] || TRANSLATIONS["en"][key] || key;
-    if (vars) {
-      for (const k of Object.keys(vars)) str = str.split(`{${k}}`).join(String(vars[k]));
-    }
-    return str;
-  };
-
+  const { t, i18n } = useTranslation();
   const [apiKey, setApiKey] = useState<string>("");
   const [raCreds, setRaCreds] = useState<{ user: string; key: string }>({ user: "", key: "" });
   const [xboxCreds, setXboxCreds] = useState<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
@@ -534,8 +525,9 @@ useEffect(() => {
         setSettings(savedSettings);
         applyTheme(BUILTIN_THEMES.find(t => t.id === savedSettings.themeId) || BUILTIN_THEMES[0]);
         document.documentElement.style.setProperty("--ui-scale", savedSettings.uiScale.toString());
-        document.documentElement.lang = savedSettings.language || "en";
-        
+        const loadedLang = savedSettings.language || "en"; 
+        document.documentElement.lang = loadedLang;
+        i18n.changeLanguage(loadedLang);
         setIsMiniMode(savedSettings.isMiniMode || false);
 
 if (savedSettings.isMiniMode) {
@@ -698,6 +690,7 @@ if (savedSettings.isMiniMode) {
   const handleChangeLanguage = (lang: string) => {
     saveSettings({ ...settingsRef.current, language: lang });
     document.documentElement.lang = lang;
+    i18n.changeLanguage(lang);
     
     communityDbCacheRef.current = {};
     achievementsCacheRef.current = {};

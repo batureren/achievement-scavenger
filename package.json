@@ -19,9 +19,12 @@
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "i18next": "^26.4.0",
+    "i18next-http-backend": "^4.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.6.0",
+    "react-i18next": "^17.0.12",
     "react-qr-code": "^2.2.0"
   },
   "devDependencies": {
