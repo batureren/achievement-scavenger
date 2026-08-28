@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Manager, Emitter,
 };
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
@@ -30,6 +30,7 @@ use tokio::sync::watch;
 
 static SERVER_RUNNING: AtomicBool = AtomicBool::new(false);
 static TX: OnceLock<watch::Sender<String>> = OnceLock::new();
+static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
 pub struct DiscordState {
     tx: Mutex<mpsc::Sender<RpcCommand>>,
@@ -131,7 +132,13 @@ async fn handle_socket(mut socket: WebSocket) {
                         }
                     }
                 }
-                Some(Ok(_)) = socket.next() => {}
+                Some(Ok(msg)) = socket.next() => {
+                    if let Message::Text(text) = msg {
+                        if let Some(app) = APP_HANDLE.get() {
+                            let _ = app.emit("mobile_action", text);
+                        }
+                    }
+                }
                 else => break,
             }
         }
@@ -139,7 +146,8 @@ async fn handle_socket(mut socket: WebSocket) {
 }
 
 #[tauri::command]
-async fn start_companion_server() -> Result<String, String> {
+async fn start_companion_server(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let _ = APP_HANDLE.set(app_handle);
     let my_local_ip = local_ip().map_err(|e| e.to_string())?;
     let port = 14200;
 

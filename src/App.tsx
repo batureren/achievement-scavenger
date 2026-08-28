@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import QRCode from "react-qr-code";
 import { open } from "@tauri-apps/plugin-shell";
 import toast, { Toaster } from "react-hot-toast";
@@ -30,7 +31,7 @@ import {
   BUILTIN_THEMES, TRANSLATIONS, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL 
 } from "./constants";
 import { 
-  safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData
+  safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData, renderHintWithLinks, getYouTubeEmbedUrl
 } from "./utils";
 
 function App() {
@@ -99,8 +100,61 @@ function App() {
     saveSettings(updated);
   }, [sortOrder]);
 
+    useEffect(() => {
+    const unlisten = listen<string>("mobile_action", (event) => {
+      const data = safeParseJSON(event.payload, null);
+      if (data?.action === "SET_GUIDE_PROGRESS" && data.blockId) {
+        setAllGuides(prev => {
+          const appId = selectedAppIdRef.current;
+          const safeGuide = prev[appId];
+          if (!safeGuide) return prev;
+          
+          const updated = { ...safeGuide, currentProgressBlockId: data.blockId };
+          invoke("save_guides", { data: JSON.stringify({...prev, [appId]: updated}) }).catch(console.error);
+          return { ...prev, [appId]: updated };
+        });
+      } else if (data?.action === "TOGGLE_CHECKLIST_ITEM" && data.checklistId && data.itemId) {
+        handleToggleChecklistItem(data.checklistId, data.itemId);
+      }
+    });
+
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
+
+    const handleToggleChecklistItem = (checklistId: string, itemId: string) => {
+    const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
+    if (!gameProgress[checklistId]) gameProgress[checklistId] = {};
+    gameProgress[checklistId][itemId] = !gameProgress[checklistId][itemId];
+    
+    const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
+    setChecklistProgress(updatedProgress);
+    invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
+
+    setAllChecklists(prev => {
+      const currentLists = prev[selectedAppId] || [];
+      return {
+        ...prev,
+        [selectedAppId]: currentLists.map(c => c.id === checklistId ? {
+          ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
+        } : c)
+      };
+    });
+  };
+
+    const handleSetGuideProgress = (blockId: string) => {
+    setAllGuides(prev => {
+      const safeGuide = prev[selectedAppId];
+      if (!safeGuide) return prev;
+      const updated = { ...safeGuide, currentProgressBlockId: blockId };
+      invoke("save_guides", { data: JSON.stringify({...prev, [selectedAppId]: updated}) }).catch(console.error);
+      return { ...prev, [selectedAppId]: updated };
+    });
+  };
+
   const [guidedMode, setGuidedMode] = useState(false);
   const [isMiniMode, setIsMiniMode] = useState(false);
+  const [miniTab, setMiniTab] = useState<"ACH" | "CL" | "GUIDE">("ACH");
+  const [expandedMiniVideoId, setExpandedMiniVideoId] = useState<string | null>(null);
   const [sessionUnlocks, setSessionUnlocks] = useState<{ time: string; ach: MergedAchievement }[]>([]);
   const [librarySort, setLibrarySort] = useState<LibrarySortOrder>("LAST_PLAYED");
   const [libraryFilter, setLibraryFilter] = useState<LibraryFilter>("ALL");
@@ -1776,9 +1830,18 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
 
 useEffect(() => {
     if (appState === "PLAYING" && isCompanionOpen) {
-    const broadcastState = () => {
+const broadcastState = () => {
         const gameInfo = gameHistory[selectedAppId] || null;
         const hiddenHintsForGame = settings.hiddenHints[selectedAppId] || [];
+        
+        let resolvedBanner = gameInfo?.raImageIcon || null;
+        if (gameInfo) {
+          if (gameInfo.platform === "STEAM") {
+            resolvedBanner = resolvedBanner || `https://cdn.akamai.steamstatic.com/steam/apps/${selectedAppId}/header.jpg`;
+          } else if (gameInfo.platform === "RA" && resolvedBanner && !resolvedBanner.startsWith("http")) {
+            resolvedBanner = `https://media.retroachievements.org${resolvedBanner}`;
+          }
+        }
         
         const trackedDetails = currentGameTracked.map(id => {
           const ach = achievements.find(a => a.apiname === id);
@@ -1804,14 +1867,27 @@ useEffect(() => {
           icon: u.ach.icon
         }));
 
+        const lightAchs: Record<string, any> = {};
+        achievements.forEach(a => {
+          lightAchs[a.apiname] = { 
+            name: a.display_name, 
+            icon: a.unlocked ? a.icon : a.icongray, 
+            unlocked: a.unlocked, 
+            desc: a.description 
+          };
+        });
+
         const payload = JSON.stringify({
           gameName: gameName,
           unlocked: unlockedAch,
           total: totalAch,
           platform: gameInfo?.platform || "STEAM",
-          banner: gameInfo?.raImageIcon || null,
+          banner: resolvedBanner,
           tracked: trackedDetails,
-          recent: recentDetails
+          recent: recentDetails,
+          checklists: allChecklists[selectedAppId] || [],
+          guide: allGuides[selectedAppId] || null,
+          guideAchs: lightAchs
         });
         
         invoke("broadcast_to_phone", { data: payload }).catch(console.error);
@@ -1822,7 +1898,7 @@ useEffect(() => {
       const syncInterval = setInterval(broadcastState, 2000);
       return () => clearInterval(syncInterval);
     }
-  }, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId]);
+}, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId, allGuides, allChecklists]); 
 
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
   if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
@@ -1963,34 +2039,207 @@ useEffect(() => {
              <div className="progress-text" style={{ fontSize: "0.8rem" }}>{unlockedAch}/{totalAch}</div>
           </div>
           <div className="progress-bar-track mini-track"><div className="progress-bar-fill" style={{ width: totalAch > 0 ? `${(unlockedAch / totalAch) * 100}%` : "0%" }} /></div>
-          <div className="mini-ach-list">
-             {filteredAchievements.filter(a => currentGameTracked.includes(a.apiname)).map(ach => {
-               const isHintHidden = hiddenHintsForGame.includes(ach.apiname);
-               return (
-                 <div key={ach.apiname} className={`achievement-card mini-card ${ach.unlocked ? "unlocked" : ""}`}>
-                    <img src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon mini-icon" style={{ alignSelf: "flex-start" }} />
-                    <div className="card-header-content" style={{ paddingRight: "20px" }}>
-                      <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""}`} style={{ fontSize: "0.85rem", marginBottom: "4px" }}>
-                        {ach.display_name}
-                      </h3>
-                      <p className="ach-desc" style={{ fontSize: "0.75rem", lineHeight: "1.3" }}>
-                        {ach.description}
-                      </p>
-                      {ach.hint && !isHintHidden && (
-                        <div className="hint-box" style={{ padding: "6px", fontSize: "0.75rem", marginTop: "6px", marginBottom: "2px" }}>
-                          <span className="hint-label">💡 </span>
-                          <span style={ach.is_spoiler ? { filter: "blur(3px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(3px)" }}>
-                            {ach.hint}
-                          </span>
+          
+          <div className="mini-content-area">
+             {miniTab === "ACH" && (
+               <>
+                 {filteredAchievements.filter(a => currentGameTracked.includes(a.apiname)).map(ach => {
+                   const isHintHidden = hiddenHintsForGame.includes(ach.apiname);
+                   return (
+                     <div key={ach.apiname} className={`achievement-card mini-card ${ach.unlocked ? "unlocked" : ""}`}>
+                        <img src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon mini-icon" style={{ alignSelf: "flex-start" }} />
+                        <div className="card-header-content">
+                          <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""}`} style={{ fontSize: "0.85rem", marginBottom: "4px" }}>
+                            {ach.display_name}
+                          </h3>
+                          <p className="ach-desc" style={{ fontSize: "0.75rem", lineHeight: "1.3" }}>
+                            {ach.description}
+                          </p>
+                          {ach.hint && !isHintHidden && (
+                            <div className="hint-box" style={{ padding: "6px", fontSize: "0.75rem", marginTop: "6px", marginBottom: "2px" }}>
+                              <span className="hint-label">💡 </span>
+                              <span style={ach.is_spoiler ? { filter: "blur(3px)", cursor: "pointer" } : {}} onMouseOver={e => e.currentTarget.style.filter = "none"} onMouseOut={e => { if (ach.is_spoiler) e.currentTarget.style.filter = "blur(3px)" }}>
+                                {ach.hint}
+                              </span>
+                            </div>
+                          )}
+                          <button className={`track-btn ${currentGameTracked.includes(ach.apiname) ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname)} style={{ position: "absolute", top: 4, right: 4, padding: 2 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
                         </div>
-                      )}
-                      <button className={`track-btn ${currentGameTracked.includes(ach.apiname) ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname)} style={{ position: "absolute", top: 4, right: 4, padding: 2 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
-                    </div>
-                 </div>
-               );
-             })}
-             {trackedAchCount === 0 && <p className="empty-state" style={{ fontSize: "0.8rem" }}>No achievements tracked.</p>}
+                     </div>
+                   );
+                 })}
+                 {trackedAchCount === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No achievements tracked.</p>}
+               </>
+             )}
+
+{miniTab === "CL" && (
+               <>
+                 {(allChecklists[selectedAppId] || []).length === 0 ? (
+                   <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No checklists available.</p>
+                 ) : (
+                   allChecklists[selectedAppId].map(list => (
+                     <div key={list.id}>
+                        <h4 style={{ fontSize: "0.95rem", color: "var(--accent-green)", margin: "0 0 8px", borderBottom: "1px solid var(--border-color)", paddingBottom: "4px" }}>{list.title}</h4>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                        {list.items.map(item => {
+                           const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
+                           const isVideoOpen = expandedMiniVideoId === item.id;
+                           
+                           return (
+                             <div key={item.id} className={`achievement-card mini-card ${item.completed ? "unlocked" : ""}`} style={{ alignItems: "flex-start", paddingRight: "12px" }}>
+                               
+                               <div onClick={() => handleToggleChecklistItem(list.id, item.id)} style={{ cursor: "pointer", fontSize: "1.1rem", flexShrink: 0, marginTop: "2px" }}>
+                                 {item.completed ? "✅" : "⬜"}
+                               </div>
+                               
+                               {item.imageUrl && (
+                                 <img src={item.imageUrl} className="ach-icon mini-icon" style={{ width: 44, height: 44, objectFit: "cover", cursor: "pointer" }} onClick={() => handleToggleChecklistItem(list.id, item.id)} />
+                               )}
+                               
+                               <div className="card-header-content" style={{ paddingRight: 0 }}>
+                                 <h3 className="ach-title" style={{ fontSize: "0.85rem", marginBottom: "2px", cursor: "pointer", display: "inline-block" }} onClick={() => handleToggleChecklistItem(list.id, item.id)}>
+                                   {item.name}
+                                 </h3>
+                                 
+                                 {item.location && <p className="ach-desc" style={{ color: "var(--accent-yellow)", fontSize: "0.75rem", marginBottom: "2px" }}>📍 {item.location}</p>}
+                                 
+                                 {item.desc && (
+                                   <p className="ach-desc" style={{ fontSize: "0.75rem", lineHeight: "1.35", marginTop: "4px" }}>
+                                     {renderHintWithLinks(item.desc)}
+                                   </p>
+                                 )}
+
+                                 {item.videoUrl && (
+                                   <div style={{ marginTop: "8px" }}>
+                                     <button 
+                                       className="btn-small" 
+                                       style={{ fontSize: "0.7rem", padding: "4px 8px" }}
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         setExpandedMiniVideoId(isVideoOpen ? null : item.id);
+                                       }}
+                                     >
+                                       {isVideoOpen ? t("cl.hide_video") : t("cl.watch_video")}
+                                     </button>
+
+                                     {isVideoOpen && (
+                                       embedUrl ? (
+                                         <div className="video-wrapper" style={{ marginTop: "8px" }}>
+                                           <iframe src={embedUrl} title="Video" frameBorder="0" allowFullScreen></iframe>
+                                         </div>
+                                       ) : (
+                                         <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "6px" }}>
+                                           {t("cl.cant_embed")}{" "}
+                                           <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); if (item.videoUrl) open(item.videoUrl); }}>{t("cl.open_externally")}</a>.
+                                         </p>
+                                       )
+                                     )}
+                                   </div>
+                                 )}
+                                 
+                               </div>
+                             </div>
+                           );
+                        })}
+                        </div>
+                     </div>
+                   ))
+                 )}
+               </>
+             )}
+
+             {miniTab === "GUIDE" && (
+               (() => {
+                 const guide = allGuides[selectedAppId];
+                 if (!guide || !guide.playthroughs || guide.playthroughs.length === 0) {
+                   return <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No guides available.</p>;
+                 }
+                 const activePt = guide.playthroughs.find(p => p.id === guide.activePlaythroughId) || guide.playthroughs[0];
+                 
+                 return (
+                   <div style={{ paddingBottom: "12px" }}>
+                     <div style={{ background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", marginBottom: "16px" }}>
+                       <h3 style={{ fontSize: "0.85rem", marginTop: 0, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "6px" }}>Table of Contents</h3>
+                       {activePt.indexes.map((idx, i) => (
+                          <a key={idx.id} href={`#mini-index-${idx.id}`} style={{ display: "block", color: "var(--accent-green)", padding: "4px 0", fontSize: "0.85rem", borderBottom: "1px solid rgba(255,255,255,0.05)", textDecoration: "none" }}>{i + 1}. {idx.title}</a>
+                       ))}
+                     </div>
+
+                     {activePt.indexes.map((idx, i) => (
+                        <div key={idx.id} id={`mini-index-${idx.id}`} style={{ marginBottom: "24px" }}>
+                          <h2 style={{ fontSize: "1.1rem", color: "var(--accent-yellow)", marginBottom: "10px" }}>{i + 1}. {idx.title}</h2>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                            {idx.blocks.map(block => {
+                               const isCurrent = guide.currentProgressBlockId === block.id;
+                               return (
+                                 <div key={block.id} className={`guided-block ${isCurrent ? "is-current" : ""}`} style={{ padding: "12px", minHeight: "auto" }}>
+                                   <button 
+                                     className="guided-set-progress-btn" 
+                                     style={{ top: "6px", right: "6px", padding: "2px 6px", fontSize: "0.65rem" }}
+                                     onClick={() => handleSetGuideProgress(block.id)}
+                                   >
+                                     {isCurrent ? "You are here" : "Set Progress"}
+                                   </button>
+                                   <div style={{ marginTop: "18px" }}>
+                                      {block.type === "text" && <div style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{block.content}</div>}
+                                      {block.type === "media" && (
+                                        <img src={block.content} style={{ maxWidth: "100%", borderRadius: "6px", border: "1px solid var(--border-color)" }} alt="" />
+                                      )}
+                                      {block.type === "achievement" && (() => {
+                                        const ach = achievements.find(a => a.apiname === block.content);
+                                        if (!ach) return <div style={{ color: "var(--accent-red)", fontStyle: "italic", fontSize: "0.8rem" }}>Achievement not found</div>;
+                                        return (
+                                          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                            <img src={ach.unlocked ? ach.icon : ach.icongray} style={{ width: 32, height: 32, borderRadius: "4px" }} alt=""/>
+                                            <div style={{ minWidth: 0 }}>
+                                              <strong style={{ fontSize: "0.85rem", color: ach.unlocked ? "var(--accent-green)" : "var(--text-main)" }}>{ach.display_name} {ach.unlocked ? "✅" : "🔒"}</strong>
+                                              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ach.description}</div>
+                                            </div>
+                                          </div>
+                                        )
+                                      })()}
+                                      {block.type === "checklist" && (() => {
+                                        let foundItem: any = null;
+                                        for (const cl of (allChecklists[selectedAppId] || [])) {
+                                          foundItem = cl.items.find(i => i.id === block.content);
+                                          if (foundItem) break;
+                                        }
+                                        if (!foundItem) return <div style={{ color: "var(--accent-red)", fontStyle: "italic", fontSize: "0.8rem" }}>Item not found</div>;
+                                        return (
+                                          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                                            <span>{foundItem.completed ? "✅" : "⬜"}</span>
+                                            {foundItem.imageUrl && <img src={foundItem.imageUrl} style={{ width: 24, height: 24, borderRadius: "4px", objectFit: "cover" }} alt=""/>}
+                                            <strong style={{ fontSize: "0.85rem", color: foundItem.completed ? "var(--accent-green)" : "var(--text-main)" }}>{foundItem.name}</strong>
+                                          </div>
+                                        )
+                                      })()}
+                                   </div>
+                                 </div>
+                               )
+                            })}
+                          </div>
+                        </div>
+                     ))}
+                   </div>
+                 )
+               })()
+             )}
           </div>
+
+          <nav className="mini-bottom-nav">
+            <button className={`mini-nav-btn ${miniTab === "ACH" ? "active" : ""}`} onClick={() => setMiniTab("ACH")}>
+              <svg viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+              Achs
+            </button>
+            <button className={`mini-nav-btn ${miniTab === "CL" ? "active" : ""}`} onClick={() => setMiniTab("CL")}>
+              <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Lists
+            </button>
+            <button className={`mini-nav-btn ${miniTab === "GUIDE" ? "active" : ""}`} onClick={() => setMiniTab("GUIDE")}>
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Guides
+            </button>
+          </nav>
         </div>
       ) : (
         <div className="tracking-screen">

@@ -6,7 +6,7 @@
   <title>Achievement Companion</title>
   <style>
     /* ============================================================
-       MOBILE THEME
+       MOBILE THEME (mobile UI)
        ============================================================ */
     :root {
       --bg-color: #18181b;
@@ -50,7 +50,70 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    #app { display: none; padding-bottom: 40px; }
+    #app { 
+      display: none; 
+      padding-bottom: 80px;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      z-index: 100;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      flex: 1;
+      transition: color 0.2s;
+    }
+    .nav-btn.active { color: var(--accent-green); }
+    .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+    .cl-category { font-size: 1.1rem; color: var(--accent-green); margin: 16px 0 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+    .guide-select { width: 100%; padding: 10px; border-radius: var(--radius-sm); background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); margin-bottom: 16px; font-size: 1rem; }
+    
+    .guide-toc { background: rgba(0,0,0,0.2); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 24px; }
+    .guide-toc h3 { font-size: 0.9rem; margin-top: 0; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .guide-toc a { display: block; color: var(--accent-green); text-decoration: none; padding: 6px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .guide-toc a:last-child { border-bottom: none; }
+
+    .guide-chapter { margin-bottom: 30px; }
+    .guide-chapter h2 { font-size: 1.2rem; color: var(--accent-yellow); margin-bottom: 12px; }
+    .guide-blocks { display: flex; flex-direction: column; gap: 12px; }
+    .guide-text { font-size: 0.9rem; line-height: 1.5; }
+    .guide-media { max-width: 100%; border-radius: 6px; margin-top: 8px; border: 1px solid rgba(0,0,0,0.5); }
+    
+    .guide-missing { color: var(--accent-red); font-style: italic; font-size: 0.85rem; }
+    .guide-block { position: relative; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; transition: border-color 0.2s, transform 0.2s; }
+    .guide-block.is-current { border-color: var(--accent-yellow); box-shadow: 0 0 12px rgba(245, 158, 11, 0.15); transform: translateX(4px); }
+    .guided-set-progress-btn {
+      position: absolute; top: 10px; right: 10px; font-size: 0.7rem; font-weight: 700;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);
+      color: var(--text-muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .guided-set-progress-btn:active { background: rgba(245, 158, 11, 0.1); color: var(--accent-yellow); border-color: var(--accent-yellow); }
+    .guide-block.is-current .guided-set-progress-btn { background: var(--accent-yellow); color: #000; border-color: var(--accent-yellow); }
 
     .hero-card {
       background: var(--card-bg);
@@ -241,21 +304,17 @@
 </head>
 <body>
 
-  <!-- Loading State -->
   <div id="loading">
     <div class="spinner"></div>
     <p>Waiting for PC connection...<br><span style="font-size: 0.75rem; opacity: 0.6;">Launch a game to start syncing</span></p>
   </div>
 
-  <!-- Main App State -->
   <div id="app">
-    <!-- Hero Card -->
     <div class="hero-card">
       <div id="hero-banner" class="hero-banner"></div>
       <div class="hero-content">
         <div id="hero-platform" class="platform-tag">STEAM</div>
         <h1 id="hero-title">Loading Game...</h1>
-        
         <div class="progress-stats">
           <span id="hero-counts">0 / 0 Achievements</span>
           <span id="hero-pct">0%</span>
@@ -266,19 +325,45 @@
       </div>
     </div>
 
-    <!-- Recent Unlocks -->
-    <div id="recent-container" style="display: none;">
-      <div class="section-title">⏱ Recent Unlocks</div>
-      <div id="recent-list" class="ach-list"></div>
+    <div id="tab-ach" class="tab-content active">
+      <div id="recent-container" style="display: none;">
+        <div class="section-title">⏱ Recent Unlocks</div>
+        <div id="recent-list" class="ach-list"></div>
+      </div>
+      <div class="section-title">📌 Tracked Achievements</div>
+      <div id="tracked-list" class="ach-list"></div>
     </div>
 
-    <!-- Tracked Achievements -->
-    <div class="section-title">📌 Tracked Achievements</div>
-    <div id="tracked-list" class="ach-list"></div>
+    <div id="tab-cl" class="tab-content">
+      <div class="section-title">☑ Checklists</div>
+      <div id="cl-list" class="ach-list"></div>
+    </div>
+
+    <div id="tab-guides" class="tab-content">
+      <div class="section-title">📚 Guides</div>
+      <div id="guide-selector-container"></div>
+      <div id="guide-content-container"></div>
+    </div>
+
   </div>
 
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="tab-ach">
+      <svg viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+      Achs
+    </button>
+    <button class="nav-btn" data-tab="tab-cl">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Lists
+    </button>
+    <button class="nav-btn" data-tab="tab-guides">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      Guides
+    </button>
+  </nav>
+
   <script>
-    const elLoading = document.getElementById('loading');
+const elLoading = document.getElementById('loading');
     const elApp = document.getElementById('app');
     const elBanner = document.getElementById('hero-banner');
     const elTitle = document.getElementById('hero-title');
@@ -290,17 +375,240 @@
     const elRecentList = document.getElementById('recent-list');
     const elRecentContainer = document.getElementById('recent-container');
 
-    function formatText(text) {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        
+        const target = e.currentTarget;
+        target.classList.add('active');
+        document.getElementById(target.dataset.tab).classList.add('active');
+        window.scrollTo(0, 0);
+      });
+    });
+
+function formatText(text) {
       if (!text) return '';
       let safeText = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const urlRegex = /(https?:\/\/[^\s]+)/g;
-      safeText = safeText.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+      safeText = safeText.replace(urlRegex, '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
       return safeText.replace(/\n/g, '<br/>');
+    }
+
+    function getYouTubeEmbed(url) {
+      const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+      return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+    }
+
+    let localSelectedGuideId = null; 
+    let lastGuideSelectorHash = "";
+    let lastGuideContentHTML = "";
+    let lastChecklistHTML = "";
+    let lastTrackedHTML = "";
+    let lastRecentHTML = "";
+    let latestChecklists = [];
+    let expandedMobileVideoId = null;
+    let wsConnection = null;
+
+    window.toggleMobileVideo = function(e, itemId) {
+      e.stopPropagation();
+      expandedMobileVideoId = (expandedMobileVideoId === itemId) ? null : itemId;
+      lastChecklistHTML = "";
+      renderChecklists(latestChecklists);
+    };
+
+    window.sendSetProgress = function(blockId) {
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        wsConnection.send(JSON.stringify({ action: "SET_GUIDE_PROGRESS", blockId }));
+      }
+    };
+
+function renderChecklists(checklists) {
+      latestChecklists = checklists;
+      const elClList = document.getElementById('cl-list');
+      
+      if (!checklists || checklists.length === 0) {
+        if (lastChecklistHTML !== 'empty') {
+          elClList.innerHTML = `<div class="empty-state">No checklists found for this game.</div>`;
+          lastChecklistHTML = 'empty';
+        }
+        return;
+      }
+
+      let html = '';
+      checklists.forEach(list => {
+        html += `<h2 class="cl-category">${list.title}</h2>`;
+        list.items.forEach(item => {
+          const isVideoOpen = expandedMobileVideoId === item.id;
+          const embedUrl = item.videoUrl ? getYouTubeEmbed(item.videoUrl) : null;
+
+          html += `
+            <div class="ach-card ${item.completed ? 'unlocked' : ''}" style="gap: 10px; align-items: flex-start; cursor: pointer;" onclick="sendToggleChecklist('${list.id}', '${item.id}')">
+              <div style="font-size: 1.2rem; flex-shrink: 0; margin-top: 2px;">${item.completed ? '✅' : '⬜'}</div>
+              ${item.imageUrl ? `<img src="${item.imageUrl}" class="ach-icon" style="width:44px; height:44px; object-fit:cover;"/>` : ''}
+              <div class="ach-info">
+                <div class="ach-title" style="font-size: 0.9rem; margin-bottom: 2px;">${item.name}</div>
+                ${item.location ? `<div class="ach-desc" style="color:var(--accent-yellow); font-size:0.75rem; margin-bottom: 2px;">📍 ${item.location}</div>` : ''}
+                ${item.desc ? `<div class="ach-desc" style="font-size:0.75rem; line-height: 1.35; margin-top: 4px;">${formatText(item.desc)}</div>` : ''}
+                
+                ${item.videoUrl ? `
+                  <div style="margin-top: 8px;">
+                    <button class="video-btn" style="margin-top: 0; padding: 4px 8px; font-size: 0.7rem;" onclick="toggleMobileVideo(event, '${item.id}')">
+                      ${isVideoOpen ? 'Hide Video' : '▶ Watch Video'}
+                    </button>
+                    ${isVideoOpen ? `
+                      ${embedUrl ? `
+                        <div class="video-wrapper" style="margin-top: 8px; position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 6px; border: 1px solid var(--border-color); background: #000;">
+                          <iframe src="${embedUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                      ` : `
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                          Can't embed this link — <a href="${item.videoUrl}" target="_blank" onclick="event.stopPropagation()">open externally</a>.
+                        </div>
+                      `}
+                    ` : ''}
+                  </div>
+                ` : ''}
+              </div>
+            </div>`;
+        });
+      });
+      
+      if (html !== lastChecklistHTML) {
+        elClList.innerHTML = html;
+        lastChecklistHTML = html;
+      }
+    }
+
+    window.sendToggleChecklist = function(checklistId, itemId) {
+      if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+        wsConnection.send(JSON.stringify({ action: "TOGGLE_CHECKLIST_ITEM", checklistId, itemId }));
+      }
+    };
+
+    function renderGuide(guideData, guideAchs, checklists) {
+      const elSelector = document.getElementById('guide-selector-container');
+      const elContent = document.getElementById('guide-content-container');
+
+      if (!guideData || !guideData.playthroughs || guideData.playthroughs.length === 0) {
+        elSelector.innerHTML = '';
+        if (lastGuideContentHTML !== 'empty') {
+          elContent.innerHTML = `<div class="empty-state">No community guides available.</div>`;
+          lastGuideContentHTML = 'empty';
+        }
+        lastGuideSelectorHash = "";
+        return;
+      }
+
+      const activeId = localSelectedGuideId || guideData.activePlaythroughId || guideData.playthroughs[0].id;
+      const activePlaythrough = guideData.playthroughs.find(p => p.id === activeId) || guideData.playthroughs[0];
+
+      const currentSelectorHash = JSON.stringify(guideData.playthroughs.map(p => p.id + p.name));
+      if (currentSelectorHash !== lastGuideSelectorHash) {
+        lastGuideSelectorHash = currentSelectorHash;
+        
+        let selHtml = '';
+        if (guideData.playthroughs.length > 1) {
+          selHtml += `<select id="mobile-guide-select" class="guide-select">`;
+          guideData.playthroughs.forEach(p => {
+            selHtml += `<option value="${p.id}" ${p.id === activePlaythrough.id ? 'selected' : ''}>${p.name} ${p.author ? `(by ${p.author})` : ''}</option>`;
+          });
+          selHtml += `</select>`;
+        } else {
+          selHtml += `<div style="font-weight:bold; margin-bottom: 16px; color: var(--accent-green);">${activePlaythrough.name}</div>`;
+        }
+        elSelector.innerHTML = selHtml;
+
+        const selectEl = document.getElementById('mobile-guide-select');
+        if (selectEl) {
+          selectEl.addEventListener('change', (e) => {
+            localSelectedGuideId = e.target.value;
+            lastGuideContentHTML = "";
+            renderGuide(guideData, guideAchs, checklists);
+          });
+        }
+      }
+
+      let contentHtml = '';
+      
+      contentHtml += `<div class="guide-toc"><h3>Table of Contents</h3>`;
+      activePlaythrough.indexes.forEach((idx, i) => {
+        contentHtml += `<a href="#mobile-index-${idx.id}">${i + 1}. ${idx.title}</a>`;
+      });
+      contentHtml += `</div>`;
+
+      activePlaythrough.indexes.forEach((idx, i) => {
+        contentHtml += `
+          <div id="mobile-index-${idx.id}" class="guide-chapter">
+            <h2>${i + 1}. ${idx.title}</h2>
+            <div class="guide-blocks">
+        `;
+        
+        idx.blocks.forEach(block => {
+          const isCurrent = guideData.currentProgressBlockId === block.id;
+          
+          contentHtml += `
+            <div class="guide-block ${isCurrent ? 'is-current' : ''}">
+              <button class="guided-set-progress-btn" onclick="sendSetProgress('${block.id}')">
+                ${isCurrent ? 'You are here' : 'Set Progress'}
+              </button>
+              <div style="margin-top: 24px;">
+          `;
+          
+          if (block.type === 'text') {
+            contentHtml += `<div class="guide-text">${formatText(block.content)}</div>`;
+          } else if (block.type === 'media') {
+            const yt = getYouTubeEmbed(block.content);
+            if (yt) {
+              contentHtml += `<iframe src="${yt}" class="guide-media" style="width:100%; height:200px; border:none;" allowfullscreen></iframe>`;
+            } else {
+              contentHtml += `<img src="${block.content}" class="guide-media" />`;
+            }
+          } else if (block.type === 'achievement') {
+            const ach = guideAchs[block.content];
+            if (ach) {
+              contentHtml += `
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <img src="${ach.icon}" style="width:36px; border-radius:4px;" />
+                  <div>
+                    <strong style="color: ${ach.unlocked ? 'var(--accent-green)' : 'var(--text-main)'}">${ach.name} ${ach.unlocked ? '✅' : '🔒'}</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${ach.desc}</div>
+                  </div>
+                </div>`;
+            } else {
+              contentHtml += `<div class="guide-missing">Achievement ID: ${block.content}</div>`;
+            }
+          } else if (block.type === 'checklist') {
+            let clItem = null;
+            for (let list of checklists) {
+              clItem = list.items.find(item => item.id === block.content);
+              if (clItem) break;
+            }
+            if (clItem) {
+              contentHtml += `
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <span>${clItem.completed ? '✅' : '⬜'}</span>
+                  ${clItem.imageUrl ? `<img src="${clItem.imageUrl}" style="width:24px; height:24px; border-radius:4px; object-fit:cover;" />` : ''}
+                  <strong style="color: ${clItem.completed ? 'var(--accent-green)' : 'var(--text-main)'}">${clItem.name}</strong>
+                </div>`;
+            } else {
+              contentHtml += `<div class="guide-missing">Checklist item not found</div>`;
+            }
+          }
+          contentHtml += `</div></div>`;
+        });
+        contentHtml += `</div></div>`;
+      });
+
+      if (contentHtml !== lastGuideContentHTML) {
+        elContent.innerHTML = contentHtml;
+        lastGuideContentHTML = contentHtml;
+      }
     }
 
     function connect() {
       const ws = new WebSocket(`ws://${window.location.host}/ws`);
-      
+      wsConnection = ws;
       ws.onmessage = (event) => {
         elLoading.style.display = 'none';
         elApp.style.display = 'block';
@@ -320,8 +628,9 @@
         elPct.textContent = `${pct}%`;
         elFill.style.width = `${pct}%`;
 
+        let trackedHtml = '';
         if (data.tracked && data.tracked.length > 0) {
-          elTrackedList.innerHTML = data.tracked.map(ach => `
+          trackedHtml = data.tracked.map(ach => `
             <div class="ach-card ${ach.unlocked ? 'unlocked' : ''}">
               <img src="${ach.icon}" class="ach-icon" />
               <div class="ach-info">
@@ -349,16 +658,21 @@
             </div>
           `).join('');
         } else {
-          elTrackedList.innerHTML = `
+          trackedHtml = `
             <div class="empty-state">
               You aren't tracking any achievements for this game.<br>
               <span style="opacity: 0.6; font-size: 0.75rem;">Click the flag icon on your PC to track them here.</span>
             </div>`;
         }
+        
+        if (trackedHtml !== lastTrackedHTML) {
+          elTrackedList.innerHTML = trackedHtml;
+          lastTrackedHTML = trackedHtml;
+        }
 
         if (data.recent && data.recent.length > 0) {
           elRecentContainer.style.display = 'block';
-          elRecentList.innerHTML = data.recent.map(unl => `
+          let recentHtml = data.recent.map(unl => `
             <div class="recent-card">
               <img src="${unl.icon}" />
               <div style="min-width:0;">
@@ -367,9 +681,17 @@
               </div>
             </div>
           `).join('');
+          
+          if (recentHtml !== lastRecentHTML) {
+            elRecentList.innerHTML = recentHtml;
+            lastRecentHTML = recentHtml;
+          }
         } else {
           elRecentContainer.style.display = 'none';
         }
+
+        renderChecklists(data.checklists || []);
+        renderGuide(data.guide, data.guideAchs || {}, data.checklists || []);
       };
 
       ws.onclose = () => {

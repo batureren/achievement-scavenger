@@ -1281,6 +1281,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   height: calc(100vh - var(--menu-height));
   display: flex;
   flex-direction: column;
+  position: relative;
+  padding-bottom: 64px;
 }
 
 .mini-header {
@@ -1293,31 +1295,76 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   height: 6px;
 }
 
-.mini-ach-list {
+.mini-content-area {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   padding-right: 4px;
 }
 
 .mini-card {
-  padding: 8px;
+  padding: 10px 12px;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: max-content;
 }
 
 .mini-card .card-header-content {
   margin: 0;
-  padding-right: 20px;
+  padding-right: 28px;
+  padding-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.mini-card .track-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  padding: 4px;
 }
 
 .mini-icon {
-  width: calc(32px * var(--ui-scale));
-  height: calc(32px * var(--ui-scale));
-  margin-right: calc(10px * var(--ui-scale));
+  width: calc(44px * var(--ui-scale));
+  height: calc(44px * var(--ui-scale));
+  margin: 0;
+  flex-shrink: 0;
 }
+
+.mini-bottom-nav {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  z-index: 100;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+}
+
+.mini-nav-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  flex: 1;
+  transition: color 0.2s;
+}
+
+.mini-nav-btn.active { color: var(--accent-green); }
+.mini-nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
 
 /* ============================================================
    ACCORDION
@@ -2272,11 +2319,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 
   .links-row {
     grid-template-columns: 1fr;
-  }
-
-  .tracking-header {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .header-right {
