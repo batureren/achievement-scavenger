@@ -115,6 +115,15 @@
     .guided-set-progress-btn:active { background: rgba(245, 158, 11, 0.1); color: var(--accent-yellow); border-color: var(--accent-yellow); }
     .guide-block.is-current .guided-set-progress-btn { background: var(--accent-yellow); color: #000; border-color: var(--accent-yellow); }
 
+    .guide-text h1 { font-size: 1.5rem; color: var(--text-main); margin: 14px 0 6px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+    .guide-text h2 { font-size: 1.3rem; color: var(--text-main); margin: 12px 0 6px; }
+    .guide-text h3 { font-size: 1.1rem; color: var(--accent-green); margin: 10px 0 4px; }
+    .guide-text h4 { font-size: 1rem; color: var(--accent-yellow); margin: 8px 0 4px; }
+    .guide-text ul, .guide-text ol { margin: 6px 0 6px 24px; color: var(--text-muted); }
+    .guide-text li { margin-bottom: 4px; }
+    .guide-text strong { color: var(--text-main); }
+    .guide-text u { text-decoration-color: var(--accent-green); text-underline-offset: 2px;}
+
     .hero-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -395,6 +404,34 @@ function formatText(text) {
       return safeText.replace(/\n/g, '<br/>');
     }
 
+    function parseMarkdown(text) {
+      if (!text) return '';
+      let html = text
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^##### (.*$)/gim, '<h5>$1</h5>')
+        .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/__(.*?)__/g, '<u>$1</u>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent-green);text-decoration:underline;" onclick="event.stopPropagation()">$1</a>');
+
+      html = html.replace(/^\s*-\s+(.*$)/gim, '<ul><li>$1</li></ul>');
+      html = html.replace(/<\/ul>\n?<ul>/gim, '');
+      html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<ol><li>$1</li></ol>');
+      html = html.replace(/<\/ol>\n?<ol>/gim, '');
+
+      const urlRegex = /(?<!href=")(https?:\/\/[^\s<]+)(?!<\/a>)/g;
+      html = html.replace(urlRegex, '<a href="$1" target="_blank" style="color:var(--accent-green);text-decoration:underline;" onclick="event.stopPropagation()">$1</a>');
+
+      html = html.replace(/\n/g, '<br/>');
+      html = html.replace(/(<\/?(h1|h2|h3|h4|h5|ul|ol|li)>)<br\/>/g, '$1');
+      html = html.replace(/<br\/>(<\/?(h1|h2|h3|h4|h5|ul|ol|li)>)/g, '$1');
+      return html;
+    }
+
     function getYouTubeEmbed(url) {
       const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
       return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
@@ -556,7 +593,7 @@ function renderChecklists(checklists) {
           `;
           
           if (block.type === 'text') {
-            contentHtml += `<div class="guide-text">${formatText(block.content)}</div>`;
+            contentHtml += `<div class="guide-text">${parseMarkdown(block.content)}</div>`;
           } else if (block.type === 'media') {
             const yt = getYouTubeEmbed(block.content);
             if (yt) {

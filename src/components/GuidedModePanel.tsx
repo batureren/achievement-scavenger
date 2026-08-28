@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import toast from "react-hot-toast";
 import { CustomGuide, GuidePlaythrough, GuideBlock, GuideIndex, MergedAchievement, CustomChecklist, GuideBlockType } from "../types";
-import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
-import { CollapsibleBox } from "./CollapsibleBox";
+import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks, renderMarkdown } from "../utils";import { CollapsibleBox } from "./CollapsibleBox";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 const XIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
@@ -17,6 +16,51 @@ const ChevronDownIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fi
 
 let cachedGuidesList: any[] | null = null;
 let lastGuidesListFetch = 0;
+
+function RichTextEditor({ value, onChange, placeholder }: { value: string, onChange: (v: string) => void, placeholder: string }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const applyFormat = (prefix: string, suffix: string = "") => {
+     const el = textareaRef.current;
+     if(!el) return;
+     const start = el.selectionStart;
+     const end = el.selectionEnd;
+     const before = value.substring(0, start);
+     const selected = value.substring(start, end);
+     const after = value.substring(end);
+     
+     onChange(`${before}${prefix}${selected || (suffix ? "text" : "")}${suffix}${after}`);
+     
+     setTimeout(() => {
+       el.focus();
+       el.setSelectionRange(start + prefix.length, end + prefix.length + (selected ? 0 : (suffix ? 4 : 0)));
+     }, 0);
+  };
+
+  return (
+    <div className="rich-text-container">
+      <div className="rich-text-toolbar">
+        <button type="button" onClick={() => applyFormat("# ", "")}>H1</button>
+        <button type="button" onClick={() => applyFormat("## ", "")}>H2</button>
+        <button type="button" onClick={() => applyFormat("### ", "")}>H3</button>
+        <span className="rich-text-divider"></span>
+        <button type="button" onClick={() => applyFormat("**", "**")}><b>B</b></button>
+        <button type="button" onClick={() => applyFormat("*", "*")}><i>I</i></button>
+        <button type="button" onClick={() => applyFormat("__", "__")}><u>U</u></button>
+        <span className="rich-text-divider"></span>
+        <button type="button" onClick={() => applyFormat("- ", "")}>• List</button>
+        <button type="button" onClick={() => applyFormat("1. ", "")}>1. List</button>
+      </div>
+      <textarea 
+        ref={textareaRef} 
+        className="edit-input edit-textarea rich-text-area" 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        placeholder={placeholder} 
+      />
+    </div>
+  );
+}
 
 interface GuidedModePanelProps {
   appId: string;
@@ -478,7 +522,7 @@ const handleDeletePlaythrough = () => {
       case "text":
         return (
           <CollapsibleBox maxHeight={150}>
-            <p className="guided-text">{renderHintWithLinks(block.content)}</p>
+            <div className="guided-text">{renderMarkdown(block.content)}</div>
           </CollapsibleBox>
         );
       
@@ -715,7 +759,8 @@ const handleDeletePlaythrough = () => {
   <XIcon />
 </button>
                             </div>
-                            {block.type === "text" && <textarea className="edit-input edit-textarea" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder={t("guide.text_placeholder")} />}
+                            {block.type === "text" && <RichTextEditor value={block.content} onChange={val => handleUpdateBlock(index.id, block.id, val)} placeholder={t("guide.text_placeholder")} />}
+                            
                             {block.type === "media" && <input type="url" className="edit-input" value={block.content} onChange={e => handleUpdateBlock(index.id, block.id, e.target.value)} placeholder={t("guide.media_placeholder")} />}
                             {block.type === "achievement" && (
                               <AchievementSearchSelect 

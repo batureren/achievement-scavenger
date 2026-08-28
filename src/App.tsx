@@ -6,7 +6,7 @@ import { open } from "@tauri-apps/plugin-shell";
 import toast, { Toaster } from "react-hot-toast";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import "./css/style.css";
-
+import { renderMarkdown } from "./utils";
 import { useUnlockSound } from "./components/UseUnlockSound";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { PsnReauthModal } from "./components/PsnReauthModal";
@@ -2181,7 +2181,7 @@ const broadcastState = () => {
                                      {isCurrent ? "You are here" : "Set Progress"}
                                    </button>
                                    <div style={{ marginTop: "18px" }}>
-                                      {block.type === "text" && <div style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{block.content}</div>}
+                                      {block.type === "text" && <div className="guided-text" style={{ fontSize: "0.85rem", lineHeight: 1.5 }}>{renderMarkdown(block.content)}</div>}
                                       {block.type === "media" && (
                                         <img src={block.content} style={{ maxWidth: "100%", borderRadius: "6px", border: "1px solid var(--border-color)" }} alt="" />
                                       )}
