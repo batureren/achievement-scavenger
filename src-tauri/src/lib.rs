@@ -411,6 +411,44 @@ fn set_custom_window_size(
 }
 
 #[tauri::command]
+fn get_window_state(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let window = app_handle.get_webview_window("main").ok_or("Window not found")?;
+    let is_maximized = window.is_maximized().unwrap_or(false);
+    let scale = window.scale_factor().unwrap_or(1.0);
+    
+    let size = window.inner_size().map_err(|e| e.to_string())?;
+    let pos = window.outer_position().map_err(|e| e.to_string())?;
+    
+    let logical_w = size.width as f64 / scale;
+    let logical_h = size.height as f64 / scale;
+    let logical_x = pos.x as f64 / scale;
+    let logical_y = pos.y as f64 / scale;
+    
+    let state = serde_json::json!({
+        "x": logical_x,
+        "y": logical_y,
+        "width": logical_w,
+        "height": logical_h,
+        "isMaximized": is_maximized
+    });
+    Ok(state.to_string())
+}
+
+#[tauri::command]
+fn set_window_state(app_handle: tauri::AppHandle, x: f64, y: f64, width: f64, height: f64, is_maximized: bool) -> Result<(), String> {
+    let window = app_handle.get_webview_window("main").ok_or("Window not found")?;
+    
+    if is_maximized {
+        let _ = window.maximize();
+    } else {
+        let _ = window.unmaximize();
+        let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width, height }));
+        let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+    }
+    Ok(())
+}
+
+#[tauri::command]
 fn set_window_mode(app_handle: tauri::AppHandle, mode: String) -> Result<(), String> {
     let window = app_handle
         .get_webview_window("main")
@@ -1345,7 +1383,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

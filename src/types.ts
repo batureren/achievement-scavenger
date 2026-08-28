@@ -39,6 +39,7 @@ export interface AppSettings {
   isMiniMode?: boolean; language: string; overlayStyle?: OverlayStyle;
   enableTransparency?: boolean; runOnStartup?: boolean; discordRPCEnabled?: boolean;
   minimizeToTray?: boolean; companionAutoStart?: boolean; 
+  windowX?: number; windowY?: number; isMaximized?: boolean; gridColumns?: number;
 }
 
 export interface GameHistory {

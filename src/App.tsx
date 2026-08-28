@@ -466,29 +466,46 @@ const handleStartCompanion = async (silent = false) => {
   };
   const handleSaveUiScale = () => { saveSettings({ ...settingsRef.current, uiScale: settings.uiScale }); };
 
-  useEffect(() => {
+useEffect(() => {
     if (appState === "LOADING" || appState === "SETUP") return;
     let debounceTimer: number | undefined;
-    const handleResize = () => {
-      if (settingsRef.current.isMiniMode) return; 
 
-      if (debounceTimer) window.clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(async () => {
-        try {
-          const size = await getCurrentWebviewWindow().innerSize();
-          const scale = await getCurrentWebviewWindow().scaleFactor();
-          const w = Math.round(size.width / scale);
-          const h = Math.round(size.height / scale);
-          
-          if (w > 100 && h > 100) { 
-            const updated = { ...settingsRef.current, windowWidth: w, windowHeight: h };
-            saveSettings(updated);
-          }
-        } catch {}
-      }, 400);
+    const saveState = async () => {
+      if (settingsRef.current.isMiniMode) return; 
+      try {
+        const stateStr = await invoke<string>("get_window_state");
+        const state = JSON.parse(stateStr);
+        if (state.width > 100 && state.height > 100) {
+          const updated = { 
+            ...settingsRef.current, 
+            windowWidth: state.width, 
+            windowHeight: state.height,
+            windowX: state.x,
+            windowY: state.y,
+            isMaximized: state.isMaximized
+          };
+          saveSettings(updated);
+        }
+      } catch (e) {}
     };
-    window.addEventListener("resize", handleResize);
-    return () => { window.removeEventListener("resize", handleResize); if (debounceTimer) window.clearTimeout(debounceTimer); };
+
+    const handleEvent = () => {
+      if (debounceTimer) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(saveState, 400);
+    };
+
+    let unlistenResize: any, unlistenMove: any;
+    
+    getCurrentWebviewWindow().onResized(handleEvent).then(f => unlistenResize = f);
+    getCurrentWebviewWindow().onMoved(handleEvent).then(f => unlistenMove = f);
+    window.addEventListener("resize", handleEvent);
+
+    return () => { 
+      window.removeEventListener("resize", handleEvent); 
+      if (debounceTimer) window.clearTimeout(debounceTimer); 
+      if (unlistenResize) unlistenResize();
+      if (unlistenMove) unlistenMove();
+    };
   }, [appState]);
 
   useEffect(() => {
@@ -508,10 +525,20 @@ const handleStartCompanion = async (silent = false) => {
         
         setIsMiniMode(savedSettings.isMiniMode || false);
 
-        if (savedSettings.isMiniMode) {
+if (savedSettings.isMiniMode) {
           await invoke("set_custom_window_size", { width: 380.0, height: 500.0 }).catch(() => {});
-        } else if (savedSettings.windowWidth && savedSettings.windowHeight) {
-          await invoke("set_custom_window_size", { width: savedSettings.windowWidth, height: savedSettings.windowHeight }).catch(() => {});
+        } else {
+          if (savedSettings.windowWidth && savedSettings.windowHeight && savedSettings.windowX !== undefined && savedSettings.windowY !== undefined) {
+             await invoke("set_window_state", { 
+               x: savedSettings.windowX, 
+               y: savedSettings.windowY, 
+               width: savedSettings.windowWidth, 
+               height: savedSettings.windowHeight, 
+               isMaximized: savedSettings.isMaximized || false 
+             }).catch(() => {});
+          } else if (savedSettings.windowWidth && savedSettings.windowHeight) {
+             await invoke("set_custom_window_size", { width: savedSettings.windowWidth, height: savedSettings.windowHeight }).catch(() => {});
+          }
         }
 
         if (savedSettings.alwaysOnTop) await invoke("set_always_on_top", { value: true }).catch(() => {}); 
@@ -2524,8 +2551,22 @@ const broadcastState = () => {
                   </select>
                 </div>
 
-                <div className="search-sort-bar">
+            <div className="search-sort-bar">
                   <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
+                  <select 
+                    value={settings.gridColumns || 2} 
+                    onChange={e => {
+                        const cols = Number(e.target.value);
+                        saveSettings({...settingsRef.current, gridColumns: cols});
+                    }} 
+                    className="control-select"
+                    title="Grid Columns"
+                  >
+                    <option value={2}>2 Cols</option>
+                    <option value={3}>3 Cols</option>
+                    <option value={4}>4 Cols</option>
+                    <option value={5}>5 Cols</option>
+                  </select>
                   <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)} className="control-select">
                     <option value="DEFAULT">{t("sort.api")}</option>
                     <option value="A_Z">{t("sort.az")}</option>
@@ -2553,7 +2594,7 @@ const broadcastState = () => {
                 </div>
               )}
 
-              <div className="achievement-list">
+              <div className="achievement-list" style={{ '--grid-cols': settings.gridColumns || 2 } as React.CSSProperties}>
                 {filteredAchievements.map((ach) => (
                   <AchievementCard 
                     key={`${ach._appId || selectedAppId}-${ach.apiname}`}
