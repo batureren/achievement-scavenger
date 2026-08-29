@@ -1,7 +1,7 @@
 {
   "name": "achievement-scavenger",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,6 +29,7 @@
     "react-qr-code": "^2.2.0"
   },
   "devDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.63.1",
     "@tauri-apps/cli": "^2",
     "@tauri-apps/cli-linux-x64-gnu": "^2.11.4",
     "@types/babel__generator": "^7.27.0",
