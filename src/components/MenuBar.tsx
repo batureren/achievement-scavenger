@@ -121,9 +121,9 @@ export function MenuBar({
                 value={settings.windowMode || "WINDOWED"} 
                 onChange={e => onSetWindowMode(e.target.value as any)}
               >
-                <option value="WINDOWED">Windowed</option>
-                <option value="BORDERLESS">Borderless Window</option>
-                <option value="FULLSCREEN">Exclusive Fullscreen</option>
+                <option value="WINDOWED">{t("menu.windowMode_windowed")}</option>
+                <option value="BORDERLESS">{t("menu.windowMode_borderless")}</option>
+                <option value="FULLSCREEN">{t("menu.windowMode_fullscreen")}</option>
               </select>
             </div>
 
@@ -168,9 +168,9 @@ export function MenuBar({
 
             <button className="menu-option" onClick={() => { onOpenCompanion(); setOpenMenu(null); }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                <span>Mobile Companion</span>
+                <span>{t("menu.mobileCompanion")}</span>
                 {isCompanionRunning && (
-                  <span className="live-dot" style={{ width: "8px", height: "8px", position: "relative" }} title="Server Online"></span>
+                  <span className="live-dot" style={{ width: "8px", height: "8px", position: "relative" }} title={t("companion.online")}></span>
                 )}
               </div>
             </button>

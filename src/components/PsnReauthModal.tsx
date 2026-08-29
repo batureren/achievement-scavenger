@@ -17,9 +17,10 @@ interface PsnReauthModalProps {
   onClose: () => void;
   onSaved: (psn: PsnCredsLike) => void;
   currentPsn?: PsnCredsLike;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReauthModalProps) {
+export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn, t }: PsnReauthModalProps) {
   const [npsso, setNpsso] = useState("");
   const [error, setError] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -99,22 +100,15 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReau
     }
   };
 
-  if (autoStatus === "trying") {
+if (autoStatus === "trying") {
     return (
       <div className="confirm-dialog-overlay">
-        <div
-          className="confirm-dialog"
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="psn-reauth-title"
-          style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}
-        >
+        <div className="confirm-dialog" style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}>
           <h3 id="psn-reauth-title" className="confirm-dialog-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <PSNIcon size={20} /> Reconnecting to PlayStation Network
+            <PSNIcon size={20} /> {t("psn.reconnect_title")}
           </h3>
           <p className="confirm-dialog-message" style={{ textAlign: "left" }}>
-            Trying to restore your session using your saved credentials — no need to log in again if this works.
+            {t("psn.auto_trying")}
           </p>
         </div>
       </div>
@@ -123,33 +117,22 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReau
 
   return (
     <div className="confirm-dialog-overlay" onClick={onClose}>
-      <div
-        className="confirm-dialog"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="psn-reauth-title"
-        style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}
-      >
+      <div className="confirm-dialog" style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}>
         <h3 id="psn-reauth-title" className="confirm-dialog-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <PSNIcon size={20} /> Reconnect PlayStation Network
+          <PSNIcon size={20} /> {t("psn.reconnect_title")}
         </h3>
         <p className="confirm-dialog-message" style={{ textAlign: "left" }}>
-          {autoStatus === "failed"
-            ? "Your saved session couldn't be restored automatically, so you'll need to reconnect manually. Log in to"
-            : "Your PSN session has expired. Log in to"}{" "}
-          <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
+          {autoStatus === "failed" ? t("psn.auto_failed") : t("psn.manual_desc")}
+          <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }} style={{ color: "var(--accent-green)", textDecoration: "underline", marginLeft: "4px" }}>
             PlayStation.com
-          </a>, then open{" "}
-          <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
-            this link
-          </a>{" "}
-          and copy the <code>npsso</code> value (exactly 64 chars) below.
+          </a>, {t("setup.psn_desc2")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
+            {t("setup.psn_desc_link")}
+          </a>. {t("setup.psn_desc3")}
         </p>
 
         <input
           type="password"
-          placeholder="NPSSO Token..."
+          placeholder={t("psn.placeholder")}
           value={npsso}
           onChange={e => { setNpsso(e.target.value); setError(""); }}
           style={{ padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box", margin: "4px 0 12px 0" }}
@@ -158,14 +141,9 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn }: PsnReau
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: "0 0 12px 0" }}>⚠ {error}</p>}
 
         <div className="confirm-dialog-actions">
-          <button className="confirm-dialog-btn cancel" onClick={onClose}>Cancel</button>
-          <button
-            className="confirm-dialog-btn danger"
-            onClick={handleSave}
-            disabled={isValidating}
-            style={{ backgroundColor: isValidating ? "var(--border-color)" : "var(--accent-green)", color: isValidating ? "var(--text-muted)" : "#000" }}
-          >
-            {isValidating ? "Verifying..." : "Reconnect"}
+          <button className="confirm-dialog-btn cancel" onClick={onClose}>{t("psn.cancel")}</button>
+          <button className="confirm-dialog-btn danger" onClick={handleSave} disabled={isValidating} style={{ backgroundColor: isValidating ? "var(--border-color)" : "var(--accent-green)", color: isValidating ? "var(--text-muted)" : "#000" }}>
+            {isValidating ? t("psn.verifying") : t("psn.reconnect")}
           </button>
         </div>
       </div>

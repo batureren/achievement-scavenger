@@ -249,7 +249,7 @@ const handleStartCompanion = async (silent = false) => {
       if (!silent) setIsCompanionModalOpen(true);
     } catch (e) {
       console.error("Failed to start server", e);
-      if (!silent) toast.error("Failed to start mobile companion.");
+      if (!silent) toast.error(t("companion.toast_start_failed"));
     }
   };
 
@@ -258,7 +258,7 @@ const handleStartCompanion = async (silent = false) => {
       await invoke("stop_companion_server");
       setIsCompanionOpen(false);
       setCompanionUrl("");
-      toast.success("Companion server stopped.");
+      toast.success(t("companion.toast_stopped"));
     } catch (e) {
       console.error("Failed to stop server", e);
       toast.error("Failed to stop server. (Ensure stop_companion_server is implemented in Rust)");
@@ -1965,7 +1965,7 @@ const broadcastState = () => {
 }, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId, allGuides, allChecklists]); 
 
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
-  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} /></div>;
+  if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} t={t}/></div>;
 
   return (
     <div id="app-container" className={isMiniMode ? "mini-mode-active" : ""}>
@@ -2002,6 +2002,7 @@ const broadcastState = () => {
           setShowPsnReauthModal(false);
           toast.success("PSN reconnected!");
         }}
+        t={t}
       />
 
       <GameLinkModal
@@ -2108,8 +2109,8 @@ const broadcastState = () => {
              {miniTab === "ACH" && (
                <>
                  <div className="mini-ach-toggle">
-                   <button className={miniAchTab === "LOCKED" ? "active" : ""} onClick={() => { setMiniAchTab("LOCKED"); if(filter === "UNLOCKED") setFilter("ALL"); }}>Locked</button>
-                   <button className={miniAchTab === "TRACKED" ? "active" : ""} onClick={() => setMiniAchTab("TRACKED")}>Tracked</button>
+                   <button className={miniAchTab === "LOCKED" ? "active" : ""} onClick={() => { setMiniAchTab("LOCKED"); if(filter === "UNLOCKED") setFilter("ALL"); }}>{t("mini.locked")}</button>
+                   <button className={miniAchTab === "TRACKED" ? "active" : ""} onClick={() => setMiniAchTab("TRACKED")}>{t("mini.tracked")}</button>
                  </div>
 
                  {miniAchTab === "LOCKED" && (
@@ -2117,22 +2118,22 @@ const broadcastState = () => {
                     <div className="mini-filter-row">
                      <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input mini-search" />
                       <select value={sortOrder} onChange={e => setSortOrder(e.target.value as SortOrder)} className="control-select mini-select">
-                         <option value="DEFAULT">API Order</option>
-                         <option value="A_Z">A-Z</option>
-                         <option value="Z_A">Z-A</option>
-                         <option value="RARITY_ASC">Rare</option>
-                         <option value="RARITY_DESC">Common</option>
-                         <option value="CHAPTER">Chapter Order</option>
+                         <option value="DEFAULT">{t("sort.api")}</option>
+                         <option value="A_Z">{t("sort.az")}</option>
+                         <option value="Z_A">{t("sort.za")}</option>
+                         <option value="RARITY_ASC">{t("sort.rarest")}</option>
+                         <option value="RARITY_DESC">{t("sort.common")}</option>
+                         <option value="CHAPTER">{t("sort.chapter")}</option>
                        </select>
                       </div>
                      <div className="mini-filter-row">
                        <button className={`filter-btn mini-filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""}`} onClick={() => setFilter(filter === "MISSABLE" ? "ALL" : "MISSABLE")} title="Missable">⚠️</button>
                        <button className={`filter-btn mini-filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""}`} onClick={() => setFilter(filter === "SPOILER" ? "ALL" : "SPOILER")} title="Spoiler">👁</button>
                       <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select mini-select">
-                         <option value="ALL">All Chapters</option>
+                         <option value="ALL">{t("chap.all")}</option>
                          {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
                            <option value="No Chapter">
-                             No Chapter ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
+                             {t("chap.fallback")} ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
                            </option>
                          )}
                          {allKnownChaptersForDropdown.map(chap => {
@@ -2350,15 +2351,15 @@ const broadcastState = () => {
           <nav className="mini-bottom-nav">
             <button className={`mini-nav-btn ${miniTab === "ACH" ? "active" : ""}`} onClick={() => setMiniTab("ACH")}>
               <svg viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-              Achs
+              {t("mini.achs")}
             </button>
             <button className={`mini-nav-btn ${miniTab === "CL" ? "active" : ""}`} onClick={() => setMiniTab("CL")}>
               <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              Lists
+              {t("mini.lists")}
             </button>
             <button className={`mini-nav-btn ${miniTab === "GUIDE" ? "active" : ""}`} onClick={() => setMiniTab("GUIDE")}>
               <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              Guides
+              {t("mini.guides")}
             </button>
           </nav>
         </div>
@@ -2764,38 +2765,38 @@ const broadcastState = () => {
       {isCompanionModalOpen && (
         <div className="confirm-dialog-overlay" onClick={() => setIsCompanionModalOpen(false)}>
           <div className="confirm-dialog companion-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="confirm-dialog-title" style={{ textAlign: "center", marginBottom: "8px" }}>Mobile Companion</h3>
+            <h3 className="confirm-dialog-title" style={{ textAlign: "center", marginBottom: "8px" }}>{t("companion.title")}</h3>
             
             {isCompanionOpen ? (
               <>
                 <p className="confirm-dialog-message" style={{ textAlign: "center", marginBottom: "16px" }}>
-                  Scan this QR code with your phone to open your live tracker. <br/>
-                  <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>(Make sure you're on the same Wi-Fi network)</span>
+                  {t("companion.scan_desc")} <br/>
+                  <span style={{ fontSize: "0.8rem", opacity: 0.8 }}>{t("companion.wifi_warning")}</span>
                 </p>
 
                 <div className="qr-code-container" style={{ marginBottom: "16px" }}>
                   {companionUrl ? (
                     <QRCode value={companionUrl} size={160} bgColor="#ffffff" fgColor="#000000" />
                   ) : (
-                    <div className="qr-code-placeholder">Generating...</div>
+                    <div className="qr-code-placeholder">{t("companion.generating")}</div>
                   )}
                 </div>
 
                 <div className="companion-url-row">
                   <input type="text" readOnly value={companionUrl} className="edit-input" onClick={e => (e.target as HTMLInputElement).select()} />
-                  <button className="btn-small btn-small-success" onClick={() => { navigator.clipboard.writeText(companionUrl); toast.success("URL copied!"); }}>Copy</button>
+                  <button className="btn-small btn-small-success" onClick={() => { navigator.clipboard.writeText(companionUrl); toast.success(t("companion.url_copied")); }}>{t("companion.copy")}</button>
                 </div>
               </>
             ) : (
               <div style={{ padding: "30px 0", textAlign: "center", color: "var(--text-muted)" }}>
-                <p>The server is currently offline.</p>
-                <p style={{ fontSize: "0.8rem", marginTop: "4px" }}>Turn it on below to generate a connection link.</p>
+                <p>{t("companion.offline_desc")}</p>
+                <p style={{ fontSize: "0.8rem", marginTop: "4px" }}>{t("companion.turn_on_desc")}</p>
               </div>
             )}
 
             <div style={{ width: "100%", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-color)", marginBottom: "16px" }}>
               <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem", marginBottom: "12px" }}>
-                <span><strong>Server Status</strong> ({isCompanionOpen ? "Online" : "Offline"})</span>
+                <span><strong>{t("companion.server_status")}</strong> ({isCompanionOpen ? t("companion.online") : t("companion.offline")})</span>
                 <input 
                   type="checkbox" 
                   checked={isCompanionOpen} 
@@ -2808,7 +2809,7 @@ const broadcastState = () => {
               </label>
               
               <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem" }}>
-                <span>Auto-start on app launch</span>
+                <span>{t("companion.auto_start")}</span>
                 <input 
                   type="checkbox" 
                   checked={settings.companionAutoStart || false} 
@@ -2822,11 +2823,11 @@ const broadcastState = () => {
             </div>
 
             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "16px", textAlign: "center" }}>
-              The server will continue running in the background while online.
+              {t("companion.bg_warning")}
             </p>
 
             <div className="confirm-dialog-actions" style={{ justifyContent: "center" }}>
-              <button className="confirm-dialog-btn cancel" onClick={() => setIsCompanionModalOpen(false)}>Close Window</button>
+              <button className="confirm-dialog-btn cancel" onClick={() => setIsCompanionModalOpen(false)}>{t("companion.close")}</button>
             </div>
           </div>
         </div>

@@ -12,9 +12,10 @@ interface SetupScreenProps {
   currentRa: {user: string, key: string};
   currentXbox: {apiKey: string, xuid: string, gamertag: string};
   currentPsn?: PsnSetupResult;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
-export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, currentPsn }: SetupScreenProps) {
+export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, currentPsn, t }: SetupScreenProps) {
   const [inputKey, setInputKey] = useState(currentKey || "");
   const [raUser, setRaUser] = useState(currentRa?.user || "");
   const [raKey, setRaKey] = useState(currentRa?.key || "");
@@ -97,43 +98,43 @@ export function SetupScreen({ onKeySaved, currentKey, currentRa, currentXbox, cu
         
         {/* Steam Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}><SteamIcon size={22} /> Steam Tracking</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Get a free key from <a href="#" onClick={(e) => { e.preventDefault(); open("https://steamcommunity.com/dev/apikey"); }}>steamcommunity.com/dev/apikey</a>.</p>
-          <input type="password" placeholder="Steam API Key (32 Chars)..." value={inputKey} onChange={e => { setInputKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}><SteamIcon size={22} /> {t("setup.steam_title")}</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>{t("setup.steam_desc")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://steamcommunity.com/dev/apikey"); }}>steamcommunity.com/dev/apikey</a>.</p>
+          <input type="password" placeholder={t("setup.steam_placeholder")} value={inputKey} onChange={e => { setInputKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
         </div>
 
         {/* RA Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#f59e0b" }}><RAIcon size={24} /> RetroAchievements</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Find your "Web API Key" in your <a href="#" onClick={(e) => { e.preventDefault(); open("https://retroachievements.org/controlpanel.php"); }}>RA Control Panel</a> settings.</p>
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#f59e0b" }}><RAIcon size={24} /> {t("setup.ra_title")}</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>{t("setup.ra_desc")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://retroachievements.org/controlpanel.php"); }}>RA Control Panel</a>.</p>
           <div style={{ display: "flex", gap: "8px" }}>
-            <input type="text" placeholder="RA Username..." value={raUser} onChange={e => { setRaUser(e.target.value); setError(""); }} style={{ flex: 1, padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", minWidth: "0" }} />
-            <input type="password" placeholder="RA Web API Key..." value={raKey} onChange={e => { setRaKey(e.target.value); setError(""); }} style={{ flex: 2, padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", minWidth: "0" }} />
+            <input type="text" placeholder={t("setup.ra_user_placeholder")} value={raUser} onChange={e => { setRaUser(e.target.value); setError(""); }} style={{ flex: 1, padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", minWidth: "0" }} />
+            <input type="password" placeholder={t("setup.ra_key_placeholder")} value={raKey} onChange={e => { setRaKey(e.target.value); setError(""); }} style={{ flex: 2, padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", minWidth: "0" }} />
           </div>
         </div>
 
         {/* Xbox Block */}
         <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "20px" }}>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#107c10" }}><XboxIcon size={22} /> Xbox Live</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Get a free API key from <a href="#" onClick={(e) => { e.preventDefault(); open("https://xbl.io"); }}>xbl.io</a> (sign in with your Microsoft account).</p>
-          <input type="password" placeholder="OpenXBL API Key..." value={xboxKey} onChange={e => { setXboxKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#107c10" }}><XboxIcon size={22} /> {t("setup.xbox_title")}</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>{t("setup.xbox_desc")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://xbl.io"); }}>xbl.io</a>.</p>
+          <input type="password" placeholder={t("setup.xbox_placeholder")} value={xboxKey} onChange={e => { setXboxKey(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
         </div>
 
         {/* PSN Block */}
         <div>
-          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#00439c" }}><PSNIcon size={20} /> PlayStation Network</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>Login to <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }}>PlayStation.com</a>, then open <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }}>this link</a>. Copy the `npsso` value (exactly 64 chars) here.</p>
-          <input type="password" placeholder="NPSSO Token..." value={psnNpsso} onChange={e => { setPsnNpsso(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
+          <h2 style={{ fontSize: "1.2rem", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", color: "#00439c" }}><PSNIcon size={20} /> {t("setup.psn_title")}</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: "1.6", marginBottom: "12px" }}>{t("setup.psn_desc1")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }}>PlayStation.com</a>, {t("setup.psn_desc2")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }}>{t("setup.psn_desc_link")}</a>. {t("setup.psn_desc3")}</p>
+          <input type="password" placeholder={t("setup.psn_placeholder")} value={psnNpsso} onChange={e => { setPsnNpsso(e.target.value); setError(""); }} style={{ padding: "10px 14px", borderRadius: "6px", border: `1px solid var(--border-color)`, backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box" }} />
         </div>
 
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: 0 }}>⚠ {error}</p>}
 
-        <button onClick={handleSave} disabled={isValidating} style={{ padding: "10px", borderRadius: "6px", backgroundColor: isValidating ? "var(--border-color)" : "var(--accent-green)", color: isValidating ? "var(--text-muted)" : "#000", border: "none", fontWeight: "700", fontSize: "0.95rem", cursor: isValidating ? "not-allowed" : "pointer", transition: "background-color 0.2s" }}>
-          {isValidating ? "Saving..." : "Save & Continue"}
+        <button onClick={handleSave} disabled={isValidating} style={{ padding: "10px", borderRadius: "6px", backgroundColor: isValidating ? "var(--border-color)" : "var(--accent-green)", color: isValidating ? "var(--text-muted)" : "#000", border: "none", fontWeight: "700", fontSize: "0.95rem", cursor: isValidating ? "not-allowed" : "pointer", transition: "background-color 0.2s", marginTop: "16px" }}>
+          {isValidating ? t("setup.saving_btn") : t("setup.save_btn")}
         </button>
 
-        <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: 0, lineHeight: "1.5" }}>
-          🔒 Your keys are stored locally. You can provide Steam, RA, Xbox, or any combination.
+        <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", margin: "12px 0 0 0", lineHeight: "1.5" }}>
+          🔒 {t("setup.footer")}
         </p>
       </div>
     </div>
