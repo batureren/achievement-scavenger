@@ -32,6 +32,8 @@ import { useTranslation } from "react-i18next";
 import { 
   safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData, renderHintWithLinks, getYouTubeEmbedUrl
 } from "./utils";
+import deepEqual from "fast-deep-equal";
+const EMPTY_LOCAL_EDIT = {};
 
 function App() {
   const [appState, setAppState] = useState<"LOADING" | "SETUP" | "WAITING" | "PLAYING">("LOADING");
@@ -230,6 +232,7 @@ function App() {
   const [gameLinks, setGameLinks] = useState<Record<string, GameLink>>({});
   const gameLinksRef = useRef<Record<string, GameLink>>({});
   gameLinksRef.current = gameLinks;
+  const lastCompanionPayloadRef = useRef<any>(null);
 
   const [linkModalForAppId, setLinkModalForAppId] = useState<string | null>(null);
   const [groupFetchTick, setGroupFetchTick] = useState(0);
@@ -358,7 +361,7 @@ const handleStartCompanion = async (silent = false) => {
       const newCacheData = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists };
       const oldCacheData = communityDbCacheRef.current[appId];
 
-      if (JSON.stringify(newCacheData) === JSON.stringify(oldCacheData)) {
+      if (deepEqual(newCacheData, oldCacheData)) {
         toast.success("Database is already up to date.", { id: toastId });
         return;
       }
@@ -1936,7 +1939,7 @@ const broadcastState = () => {
           };
         });
 
-        const payload = JSON.stringify({
+      const payloadObj = {
           gameName: gameName,
           unlocked: unlockedAch,
           total: totalAch,
@@ -1952,9 +1955,13 @@ const broadcastState = () => {
           hiddenHints: hiddenHintsForGame,
           chapterCounts: chapterCounts,
           knownChapters: allKnownChaptersForDropdown
-        });
-        
-        invoke("broadcast_to_phone", { data: payload }).catch(console.error);
+        };
+
+        if (!deepEqual(payloadObj, lastCompanionPayloadRef.current)) {
+          lastCompanionPayloadRef.current = payloadObj;
+          const payload = JSON.stringify(payloadObj);
+          invoke("broadcast_to_phone", { data: payload }).catch(console.error);
+        }
       };
 
       broadcastState();
@@ -2678,7 +2685,7 @@ const broadcastState = () => {
                     isTracked={isAchievementTracked(ach)}
                     isHintHidden={isAchievementHintHidden(ach)}
                     editMode={editMode}
-                    localOrOfficialEditData={allLocalEdits[ach._appId || selectedAppId]?.[ach.apiname] || {}}
+                    localOrOfficialEditData={allLocalEdits[ach._appId || selectedAppId]?.[ach.apiname] || EMPTY_LOCAL_EDIT}
                     allKnownChaptersForDropdown={allKnownChaptersForDropdown}
                     handleToggleTrack={(apiname) => handleToggleTrack(apiname, ach._appId)}
                     handleToggleHint={(apiname) => handleToggleHint(apiname, ach._appId)}
