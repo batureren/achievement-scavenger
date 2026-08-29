@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 Spiel",
+    "lib.game_plural": "{count} Spiele",
+    "platform.all": "Alle Plattformen",
+    "batch.import_games_btn": "＋ Spiele im Batch importieren",
+    "batch.import_btn_short": "＋ Batch-Import",
     "setup.steam_title": "Steam-Tracking",
     "setup.steam_desc": "Hole dir einen kostenlosen Schlüssel von",
     "setup.steam_placeholder": "Steam-API-Schlüssel (32 Zeichen)...",

@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "게임 1개",
+    "lib.game_plural": "게임 {count}개",
+    "platform.all": "모든 플랫폼",
+    "batch.import_games_btn": "＋ 게임 일괄 가져오기",
+    "batch.import_btn_short": "＋ 일괄 가져오기",
     "setup.steam_title": "Steam 트래킹",
     "setup.steam_desc": "다음에서 무료 키 받기:",
     "setup.steam_placeholder": "Steam API 키 (32자)...",

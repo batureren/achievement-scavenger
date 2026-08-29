@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 เกม",
+    "lib.game_plural": "{count} เกม",
+    "platform.all": "ทุกแพลตฟอร์ม",
+    "batch.import_games_btn": "＋ นำเข้าเกมเป็นชุด",
+    "batch.import_btn_short": "＋ นำเข้าเป็นชุด",
     "setup.steam_title": "การติดตาม Steam",
     "setup.steam_desc": "รับคีย์ฟรีได้จาก",
     "setup.steam_placeholder": "คีย์ API ของ Steam (32 ตัวอักษร)...",

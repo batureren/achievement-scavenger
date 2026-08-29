@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 个游戏",
+    "lib.game_plural": "{count} 个游戏",
+    "platform.all": "所有平台",
+    "batch.import_games_btn": "＋ 批量导入游戏",
+    "batch.import_btn_short": "＋ 批量导入",
     "setup.steam_title": "Steam 追踪",
     "setup.steam_desc": "从以下位置获取免费的密钥：",
     "setup.steam_placeholder": "Steam API 密钥 (32 个字符)...",

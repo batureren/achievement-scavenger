@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 個遊戲",
+    "lib.game_plural": "{count} 個遊戲",
+    "platform.all": "所有平台",
+    "batch.import_games_btn": "＋ 批量匯入遊戲",
+    "batch.import_btn_short": "＋ 批量匯入",
     "setup.steam_title": "Steam 追蹤",
     "setup.steam_desc": "從以下位置取得免費的金鑰：",
     "setup.steam_placeholder": "Steam API 金鑰 (32 個字元)...",

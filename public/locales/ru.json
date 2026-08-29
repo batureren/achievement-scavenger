@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 игра",
+    "lib.game_plural": "{count} игр",
+    "platform.all": "Все платформы",
+    "batch.import_games_btn": "＋ Массовый импорт игр",
+    "batch.import_btn_short": "＋ Массовый импорт",
     "setup.steam_title": "Отслеживание Steam",
     "setup.steam_desc": "Получите бесплатный ключ на",
     "setup.steam_placeholder": "API-ключ Steam (32 символа)...",

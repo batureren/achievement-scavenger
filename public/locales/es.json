@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 juego",
+    "lib.game_plural": "{count} juegos",
+    "platform.all": "Todas las plataformas",
+    "batch.import_games_btn": "＋ Importación masiva de juegos",
+    "batch.import_btn_short": "＋ Importación masiva",
     "setup.steam_title": "Rastreo de Steam",
     "setup.steam_desc": "Consigue una clave gratuita en",
     "setup.steam_placeholder": "Clave API de Steam (32 Caracteres)...",

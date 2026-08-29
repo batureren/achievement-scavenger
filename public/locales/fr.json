@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 jeu",
+    "lib.game_plural": "{count} jeux",
+    "platform.all": "Toutes les plateformes",
+    "batch.import_games_btn": "＋ Importation de jeux en lot",
+    "batch.import_btn_short": "＋ Importation en lot",
     "setup.steam_title": "Suivi Steam",
     "setup.steam_desc": "Obtenez une clé gratuite sur",
     "setup.steam_placeholder": "Clé API Steam (32 caractères)...",

@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 game",
+    "lib.game_plural": "{count} game",
+    "platform.all": "Tất cả nền tảng",
+    "batch.import_games_btn": "＋ Nhập hàng loạt game",
+    "batch.import_btn_short": "＋ Nhập hàng loạt",
     "setup.steam_title": "Theo dõi Steam",
     "setup.steam_desc": "Nhận mã khóa miễn phí từ",
     "setup.steam_placeholder": "Steam API Key (32 ký tự)...",

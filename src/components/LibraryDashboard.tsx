@@ -12,14 +12,6 @@ import { CommunityDbModal } from "./CommunityDbModal";
 
 type PlatformFilter = "ALL" | "STEAM" | "RA" | "XBOX" | "PSN";
 
-const PLATFORM_FILTER_LABELS: Record<PlatformFilter, string> = {
-  ALL: "All Platforms",
-  STEAM: "Steam",
-  RA: "RetroAchievements",
-  XBOX: "Xbox",
-  PSN: "PlayStation",
-};
-
 interface LibraryDashboardProps {
   gameHistory: Record<string, GameHistory>;
   gameLinks: Record<string, GameLink>;
@@ -34,7 +26,7 @@ interface LibraryDashboardProps {
   onSelectAchievement: (appId: string, apiname: string) => void;
   handleRemoveGame: (g: GameHistory) => void;
   setGameHistory: React.Dispatch<React.SetStateAction<Record<string, GameHistory>>>;
-  t: (key: string) => string;
+  t: (key: string, options?: Record<string, any>) => string;
   language: string;
   steamApiKey: string;
   raCreds: { user: string; key: string };
@@ -183,10 +175,10 @@ export function LibraryDashboard({
         
         <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
           <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
-            ＋ Batch Import Games
+            {t("batch.import_games_btn")}
           </button>
           <button className="library-filter-chip library-import-btn" onClick={() => setIsDbBrowserOpen(true)}>
-            🔍 {t("lib.browse_db") || "Browse DBs"}
+            🔍 {t("lib.browse_db")}
           </button>
         </div>
 
@@ -219,20 +211,29 @@ export function LibraryDashboard({
 
   return (
     <>
-      <div id="library-section" className="library-dashboard-wrapper">
+<div id="library-section" className="library-dashboard-wrapper">
         <h2 style={{ fontSize: "1.2rem", color: "var(--text-main)", margin: 0 }}>
-          Library
+          {t("lib.title")}
           <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: 400, marginLeft: "8px" }}>
-            {games.length} {games.length === 1 ? "game" : "games"}
+            {games.length === 1 ? t("lib.game_single") : t("lib.game_plural", { count: games.length })}
           </span>
         </h2>
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-          {(["ALL", "STEAM", "RA", "XBOX", "PSN"] as PlatformFilter[]).map(p => (
-            <button key={p} onClick={() => setPlatformFilter(p)}
-              className={`library-filter-chip${platformFilter === p ? " active" : ""}`}>
-              {PLATFORM_FILTER_LABELS[p]}
-            </button>
-          ))}
+          {(["ALL", "STEAM", "RA", "XBOX", "PSN"] as PlatformFilter[]).map(p => {
+             let label = p as string;
+             if (p === "ALL") label = t("platform.all");
+             else if (p === "STEAM") label = t("platform.steam", { defaultValue: "Steam" });
+             else if (p === "RA") label = t("platform.ra", { defaultValue: "RetroAchievements" });
+             else if (p === "XBOX") label = t("platform.xbox", { defaultValue: "Xbox" });
+             else if (p === "PSN") label = t("platform.psn", { defaultValue: "PlayStation" });
+
+             return (
+              <button key={p} onClick={() => setPlatformFilter(p)}
+                className={`library-filter-chip${platformFilter === p ? " active" : ""}`}>
+                {label}
+              </button>
+            );
+          })}
 
           <div style={{ width: "1px", height: "18px", background: "var(--border-color)", margin: "0 2px" }} />
 
@@ -255,10 +256,10 @@ export function LibraryDashboard({
           </select>
 
           <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
-            ＋ Batch Import
+            {t("batch.import_btn_short")}
           </button>
           <button className="library-filter-chip library-import-btn" onClick={() => setIsDbBrowserOpen(true)}>
-            🔍 {t("lib.browse_db") || "Browse DBs"}
+            🔍 {t("lib.browse_db")}
           </button>
         </div>
         <input

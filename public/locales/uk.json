@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 гра",
+    "lib.game_plural": "{count} ігор",
+    "platform.all": "Всі платформи",
+    "batch.import_games_btn": "＋ Масовий імпорт ігор",
+    "batch.import_btn_short": "＋ Масовий імпорт",
     "setup.steam_title": "Відстеження Steam",
     "setup.steam_desc": "Отримайте безкоштовний ключ на",
     "setup.steam_placeholder": "API-ключ Steam (32 символи)...",

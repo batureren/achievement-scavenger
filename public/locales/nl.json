@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 spel",
+    "lib.game_plural": "{count} spellen",
+    "platform.all": "Alle platformen",
+    "batch.import_games_btn": "＋ Spellen in bulk importeren",
+    "batch.import_btn_short": "＋ Bulk importeren",
     "setup.steam_title": "Steam Tracking",
     "setup.steam_desc": "Haal een gratis sleutel bij",
     "setup.steam_placeholder": "Steam API-sleutel (32 tekens)...",

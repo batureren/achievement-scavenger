@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 oyun",
+    "lib.game_plural": "{count} oyun",
+    "platform.all": "Tüm Platformlar",
+    "batch.import_games_btn": "＋ Toplu Oyun İçe Aktar",
+    "batch.import_btn_short": "＋ Toplu İçe Aktar",
     "setup.steam_title": "Steam Takibi",
     "setup.steam_desc": "Şuradan ücretsiz bir anahtar al:",
     "setup.steam_placeholder": "Steam API Anahtarı (32 Karakter)...",

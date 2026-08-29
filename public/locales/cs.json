@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 hra",
+    "lib.game_plural": "{count} her",
+    "platform.all": "Všechny platformy",
+    "batch.import_games_btn": "＋ Hromadný import her",
+    "batch.import_btn_short": "＋ Hromadný import",
     "setup.steam_title": "Sledování Steam",
     "setup.steam_desc": "Získejte bezplatný klíč na",
     "setup.steam_placeholder": "Steam API klíč (32 znaků)...",

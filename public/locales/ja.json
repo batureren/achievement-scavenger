@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 ゲーム",
+    "lib.game_plural": "{count} ゲーム",
+    "platform.all": "すべてのプラットフォーム",
+    "batch.import_games_btn": "＋ ゲームを一括インポート",
+    "batch.import_btn_short": "＋ 一括インポート",
     "setup.steam_title": "Steam トラッキング",
     "setup.steam_desc": "以下から無料のキーを取得:",
     "setup.steam_placeholder": "Steam APIキー (32文字)...",

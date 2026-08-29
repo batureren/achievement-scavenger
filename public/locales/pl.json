@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 gra",
+    "lib.game_plural": "{count} gier",
+    "platform.all": "Wszystkie platformy",
+    "batch.import_games_btn": "＋ Masowy import gier",
+    "batch.import_btn_short": "＋ Masowy import",
     "setup.steam_title": "Śledzenie Steam",
     "setup.steam_desc": "Pobierz darmowy klucz z",
     "setup.steam_placeholder": "Klucz API Steam (32 znaki)...",

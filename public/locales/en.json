@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 game",
+    "lib.game_plural": "{count} games",
+    "platform.all": "All Platforms",
+    "batch.import_games_btn": "＋ Batch Import Games",
+    "batch.import_btn_short": "＋ Batch Import",
     "setup.steam_title": "Steam Tracking",
     "setup.steam_desc": "Get a free key from",
     "setup.steam_placeholder": "Steam API Key (32 Chars)...",

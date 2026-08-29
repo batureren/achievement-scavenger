@@ -1,4 +1,9 @@
 {
+    "lib.game_single": "1 gioco",
+    "lib.game_plural": "{count} giochi",
+    "platform.all": "Tutte le piattaforme",
+    "batch.import_games_btn": "＋ Importa giochi in blocco",
+    "batch.import_btn_short": "＋ Importazione in blocco",
     "setup.steam_title": "Tracciamento Steam",
     "setup.steam_desc": "Ottieni una chiave gratuita da",
     "setup.steam_placeholder": "Chiave API di Steam (32 Caratteri)...",
