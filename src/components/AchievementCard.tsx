@@ -51,7 +51,7 @@ function AchievementCardBase({
   };
 
   return (
-    <div id={`ach-${ach.apiname}`} className={`achievement-card ${ach.unlocked ? "unlocked" : ""} ${isTracked ? "is-tracked-card" : ""}`}>
+    <div id={`ach-${ach.apiname}`} className={`achievement-card ${ach.unlocked ? "unlocked" : ""} ${isTracked ? "is-tracked-card" : ""} ${ach.is_spoiler ? 'spoiler-wrap' : ''}`}>
       <div className="achievement-card-bg" style={{ width: `${ach.globalPercent || 0}%` }} />
       
       {ach.is_missable && (
@@ -72,7 +72,7 @@ function AchievementCardBase({
           {!ach.unlocked && <div className="lock-overlay">🔒</div>}
         </div>
 
-        <div className={`card-header-content ${ach.is_spoiler ? 'spoiler-wrap' : ''}`}>
+        <div className="card-header-content">
           <div className="title-row">
             <h3 className={`ach-title ${ach.unlocked ? "unlocked" : ""} ${ach.is_spoiler ? 'spoiler-blur' : ''}`} style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
               {ach.display_name}
