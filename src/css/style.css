@@ -2085,6 +2085,25 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   overflow: hidden;
 }
 
+.library-card--100 {
+  border-color: rgba(167, 139, 250, 0.4) !important;
+  background-image: linear-gradient(180deg, rgba(167, 139, 250, 0.05) 0%, transparent 50%);
+}
+
+.library-card--100:hover {
+  border-color: rgba(167, 139, 250, 0.9) !important;
+  box-shadow: 0 4px 20px rgba(167, 139, 250, 0.25), var(--shadow-card) !important;
+  transform: translateY(-2px);
+}
+
+.library-card--100 .progress-bar-fill {
+  box-shadow: 0 0 10px rgba(167, 139, 250, 0.6);
+}
+
+.library-card--100 .library-status-row {
+  opacity: 0.9;
+}
+
 .library-card--pinned {
   border-color: rgba(167, 139, 250, 0.5);
   box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2), var(--shadow-card);

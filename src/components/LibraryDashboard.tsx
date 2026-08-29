@@ -288,7 +288,7 @@ export function LibraryDashboard({
             const pctColor = game.totalAch === 0 ? "var(--text-muted)" : barColor;
 
             return (
-              <div key={game.appId} className={`achievement-card library-card${game.pinned ? " library-card--pinned" : ""}`}
+              <div key={game.appId} className={`achievement-card library-card${game.pinned ? " library-card--pinned" : ""}${percent >= 100 && game.totalAch > 0 ? " library-card--100" : ""}`}
                 onClick={() => handleSelectTab(game.appId)}>
 
                 <div className={`library-card-banner`}>
