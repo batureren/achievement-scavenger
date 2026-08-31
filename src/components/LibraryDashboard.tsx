@@ -283,7 +283,7 @@ export function LibraryDashboard({
       {games.length === 0 ? (
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "32px 0" }}>{t("lib.empty")}</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))", gap: "16px" }}>
+        <div className="library-card-grid">
           {visibleGames.map(game => {
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
             const isRunning = game.linkedGames.some((sub: any) => runningAppIds.includes(sub.appId));
@@ -442,11 +442,11 @@ export function LibraryDashboard({
               </div>
             );
           })}
-        </div>
-      )}
 
-      {visibleCount < games.length && (
-        <div ref={loadMoreRef} style={{ height: "1px", margin: "20px 0" }} />
+          {visibleCount < games.length && (
+            <div ref={loadMoreRef} style={{ height: "1px", gridColumn: "1 / -1" }} />
+          )}
+        </div>
       )}
 
 {screenshots.length > 0 && (

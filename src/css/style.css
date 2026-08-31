@@ -459,7 +459,7 @@ a:hover {
 .tracking-screen {
   margin: 0 auto;
   width: 100%;
-  padding: 24px 20px 32px;
+  padding: 8px 20px 32px;
 }
 
 .tracking-header {
@@ -2118,6 +2118,22 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--accent-yellow);
 }
 
+.library-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 700px) {
+  .library-card-grid {
+    max-height: 60vh;
+  }
+}
+
 .library-pin-btn {
   position: absolute;
   top: 8px;
@@ -2432,7 +2448,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
     display: none;
   }
   .tracking-screen {
-    padding: 14px 12px 28px;
+    padding: 8px 12px 28px;
   }
 
   .achievement-list {
