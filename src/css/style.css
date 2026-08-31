@@ -4783,6 +4783,86 @@ video.cl-item-img {
   animation: pulse-border 1.5s infinite;
 }
 
+.library-gallery-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+}
+
+.library-gallery-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.library-gallery-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.library-gallery-card {
+  flex-shrink: 0;
+  width: 280px;
+  height: 158px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+
+.library-gallery-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-green);
+  box-shadow: 0 8px 24px rgba(52, 211, 153, 0.15);
+}
+
+.library-gallery-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.library-gallery-card:hover img {
+  transform: scale(1.05);
+}
+
+.library-gallery-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, transparent 100%);
+  padding: 24px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.gallery-ach-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.gallery-game-name {
+  font-size: 0.75rem;
+  color: var(--accent-green);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 @keyframes pulse-border {
   0% { border-color: var(--accent-yellow); }
   50% { border-color: rgba(245, 158, 11, 0.3); }

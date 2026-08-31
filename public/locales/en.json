@@ -1,4 +1,6 @@
 {
+    "lib.gallery_title": "Recent Unlocks",
+    "lib.gallery_desc": "Your latest achievement screenshots.",
     "lib.game_single": "1 game",
     "lib.game_plural": "{count} games",
     "platform.all": "All Platforms",

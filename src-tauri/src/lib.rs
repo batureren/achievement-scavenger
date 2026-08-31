@@ -1,6 +1,7 @@
 // lib.rs ---
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use reqwest;
+use serde::Serialize;
 use serde_json::Value;
 use std::fs;
 use std::path::PathBuf;
@@ -36,6 +37,14 @@ static SHUTDOWN_TX: std::sync::Mutex<Option<oneshot::Sender<()>>> = std::sync::M
 
 pub struct DiscordState {
     tx: Mutex<mpsc::Sender<RpcCommand>>,
+}
+
+#[derive(Serialize)]
+struct ScreenshotMeta {
+    game_name: String,
+    filename: String,
+    path: String,
+    created_at: u64,
 }
 
 #[derive(Clone)]
@@ -351,7 +360,7 @@ fn is_valid_json(data: &str) -> bool {
     !data.trim().is_empty() && serde_json::from_str::<Value>(data).is_ok()
 }
 
-fn read_json_with_fallback(path: &PathBuf) -> String {
+fn read_json_with_fallback(path: &PathBuf, default_json: &str) -> String {
     if let Ok(data) = fs::read_to_string(path) {
         if is_valid_json(&data) {
             return data;
@@ -363,7 +372,7 @@ fn read_json_with_fallback(path: &PathBuf) -> String {
             return data;
         }
     }
-    "{}".to_string()
+    default_json.to_string()
 }
 
 fn write_json_atomic(path: &PathBuf, data: &str) -> Result<(), String> {
@@ -799,80 +808,62 @@ async fn get_psn_trophies(access_token: String, account_id: String, np_communica
 #[tauri::command]
 fn load_user_links(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "user_links.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("[]".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "[]"))
 }
 #[tauri::command]
 fn save_user_links(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "user_links.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 #[tauri::command]
 fn load_tracked(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "tracked.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_tracked(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "tracked.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 #[tauri::command]
 fn load_local_edits(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "local_edits.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_local_edits(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "local_edits.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 #[tauri::command]
 fn load_settings(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "settings.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_settings(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "settings.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 #[tauri::command]
 fn load_history(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "history.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_history(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "history.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 #[tauri::command]
 fn load_chapters(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "chapters.json")?;
-    match fs::read_to_string(path) {
-        Ok(data) => Ok(data),
-        Err(_) => Ok("{}".to_string()),
-    }
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_chapters(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "chapters.json")?;
-    fs::write(path, data).map_err(|e| e.to_string())
+    write_json_atomic(&path, &data)
 }
 
 // --- Steam Status ---
@@ -1231,7 +1222,7 @@ fn set_window_transparent(window: tauri::Window, transparent: bool) {
 #[tauri::command]
 fn load_checklists(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "checklists.json")?;
-    Ok(read_json_with_fallback(&path))
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 
 #[tauri::command]
@@ -1243,7 +1234,7 @@ fn save_checklists(app_handle: tauri::AppHandle, data: String) -> Result<(), Str
 #[tauri::command]
 fn load_checklist_progress(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "checklist_progress.json")?;
-    Ok(read_json_with_fallback(&path))
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 
 #[tauri::command]
@@ -1255,7 +1246,7 @@ fn save_checklist_progress(app_handle: tauri::AppHandle, data: String) -> Result
 #[tauri::command]
 fn load_game_links(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "game_links.json")?;
-    Ok(read_json_with_fallback(&path))
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 #[tauri::command]
 fn save_game_links(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
@@ -1266,7 +1257,7 @@ fn save_game_links(app_handle: tauri::AppHandle, data: String) -> Result<(), Str
 #[tauri::command]
 fn load_sync_config(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "sync_config.json")?;
-    Ok(read_json_with_fallback(&path))
+    Ok(read_json_with_fallback(&path, "{}"))
 }
 
 #[tauri::command]
@@ -1277,21 +1268,16 @@ fn save_sync_config(app_handle: tauri::AppHandle, data: String) -> Result<(), St
 
 #[tauri::command]
 fn load_guides(app_handle: tauri::AppHandle) -> String {
-    if let Ok(app_dir) = app_handle.path().app_data_dir() {
-        let file_path = app_dir.join("guides.json");
-        if let Ok(content) = fs::read_to_string(file_path) {
-            return content;
-        }
+    if let Ok(path) = get_data_path(&app_handle, "guides.json") {
+        return read_json_with_fallback(&path, "{}");
     }
     "{}".to_string()
 }
 
 #[tauri::command]
 fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let app_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
-    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
-    let file_path = app_dir.join("guides.json");
-    fs::write(file_path, data).map_err(|e| e.to_string())
+    let path = get_data_path(&app_handle, "guides.json")?;
+    write_json_atomic(&path, &data)
 }
 
 #[tauri::command]
@@ -1307,6 +1293,7 @@ fn update_toggle_shortcut(app_handle: tauri::AppHandle, old_shortcut: String, ne
     if !new_shortcut.is_empty() {
         match Shortcut::from_str(&new_shortcut) {
             Ok(new_sc) => {
+                let _ = manager.unregister(new_sc);
                 manager.register(new_sc).map_err(|e| format!("Failed to register: {}", e))?;
             }
             Err(e) => return Err(format!("Invalid shortcut format: {}", e)),
@@ -1315,6 +1302,47 @@ fn update_toggle_shortcut(app_handle: tauri::AppHandle, old_shortcut: String, ne
 
     Ok(())
 }
+
+#[tauri::command]
+fn get_screenshots(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let mut screenshots = Vec::new();
+    let mut base_path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    base_path.push("Screenshots");
+
+    if let Ok(entries) = std::fs::read_dir(&base_path) {
+        for entry in entries.flatten() {
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_dir() {
+                    let game_name = entry.file_name().to_string_lossy().to_string();
+                    if let Ok(images) = std::fs::read_dir(entry.path()) {
+                        for img in images.flatten() {
+                            if let Ok(meta) = img.metadata() {
+                                let created_at = meta.created().unwrap_or(std::time::SystemTime::UNIX_EPOCH)
+                                    .duration_since(std::time::UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_millis() as u64;
+                                    
+                                screenshots.push(ScreenshotMeta {
+                                    game_name: game_name.clone(),
+                                    filename: img.file_name().to_string_lossy().to_string(),
+                                    path: img.path().to_string_lossy().to_string(),
+                                    created_at,
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    screenshots.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    
+    let top_screenshots: Vec<_> = screenshots.into_iter().take(15).collect();
+    
+    Ok(serde_json::to_string(&top_screenshots).unwrap_or_else(|_| "[]".to_string()))
+}
+
 
 // --- Entry Point ---
 #[cfg(target_os = "linux")]
@@ -1411,7 +1439,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut, get_screenshots
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

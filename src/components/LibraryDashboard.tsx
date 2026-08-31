@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
   GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink 
@@ -48,6 +48,14 @@ export function LibraryDashboard({
   const [isDbBrowserOpen, setIsDbBrowserOpen] = useState(false);
 
   const [visibleCount, setVisibleCount] = useState(40);
+  const [screenshots, setScreenshots] = useState<any[]>([]);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke("get_screenshots")
+      .then(res => setScreenshots(JSON.parse(res as string)))
+      .catch(console.error);
+  }, [gameHistory]);
 
   useEffect(() => {
     setVisibleCount(40);
@@ -441,6 +449,42 @@ export function LibraryDashboard({
         <div ref={loadMoreRef} style={{ height: "1px", margin: "20px 0" }} />
       )}
 
+{screenshots.length > 0 && (
+        <div id="gallery-section" className="library-play-next-section">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "14px" }}>
+            <div>
+              <h2 className="library-play-next-title">{t("lib.gallery_title") || "Recent Unlocks Gallery"}</h2>
+              <p className="library-play-next-desc">{t("lib.gallery_desc") || "Your latest achievement screenshots."}</p>
+            </div>
+            <button 
+              className="library-play-btn" 
+              onClick={() => invoke("open_screenshots_folder").catch(console.error)}
+              style={{ marginBottom: "14px" }}
+            >
+              Open Folder
+            </button>
+          </div>
+          
+          <div className="library-gallery-scroll">
+            {screenshots.map(s => {
+              // Extract achievement name by removing the _YYYYMMDD_HHMMSS.png from the end
+              const cleanAchName = s.filename.replace(/_\d{8}_\d{6}\.png$/, '').replace(/_/g, ' ');
+              const cleanGameName = s.game_name.replace(/_/g, ' ');
+
+              return (
+                <div key={s.path} className="library-gallery-card" onClick={() => setLightboxSrc(convertFileSrc(s.path))}>
+                  <img src={convertFileSrc(s.path)} alt={cleanAchName} loading="lazy" />
+                  <div className="library-gallery-info">
+                    <span className="gallery-ach-name">{cleanAchName}</span>
+                    <span className="gallery-game-name">{cleanGameName}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {playNextCandidates.length > 0 && (
         <div id="play-next-section" className="library-play-next-section">
           <h2 className="library-play-next-title">{t("lib.play_next_title")}</h2>
@@ -496,6 +540,24 @@ export function LibraryDashboard({
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
             {t("lib.float_play_next")}
+          </button>
+        </div>
+      )}
+
+      {lightboxSrc && (
+        <div className="cl-lightbox-overlay" onClick={() => setLightboxSrc(null)}>
+          <img 
+            src={lightboxSrc} 
+            alt="Preview" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxHeight: "90vh", maxWidth: "90vw", borderRadius: "8px", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
+          />
+          <button 
+            className="btn-small btn-small-danger" 
+            style={{ position: "absolute", top: "24px", right: "24px", width: "32px", height: "32px", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", padding: 0 }}
+            onClick={() => setLightboxSrc(null)}
+          >
+            ✕
           </button>
         </div>
       )}
