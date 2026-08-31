@@ -1569,7 +1569,7 @@ useEffect(() => {
         easiestNext = { apiname: easiest.apiname, name: easiest.display_name, percent: p, icon: easiest.icon, color };
       }
 
-      const updated = { ...prev, [appId]: { appId, name: safeName, totalAch: achs.length, unlockedAch: achs.filter(a => a.unlocked).length, lastPlayed: existing?.lastPlayed || Date.now(), platform: resolvePlatform(appId), pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked, easiestNext, raImageIcon: existing?.raImageIcon } };
+      const updated = { ...prev, [appId]: { appId, name: safeName, totalAch: achs.length, unlockedAch: achs.filter(a => a.unlocked).length, lastPlayed: existing?.lastPlayed ?? Date.now(), platform: resolvePlatform(appId), pinned: existing?.pinned, completionStatus: existing?.completionStatus, rarestUnlocked, easiestNext, raImageIcon: existing?.raImageIcon } };
       invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
       return updated;
     });

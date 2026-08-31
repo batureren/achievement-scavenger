@@ -3,6 +3,11 @@ import { open } from "@tauri-apps/plugin-shell";
 import { Theme } from "./types";
 
 export function timeAgo(ts: number, t: (key: string) => string, lang: string = "en"): string {
+  if (!ts || ts === 0) {
+    const tr = "---";
+    return tr;
+  }
+  
   const diff = Date.now() - ts;
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);

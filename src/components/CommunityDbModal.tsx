@@ -139,7 +139,7 @@ export function CommunityDbModal({ isOpen, onClose, gameHistory, setGameHistory,
       platform,
       totalAch,
       unlockedAch: 0,
-      lastPlayed: Date.now(),
+      lastPlayed: 0,
       raImageIcon: icon
     };
 

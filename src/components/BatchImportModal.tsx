@@ -177,7 +177,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "PSN" as Platform,
             totalAch: totalT,
             unlockedAch: earnedT,
-            lastPlayed: g.lastUpdatedDateTime ? new Date(g.lastUpdatedDateTime).getTime() : undefined,
+            lastPlayed: g.lastUpdatedDateTime ? new Date(g.lastUpdatedDateTime).getTime() : 0,
           };
         });
       }
@@ -198,7 +198,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "XBOX" as Platform,
             totalAch: totalA,
             unlockedAch: currentA,
-            lastPlayed: lastPlayedRaw ? new Date(lastPlayedRaw).getTime() : undefined,
+            lastPlayed: lastPlayedRaw ? new Date(lastPlayedRaw).getTime() : 0,
           };
         });
       }
@@ -218,7 +218,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
             platform: "RA" as Platform,
             totalAch: totalA,
             unlockedAch: earnedA,
-            lastPlayed: g.LastPlayed ? new Date(g.LastPlayed + "Z").getTime() : undefined,
+            lastPlayed: g.LastPlayed ? new Date(g.LastPlayed + "Z").getTime() : 0,
           };
         });
       }
@@ -245,7 +245,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
           platform: "STEAM" as Platform,
           totalAch: 0,
           unlockedAch: 0,
-          lastPlayed: g.rtime_last_played ? g.rtime_last_played * 1000 : undefined,
+          lastPlayed: g.rtime_last_played ? g.rtime_last_played * 1000 : 0,
         }));
       }
 
@@ -353,7 +353,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
           name: item.name,
           totalAch: steamCounts ? steamCounts.total : item.totalAch,
           unlockedAch: steamCounts ? steamCounts.unlocked : item.unlockedAch,
-          lastPlayed: item.lastPlayed ?? Date.now(),
+          lastPlayed: item.lastPlayed,
           platform: item.platform,
           raImageIcon: cachedIcon,
         } as GameHistory;
