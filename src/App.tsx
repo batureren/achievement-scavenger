@@ -95,6 +95,16 @@ function App() {
   checklistProgressRef.current = checklistProgress;
 
   useEffect(() => {
+    const blockReload = (e: KeyboardEvent) => {
+      if (e.key === "F5" || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r")) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", blockReload);
+    return () => window.removeEventListener("keydown", blockReload);
+  }, []);
+
+  useEffect(() => {
     const appId = selectedAppIdRef.current;
     if (!appId || appState === "LOADING" || appState === "SETUP") return;
     const updated = {

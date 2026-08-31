@@ -333,6 +333,7 @@ export function BatchImportModal(props: BatchImportModalProps) {
       }
     }
 
+    let historySnapshot: Record<string, GameHistory> | null = null;
     setGameHistory(prev => {
       const updated = { ...prev };
       for (const item of toImport) {
@@ -357,9 +358,22 @@ export function BatchImportModal(props: BatchImportModalProps) {
           raImageIcon: cachedIcon,
         } as GameHistory;
       }
-      invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
+      historySnapshot = updated;
       return updated;
     });
+
+    if (historySnapshot) {
+      setImportProgress({ done: toImport.length, total: toImport.length });
+      try {
+        await invoke("save_history", { data: JSON.stringify(historySnapshot) });
+      } catch (e) {
+        console.error(e);
+        toast.error(t("batch.err_fetch_failed"));
+        setImportProgress(null);
+        return;
+      }
+      setImportProgress(null);
+    }
 
     const missedCount = steamItems.length - achCounts.size;
     toast.success(t("batch.toast_imported", { count: selected.size }));

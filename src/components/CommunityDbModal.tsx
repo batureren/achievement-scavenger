@@ -143,11 +143,23 @@ export function CommunityDbModal({ isOpen, onClose, gameHistory, setGameHistory,
       raImageIcon: icon
     };
 
+    let historySnapshot: Record<string, GameHistory> | null = null;
     setGameHistory(prev => {
       const updated = { ...prev, [item.appId]: newGame };
-      invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
+      historySnapshot = updated;
       return updated;
     });
+
+    if (historySnapshot) {
+      try {
+        await invoke("save_history", { data: JSON.stringify(historySnapshot) });
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to save. Please try again.", { id: toastId });
+        setProcessingId(null);
+        return;
+      }
+    }
 
     toast.success(t("db.added_btn"), { id: toastId });
     setProcessingId(null);
