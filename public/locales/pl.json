@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Nie znaleziono osiągnięcia",
     "mini.item_not_found": "Nie znaleziono elementu",
     "mini.jump_current": "Przejdź do obecnego",
+    "menu.toggleShortcut": "Skrót klawiszowy",
+    "menu.system": "System",
     "menu.windowMode_windowed": "W oknie",
     "menu.windowMode_borderless": "Okno bez ramek",
     "menu.windowMode_fullscreen": "Pełny ekran",

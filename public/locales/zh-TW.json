@@ -46,6 +46,8 @@
     "mini.ach_not_found": "未找到成就",
     "mini.item_not_found": "未找到項目",
     "mini.jump_current": "跳轉到目前進度",
+    "menu.toggleShortcut": "切換快捷鍵",
+    "menu.system": "系統",
     "menu.windowMode_windowed": "視窗模式",
     "menu.windowMode_borderless": "無邊框視窗",
     "menu.windowMode_fullscreen": "全螢幕",

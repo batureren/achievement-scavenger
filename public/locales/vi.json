@@ -45,6 +45,8 @@
     "mini.set_progress": "Đặt tiến trình",
     "mini.ach_not_found": "Không tìm thấy thành tựu",
     "mini.item_not_found": "Không tìm thấy mục",
+    "menu.toggleShortcut": "Phím tắt",
+    "menu.system": "Hệ thống",
     "mini.jump_current": "Chuyển đến hiện tại",
     "menu.windowMode_windowed": "Chế độ cửa sổ",
     "menu.windowMode_borderless": "Cửa sổ không viền",

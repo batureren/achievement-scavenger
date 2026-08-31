@@ -24,17 +24,20 @@ interface MenuBarProps {
   onOpenCloudSync: () => void;
   onOpenCompanion: () => void;
   isCompanionRunning?: boolean;
+  onChangeShortcut: (sc: string) => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [recordingShortcut, setRecordingShortcut] = useState(false);
+  const [pendingShortcut, setPendingShortcut] = useState("");
 
   const toggle = (name: string) => setOpenMenu(prev => prev === name ? null : name);
   
@@ -130,6 +133,30 @@ export function MenuBar({
             <div className="menu-divider"></div>
             
             <div className="menu-option column">
+              <div className="justify-between">
+                <span>{t("menu.opacity")}</span>
+                <span style={{ color: "var(--accent-green)" }}>{Math.round(settings.opacity * 100)}%</span>
+              </div>
+              <input type="range" min="0.1" max="1.0" step="0.05" value={settings.opacity} onChange={e => onChangeOpacity(parseFloat(e.target.value))} onMouseUp={onSaveOpacity} onTouchEnd={onSaveOpacity}/>
+            </div>
+
+            <div className="menu-option column">
+              <div className="justify-between">
+                <span>{t("menu.uiScale")}</span>
+                <span style={{ color: "var(--accent-green)" }}>{Math.round((settings.uiScale || 1.0) * 100)}%</span>
+              </div>
+              <input type="range" min="0.6" max="1.8" step="0.05" value={settings.uiScale || 1.0} onChange={e => onChangeUiScale(parseFloat(e.target.value))} onMouseUp={onSaveUiScale} onTouchEnd={onSaveUiScale}/>
+            </div>
+
+          </div>
+        )}
+      </div>
+      
+      <div className="menu-item">
+        <button className="menu-trigger" onClick={() => toggle("system")}>{t("menu.system")}</button>
+        {openMenu === "system" && (
+          <div className="menu-dropdown" onClick={e => e.stopPropagation()}>
+            <div className="menu-option column">
               <div>
                 <span>{t("menu.language")}</span>
               </div>
@@ -141,6 +168,62 @@ export function MenuBar({
                   <option key={l.code} value={l.code}>{l.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="menu-divider"></div>
+
+            <div className="menu-option column">
+              <div className="justify-between">
+                <span>{t("menu.toggleShortcut") || "Toggle UI Shortcut"}</span>
+              </div>
+            <input
+                type="text"
+                readOnly
+                value={recordingShortcut ? (pendingShortcut || "Listening...") : (settings.toggleShortcut || "CommandOrControl+Shift+T")}
+                onFocus={() => {
+                  setRecordingShortcut(true);
+                  setPendingShortcut("");
+                }}
+                onBlur={() => {
+                  setRecordingShortcut(false);
+                  setPendingShortcut("");
+                }}
+                onKeyDown={(e) => {
+                  e.preventDefault();
+                  
+                  const keys = [];
+                  if (e.ctrlKey || e.metaKey) keys.push("CommandOrControl");
+                  if (e.altKey) keys.push("Alt");
+                  if (e.shiftKey) keys.push("Shift");
+
+                  const invalidKeys = ["Control", "Shift", "Alt", "Meta", "Command", "OS"];
+                  if (!invalidKeys.includes(e.key)) {
+                    let keyName = e.key.toUpperCase();
+                    if (keyName === " ") keyName = "Space";
+                    
+                    keys.push(keyName);
+                  }
+                  
+                  setPendingShortcut(keys.join("+"));
+                }}
+                onKeyUp={(e) => {
+                  e.preventDefault();
+                  
+                  const isComplete = pendingShortcut.length > 0 && 
+                                     !pendingShortcut.endsWith("CommandOrControl") && 
+                                     !pendingShortcut.endsWith("Alt") && 
+                                     !pendingShortcut.endsWith("Shift");
+
+                  if (isComplete) {
+                    onChangeShortcut(pendingShortcut);
+                    setRecordingShortcut(false);
+                    setPendingShortcut("");
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                className="edit-input shortcut-input"
+                title="Click and press keys to rebind"
+              />
             </div>
 
             <div className="menu-divider"></div>
@@ -174,29 +257,10 @@ export function MenuBar({
                 )}
               </div>
             </button>
-            
-            <div className="menu-divider"></div>
-            
-            <div className="menu-option column">
-              <div className="justify-between">
-                <span>{t("menu.opacity")}</span>
-                <span style={{ color: "var(--accent-green)" }}>{Math.round(settings.opacity * 100)}%</span>
-              </div>
-              <input type="range" min="0.1" max="1.0" step="0.05" value={settings.opacity} onChange={e => onChangeOpacity(parseFloat(e.target.value))} onMouseUp={onSaveOpacity} onTouchEnd={onSaveOpacity}/>
-            </div>
-
-            <div className="menu-option column">
-              <div className="justify-between">
-                <span>{t("menu.uiScale")}</span>
-                <span style={{ color: "var(--accent-green)" }}>{Math.round((settings.uiScale || 1.0) * 100)}%</span>
-              </div>
-              <input type="range" min="0.6" max="1.8" step="0.05" value={settings.uiScale || 1.0} onChange={e => onChangeUiScale(parseFloat(e.target.value))} onMouseUp={onSaveUiScale} onTouchEnd={onSaveUiScale}/>
-            </div>
-
           </div>
         )}
       </div>
-      
+
       <div className="menu-item">
         <button className="menu-trigger" onClick={() => toggle("themes")}>{t("menu.themes")}</button>
         {openMenu === "themes" && (

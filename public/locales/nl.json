@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Prestatie niet gevonden",
     "mini.item_not_found": "Item niet gevonden",
     "mini.jump_current": "Ga naar Huidige",
+    "menu.toggleShortcut": "Sneltoets",
+    "menu.system": "Systeem",
     "menu.windowMode_windowed": "In venster",
     "menu.windowMode_borderless": "Randloos venster",
     "menu.windowMode_fullscreen": "Volledig scherm",

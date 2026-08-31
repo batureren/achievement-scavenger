@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Achievement nenalezen",
     "mini.item_not_found": "Položka nenalezena",
     "mini.jump_current": "Skočit na aktuální",
+    "menu.toggleShortcut": "Klávesová zkratka",
+    "menu.system": "Systém",
     "menu.windowMode_windowed": "V okně",
     "menu.windowMode_borderless": "Okno bez okrajů",
     "menu.windowMode_fullscreen": "Celá obrazovka",

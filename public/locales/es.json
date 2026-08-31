@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Logro no encontrado",
     "mini.item_not_found": "Elemento no encontrado",
     "mini.jump_current": "Ir al Actual",
+    "menu.toggleShortcut": "Atajo de teclado",
+    "menu.system": "Sistema",
     "menu.windowMode_windowed": "Modo Ventana",
     "menu.windowMode_borderless": "Ventana sin Bordes",
     "menu.windowMode_fullscreen": "Pantalla Completa",

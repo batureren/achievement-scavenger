@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Obiettivo non trovato",
     "mini.item_not_found": "Elemento non trovato",
     "mini.jump_current": "Vai al livello attuale",
+    "menu.toggleShortcut": "Scorciatoia",
+    "menu.system": "Sistema",
     "menu.windowMode_windowed": "In finestra",
     "menu.windowMode_borderless": "Finestra senza bordi",
     "menu.windowMode_fullscreen": "Schermo intero",

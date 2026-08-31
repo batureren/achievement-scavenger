@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Conquista não encontrada",
     "mini.item_not_found": "Item não encontrado",
     "mini.jump_current": "Ir para o Atual",
+    "menu.toggleShortcut": "Atalho do teclado",
+    "menu.system": "Sistema",
     "menu.windowMode_windowed": "Modo Janela",
     "menu.windowMode_borderless": "Janela sem Bordas",
     "menu.windowMode_fullscreen": "Tela Cheia",

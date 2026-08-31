@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Başarım bulunamadı",
     "mini.item_not_found": "Öğe bulunamadı",
     "mini.jump_current": "Mevcut İlerlemeye Git",
+    "menu.toggleShortcut": "Kısayol Tuşu",
+    "menu.system": "Sistem",
     "menu.windowMode_windowed": "Pencereli",
     "menu.windowMode_borderless": "Çerçevesiz Pencere",
     "menu.windowMode_fullscreen": "Tam Ekran",

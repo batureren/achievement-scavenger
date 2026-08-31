@@ -41,8 +41,19 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
-    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false
+    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, toggleShortcut: "CommandOrControl+Shift+T"
   });
+
+  const handleChangeShortcut = async (newShortcut: string) => {
+    const oldShortcut = settingsRef.current.toggleShortcut || "CommandOrControl+Shift+T";
+    if (oldShortcut === newShortcut) return;
+
+    try {
+      await invoke("update_toggle_shortcut", { oldShortcut, newShortcut });
+      saveSettings({ ...settingsRef.current, toggleShortcut: newShortcut });
+    } catch (e) {
+    }
+  };
 
   const { t, i18n } = useTranslation();
   const [apiKey, setApiKey] = useState<string>("");
@@ -475,6 +486,8 @@ const handleStartCompanion = async (silent = false) => {
 
 useEffect(() => {
     if (appState === "LOADING" || appState === "SETUP") return;
+    const shortcut = settings.toggleShortcut || "CommandOrControl+Shift+T";
+    invoke("update_toggle_shortcut", { oldShortcut: "", newShortcut: shortcut }).catch(console.error);
     let debounceTimer: number | undefined;
 
     const saveState = async () => {
@@ -882,7 +895,7 @@ if (savedSettings.isMiniMode) {
             } catch (e) {}
           }
 
-          if (key && now - lastSteamStatusPollRef.current > 15000) {
+          if (key && now - lastSteamStatusPollRef.current > 3000) {
             lastSteamStatusPollRef.current = now;
             try {
               const statusRes = await invoke<string>("get_local_steam_status");
@@ -1099,8 +1112,15 @@ if (savedSettings.isMiniMode) {
         }
 
         if (!schemaJustLoaded && !options.forceTabSwitch) {
-          if (isTargetXbox) { if (now - lastXboxNetworkFetchRef.current < 60000) return; } 
-          else { if (now - lastNetworkFetchRef.current < 15000) return; }
+          if (isTargetXbox || isTargetPSN) { 
+            if (now - lastXboxNetworkFetchRef.current < 60000) return; 
+          } else if (isTargetRA) { 
+            if (now - lastNetworkFetchRef.current < 15000) return; 
+          } else { 
+            const isLiveSteam = actualRunningAppIds.includes(targetAppId);
+            const fetchDelay = isLiveSteam ? 3000 : 15000;
+            if (now - lastNetworkFetchRef.current < fetchDelay) return; 
+          }
         }
 
         if (isTargetXbox) lastXboxNetworkFetchRef.current = now; else lastNetworkFetchRef.current = now;
@@ -1290,7 +1310,7 @@ if (savedSettings.isMiniMode) {
     };
     tickRef.current = tick;
     tick();
-    const interval = window.setInterval(tick, 15000);
+    const interval = window.setInterval(tick, 3000);
     return () => clearInterval(interval);
   }, [appState]);
 
@@ -1679,7 +1699,7 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
     catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
-  const handleExportHTML = async (targetAppId: string) => { 
+const handleExportHTML = async (targetAppId: string) => { 
     try { 
       const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
       const gameChecklistsForExport = allChecklists[targetAppId] || [];
@@ -1689,11 +1709,32 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
         <h1 style="margin-top: 2.5rem;">${safeGameName} - Checklists</h1>
         ${gameChecklistsForExport.map(list => `
           <h2 style="color: #f4f4f5; border-bottom: 1px solid #3f3f46; padding-bottom: 6px; margin-top: 1.5rem;">${list.title} <span style="color: #a1a1aa; font-size: 0.8rem; font-weight: normal;">(${list.items.filter(i => i.completed).length}/${list.items.length})</span></h2>
-          ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
+          <div class="ach-grid">
+            ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
+          </div>
         `).join('')}
       `;
-      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 800px; margin: 0 auto; padding: 2rem; } h1 { color: #34d399; } .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #3f3f46;} .ach.unlocked { opacity: 0.6; } img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; } h3 { margin: 0 0 0.5rem 0; } p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}</style></head><body><h1>${safeGameName} - Checklist</h1>${gameAchievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}${checklistsHtml}</body></html>`; 
-      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); toast.success("HTML Checklist saved successfully!"); 
+      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>
+        body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 1000px; margin: 0 auto; padding: 2rem; } 
+        h1 { color: #34d399; } 
+        .ach-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; border-radius: 8px; border: 1px solid #3f3f46; min-width: 0; } 
+        .ach.unlocked { opacity: 0.6; } 
+        img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; flex-shrink: 0; } 
+        h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; } 
+        p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} 
+        .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}
+        @media (max-width: 768px) { .ach-grid { grid-template-columns: 1fr; } }
+      </style></head><body>
+        <h1>${safeGameName} - Checklist</h1>
+        <div class="ach-grid">
+          ${gameAchievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}
+        </div>
+        ${checklistsHtml}
+      </body></html>`; 
+      
+      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); 
+      toast.success("HTML Checklist saved successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
@@ -1995,6 +2036,7 @@ const broadcastState = () => {
         onOpenCloudSync={() => setIsCloudSyncOpen(true)}
         onOpenCompanion={handleOpenCompanionModal}
         isCompanionRunning={isCompanionOpen}
+        onChangeShortcut={handleChangeShortcut}
       />
 
       <PsnReauthModal

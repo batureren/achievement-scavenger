@@ -6,6 +6,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::Mutex;
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem},
@@ -1293,6 +1294,28 @@ fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String>
     fs::write(file_path, data).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn update_toggle_shortcut(app_handle: tauri::AppHandle, old_shortcut: String, new_shortcut: String) -> Result<(), String> {
+    let manager = app_handle.global_shortcut();
+
+    if !old_shortcut.is_empty() {
+        if let Ok(old_sc) = Shortcut::from_str(&old_shortcut) {
+            let _ = manager.unregister(old_sc);
+        }
+    }
+
+    if !new_shortcut.is_empty() {
+        match Shortcut::from_str(&new_shortcut) {
+            Ok(new_sc) => {
+                manager.register(new_sc).map_err(|e| format!("Failed to register: {}", e))?;
+            }
+            Err(e) => return Err(format!("Invalid shortcut format: {}", e)),
+        }
+    }
+
+    Ok(())
+}
+
 // --- Entry Point ---
 #[cfg(target_os = "linux")]
 fn init_steam_deck_env() {
@@ -1319,8 +1342,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))
         .plugin(tauri_plugin_global_shortcut::Builder::new()
-            .with_handler(|app, shortcut, event| {
-                if event.state == ShortcutState::Pressed && shortcut.matches(Modifiers::CONTROL | Modifiers::SHIFT, Code::KeyT) {
+            .with_handler(|app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
                     if let Some(window) = app.get_webview_window("main") {
                         if window.is_visible().unwrap_or(false) { 
                             let _ = window.hide(); 
@@ -1388,7 +1411,7 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

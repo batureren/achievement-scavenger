@@ -4776,6 +4776,19 @@ video.cl-item-img {
   color: inherit !important;
 }
 
+.shortcut-input:focus {
+  border-color: var(--accent-yellow);
+  color: var(--accent-yellow);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+  animation: pulse-border 1.5s infinite;
+}
+
+@keyframes pulse-border {
+  0% { border-color: var(--accent-yellow); }
+  50% { border-color: rgba(245, 158, 11, 0.3); }
+  100% { border-color: var(--accent-yellow); }
+}
+
 @media (max-width: 850px) {
   .guided-layout {
     flex-direction: column-reverse;

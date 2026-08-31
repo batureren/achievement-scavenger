@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Erfolg nicht gefunden",
     "mini.item_not_found": "Eintrag nicht gefunden",
     "mini.jump_current": "Zum aktuellen springen",
+    "menu.toggleShortcut": "Tastenkürzel",
+    "menu.system": "System",
     "menu.windowMode_windowed": "Fenstermodus",
     "menu.windowMode_borderless": "Randloses Fenster",
     "menu.windowMode_fullscreen": "Vollbild",

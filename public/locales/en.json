@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Achievement not found",
     "mini.item_not_found": "Item not found",
     "mini.jump_current": "Jump to Current",
+    "menu.toggleShortcut": "Toggle Shortcut",
+    "menu.system": "System",
     "menu.windowMode_windowed": "Windowed",
     "menu.windowMode_borderless": "Borderless Window",
     "menu.windowMode_fullscreen": "Exclusive Fullscreen",

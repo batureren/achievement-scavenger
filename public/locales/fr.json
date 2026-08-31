@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Succès introuvable",
     "mini.item_not_found": "Élément introuvable",
     "mini.jump_current": "Aller à la progression actuelle",
+    "menu.toggleShortcut": "Raccourci",
+    "menu.system": "Système",
     "menu.windowMode_windowed": "Fenêtré",
     "menu.windowMode_borderless": "Fenêtré sans bordure",
     "menu.windowMode_fullscreen": "Plein écran",

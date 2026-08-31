@@ -46,6 +46,8 @@
     "mini.ach_not_found": "Достижение не найдено",
     "mini.item_not_found": "Элемент не найден",
     "mini.jump_current": "К текущему прогрессу",
+    "menu.toggleShortcut": "Горячая клавиша",
+    "menu.system": "Система",
     "menu.windowMode_windowed": "Оконный",
     "menu.windowMode_borderless": "Оконный без рамок",
     "menu.windowMode_fullscreen": "Полноэкранный",

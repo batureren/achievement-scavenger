@@ -46,6 +46,8 @@
     "mini.ach_not_found": "ไม่พบความสำเร็จ",
     "mini.item_not_found": "ไม่พบรายการ",
     "mini.jump_current": "ไปที่ปัจจุบัน",
+    "menu.toggleShortcut": "คีย์ลัด",
+    "menu.system": "ระบบ",
     "menu.windowMode_windowed": "โหมดหน้าต่าง",
     "menu.windowMode_borderless": "หน้าต่างไร้ขอบ",
     "menu.windowMode_fullscreen": "เต็มหน้าจอ",

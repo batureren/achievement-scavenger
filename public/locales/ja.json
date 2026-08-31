@@ -46,6 +46,8 @@
     "mini.ach_not_found": "実績が見つかりません",
     "mini.item_not_found": "項目が見つかりません",
     "mini.jump_current": "現在の進捗にジャンプ",
+    "menu.toggleShortcut": "ショートカットの切り替え",
+    "menu.system": "システム",
     "menu.windowMode_windowed": "ウィンドウ",
     "menu.windowMode_borderless": "ボーダーレスウィンドウ",
     "menu.windowMode_fullscreen": "フルスクリーン",
