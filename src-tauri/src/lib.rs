@@ -391,6 +391,155 @@ fn write_json_atomic(path: &PathBuf, data: &str) -> Result<(), String> {
     Ok(())
 }
 
+const BACKUP_FILES: [&str; 9] = [
+    "settings.json", "history.json", "tracked.json", "chapters.json",
+    "local_edits.json", "checklists.json", "checklist_progress.json",
+    "user_links.json", "game_links.json",
+];
+const MAX_BACKUPS: usize = 20;
+
+fn get_backups_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let mut path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    path.push("Backups");
+    fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
+fn sanitize_backup_id(id: &str) -> Result<(), String> {
+    let ok = id.starts_with("backup_")
+        && id.ends_with(".json")
+        && id.len() < 64
+        && !id.contains('/')
+        && !id.contains('\\')
+        && !id.contains("..");
+    if ok { Ok(()) } else { Err("Invalid backup id".to_string()) }
+}
+
+fn prune_old_backups(dir: &PathBuf) -> Result<(), String> {
+    let mut entries: Vec<_> = fs::read_dir(dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            let name = e.file_name().to_string_lossy().to_string();
+            name.starts_with("backup_") && name.ends_with(".json")
+        })
+        .collect();
+
+    entries.sort_by_key(|e| e.file_name());
+
+    while entries.len() > MAX_BACKUPS {
+        let oldest = entries.remove(0);
+        let _ = fs::remove_file(oldest.path());
+    }
+    Ok(())
+}
+
+fn perform_backup(app_handle: &tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    let backups_dir = get_backups_dir(app_handle)?;
+
+    let mut files = serde_json::Map::new();
+    for filename in BACKUP_FILES {
+        let mut p = data_dir.clone();
+        p.push(filename);
+        if let Ok(content) = fs::read_to_string(&p) {
+            if is_valid_json(&content) {
+                files.insert(filename.to_string(), Value::String(content));
+            }
+        }
+    }
+
+    let timestamp = now_millis();
+    let payload = serde_json::json!({ "timestamp": timestamp, "files": files });
+
+    let id = format!("backup_{}.json", timestamp);
+    let mut path = backups_dir.clone();
+    path.push(&id);
+    fs::write(&path, payload.to_string()).map_err(|e| e.to_string())?;
+
+    prune_old_backups(&backups_dir)?;
+    Ok(id)
+}
+
+#[tauri::command]
+async fn create_backup_now(app_handle: tauri::AppHandle) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || perform_backup(&app_handle))
+        .await
+        .map_err(|e| format!("Thread error: {}", e))?
+}
+
+#[tauri::command]
+fn list_backups(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let dir = get_backups_dir(&app_handle)?;
+    let mut items = Vec::new();
+
+    if let Ok(entries) = fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !name.starts_with("backup_") || !name.ends_with(".json") {
+                continue;
+            }
+            let size_bytes = entry.metadata().map(|m| m.len()).unwrap_or(0);
+            let timestamp: u64 = name
+                .trim_start_matches("backup_")
+                .trim_end_matches(".json")
+                .parse()
+                .unwrap_or(0);
+
+            items.push(serde_json::json!({
+                "id": name,
+                "timestamp": timestamp,
+                "sizeBytes": size_bytes,
+            }));
+        }
+    }
+
+    items.sort_by(|a, b| {
+        let ta = a["timestamp"].as_u64().unwrap_or(0);
+        let tb = b["timestamp"].as_u64().unwrap_or(0);
+        tb.cmp(&ta)
+    });
+
+    Ok(Value::Array(items).to_string())
+}
+
+#[tauri::command]
+fn restore_backup(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
+    sanitize_backup_id(&id)?;
+
+    let mut path = get_backups_dir(&app_handle)?;
+    path.push(&id);
+
+    let content = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let parsed: Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let files = parsed
+        .get("files")
+        .and_then(|f| f.as_object())
+        .ok_or("Malformed backup file")?;
+
+    let data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    for (filename, value) in files {
+        // Only ever write back the known, expected files.
+        if !BACKUP_FILES.contains(&filename.as_str()) {
+            continue;
+        }
+        if let Some(file_content) = value.as_str() {
+            let mut p = data_dir.clone();
+            p.push(filename);
+            write_json_atomic(&p, file_content)?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn delete_backup(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
+    sanitize_backup_id(&id)?;
+    let mut path = get_backups_dir(&app_handle)?;
+    path.push(&id);
+    fs::remove_file(path).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn save_file_dialog(filename: String, content: String) -> Result<String, String> {
     if let Some(file_path) = rfd::AsyncFileDialog::new()
@@ -1439,7 +1588,8 @@ pub fn run() {
             load_xbox_credentials, save_xbox_credentials, get_xbox_account, get_xbox_recent_games, get_xbox_achievements, set_window_transparent,
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
-            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut, get_screenshots
+            load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut, get_screenshots,
+            create_backup_now, list_backups, restore_backup, delete_backup
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

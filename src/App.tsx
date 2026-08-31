@@ -18,6 +18,7 @@ import { ChecklistsPanel } from "./components/ChecklistsPanel";
 import { GameLinkModal } from "./components/GameLinkModal";
 import { PlatformIcon, GitHubIcon } from "./components/Icons";
 import { CloudSyncModal } from "./components/CloudSyncModal";
+import { BackupModal } from "./components/BackupModal";
 import { SyncConfig } from "./types";
 
 import { 
@@ -103,6 +104,15 @@ function App() {
     window.addEventListener("keydown", blockReload);
     return () => window.removeEventListener("keydown", blockReload);
   }, []);
+
+  useEffect(() => {
+    if (appState === "LOADING" || appState === "SETUP") return;
+    const BACKUP_INTERVAL_MS = 5 * 60 * 1000;
+    const id = window.setInterval(() => {
+      invoke("create_backup_now").catch(console.error);
+    }, BACKUP_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [appState]);
 
   useEffect(() => {
     const appId = selectedAppIdRef.current;
@@ -259,13 +269,14 @@ function App() {
   const [groupFetchTick, setGroupFetchTick] = useState(0);
 
   const [isCloudSyncOpen, setIsCloudSyncOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [syncConfig, setSyncConfig] = useState<SyncConfig>({ githubToken: "", gistId: "", lastSync: 0 });
 
   const [companionUrl, setCompanionUrl] = useState<string>("");
   const [isCompanionOpen, setIsCompanionOpen] = useState(false);
   const [isCompanionModalOpen, setIsCompanionModalOpen] = useState(false);
 
-const handleStartCompanion = async (silent = false) => {
+  const handleStartCompanion = async (silent = false) => {
     try {
       const url = await invoke<string>("start_companion_server");
       setCompanionUrl(url);
@@ -538,25 +549,35 @@ useEffect(() => {
     };
   }, [appState]);
 
-  useEffect(() => {
-    async function init() {
-      try { const res = await fetch(THEMES_URL); if (res.ok) { const remote = await res.json(); if (Array.isArray(remote) && remote.length > 0) setThemes(remote); } } catch { }
+useEffect(() => {
+  async function init() {
+    let allThemes: Theme[] = BUILTIN_THEMES;
+    try {
+      const res = await fetch(THEMES_URL);
+      if (res.ok) {
+        const remote = await res.json();
+        if (Array.isArray(remote) && remote.length > 0) {
+          allThemes = remote;
+          setThemes(remote);
+        }
+      }
+    } catch { }
 
-      try {
-        const settingsStr = await invoke<string>("load_settings");
-        const savedSettings: AppSettings = { ...settingsRef.current, ...safeParseJSON(settingsStr, {}) };
-        if (savedSettings.uiScale === undefined) savedSettings.uiScale = 1.0;
+    try {
+      const settingsStr = await invoke<string>("load_settings");
+      const savedSettings: AppSettings = { ...settingsRef.current, ...safeParseJSON(settingsStr, {}) };
+      if (savedSettings.uiScale === undefined) savedSettings.uiScale = 1.0;
 
-        settingsRef.current = savedSettings; 
-        setSettings(savedSettings);
-        applyTheme(BUILTIN_THEMES.find(t => t.id === savedSettings.themeId) || BUILTIN_THEMES[0]);
+      settingsRef.current = savedSettings;
+      setSettings(savedSettings);
+      applyTheme(allThemes.find(t => t.id === savedSettings.themeId) || BUILTIN_THEMES[0]);
         document.documentElement.style.setProperty("--ui-scale", savedSettings.uiScale.toString());
         const loadedLang = savedSettings.language || "en"; 
         document.documentElement.lang = loadedLang;
         i18n.changeLanguage(loadedLang);
         setIsMiniMode(savedSettings.isMiniMode || false);
 
-if (savedSettings.isMiniMode) {
+    if (savedSettings.isMiniMode) {
           await invoke("set_custom_window_size", { width: 380.0, height: 500.0 }).catch(() => {});
         } else {
           if (savedSettings.windowWidth && savedSettings.windowHeight && savedSettings.windowX !== undefined && savedSettings.windowY !== undefined) {
@@ -2047,6 +2068,7 @@ const broadcastState = () => {
         onOpenCompanion={handleOpenCompanionModal}
         isCompanionRunning={isCompanionOpen}
         onChangeShortcut={handleChangeShortcut}
+        setIsBackupModalOpen={setIsBackupModalOpen}
       />
 
       <PsnReauthModal
@@ -2820,6 +2842,7 @@ const broadcastState = () => {
       )}
 
       <CloudSyncModal isOpen={isCloudSyncOpen} onClose={() => setIsCloudSyncOpen(false)} syncConfig={syncConfig} setSyncConfig={setSyncConfig} t={t}/>
+      <BackupModal isOpen={isBackupModalOpen} onClose={() => setIsBackupModalOpen(false)} t={t}/>
 
       {isCompanionModalOpen && (
         <div className="confirm-dialog-overlay" onClick={() => setIsCompanionModalOpen(false)}>

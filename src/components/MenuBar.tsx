@@ -25,13 +25,14 @@ interface MenuBarProps {
   onOpenCompanion: () => void;
   isCompanionRunning?: boolean;
   onChangeShortcut: (sc: string) => void;
+  setIsBackupModalOpen: (mode: true | false ) => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut, setIsBackupModalOpen
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -257,6 +258,10 @@ export function MenuBar({
                 )}
               </div>
             </button>
+
+            <button className="menu-option" onClick={() => setIsBackupModalOpen(true)}>
+              {t("backup.title")}
+          </button>
           </div>
         )}
       </div>
