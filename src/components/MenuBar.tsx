@@ -26,13 +26,14 @@ interface MenuBarProps {
   isCompanionRunning?: boolean;
   onChangeShortcut: (sc: string) => void;
   setIsBackupModalOpen: (mode: true | false ) => void;
+  onToggleAutoScreenshots: () => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut, setIsBackupModalOpen
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut, setIsBackupModalOpen, onToggleAutoScreenshots
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -180,7 +181,7 @@ export function MenuBar({
             <input
                 type="text"
                 readOnly
-                value={recordingShortcut ? (pendingShortcut || "Listening...") : (settings.toggleShortcut || "CommandOrControl+Shift+T")}
+                value={recordingShortcut ? (pendingShortcut || "Listening...") : (settings.toggleShortcut !== undefined ? (settings.toggleShortcut || "Unbound") : "CommandOrControl+Shift+T")}
                 onFocus={() => {
                   setRecordingShortcut(true);
                   setPendingShortcut("");
@@ -191,6 +192,16 @@ export function MenuBar({
                 }}
                 onKeyDown={(e) => {
                   e.preventDefault();
+
+                  if (e.key === "Backspace" || e.key === "Delete") {
+                    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                      onChangeShortcut("");
+                      setRecordingShortcut(false);
+                      setPendingShortcut("");
+                      (e.target as HTMLInputElement).blur();
+                      return;
+                    }
+                  }
                   
                   const keys = [];
                   if (e.ctrlKey || e.metaKey) keys.push("CommandOrControl");
@@ -201,6 +212,12 @@ export function MenuBar({
                   if (!invalidKeys.includes(e.key)) {
                     let keyName = e.key.toUpperCase();
                     if (keyName === " ") keyName = "Space";
+                    if (keyName === "ESCAPE") {
+                      setRecordingShortcut(false);
+                      setPendingShortcut("");
+                      (e.target as HTMLInputElement).blur();
+                      return;
+                    }
                     
                     keys.push(keyName);
                   }
@@ -249,6 +266,11 @@ export function MenuBar({
             <button className="menu-option" onClick={() => { onOpenScreenshots(); setOpenMenu(null); }}>
               {t("menu.screenshots")}
             </button>
+
+            <label className="menu-option">
+              <input type="checkbox" checked={settings.autoScreenshots !== false} onChange={onToggleAutoScreenshots} />
+              {t("menu.autoScreenshots") || "Auto-Capture Screenshots"}
+            </label>
 
             <button className="menu-option" onClick={() => { onOpenCompanion(); setOpenMenu(null); }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>

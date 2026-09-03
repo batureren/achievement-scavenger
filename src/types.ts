@@ -40,7 +40,7 @@ export interface AppSettings {
   enableTransparency?: boolean; runOnStartup?: boolean; discordRPCEnabled?: boolean;
   minimizeToTray?: boolean; companionAutoStart?: boolean; 
   windowX?: number; windowY?: number; isMaximized?: boolean; gridColumns?: number;
-  toggleShortcut?: string;
+  toggleShortcut?: string; autoScreenshots?: boolean;
 }
 
 export interface GameHistory {

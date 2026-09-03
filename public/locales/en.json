@@ -77,6 +77,7 @@
     "mini.jump_current": "Jump to Current",
     "menu.toggleShortcut": "Toggle Shortcut",
     "menu.system": "System",
+    "menu.autoScreenshots": "Auto-Capture Screenshots",
     "menu.windowMode_windowed": "Windowed",
     "menu.windowMode_borderless": "Borderless Window",
     "menu.windowMode_fullscreen": "Exclusive Fullscreen",

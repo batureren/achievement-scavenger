@@ -42,11 +42,11 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
-    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, toggleShortcut: "CommandOrControl+Shift+T"
+    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, autoScreenshots: true, toggleShortcut: "CommandOrControl+Shift+T"
   });
 
   const handleChangeShortcut = async (newShortcut: string) => {
-    const oldShortcut = settingsRef.current.toggleShortcut || "CommandOrControl+Shift+T";
+    const oldShortcut = settingsRef.current.toggleShortcut !== undefined ? settingsRef.current.toggleShortcut : "CommandOrControl+Shift+T";
     if (oldShortcut === newShortcut) return;
 
     try {
@@ -507,7 +507,7 @@ function App() {
 
 useEffect(() => {
     if (appState === "LOADING" || appState === "SETUP") return;
-    const shortcut = settings.toggleShortcut || "CommandOrControl+Shift+T";
+    const shortcut = settings.toggleShortcut !== undefined ? settings.toggleShortcut : "CommandOrControl+Shift+T";
     invoke("update_toggle_shortcut", { oldShortcut: "", newShortcut: shortcut }).catch(console.error);
     let debounceTimer: number | undefined;
 
@@ -1300,7 +1300,7 @@ useEffect(() => {
                     newSessionUnlocks.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), ach: achFull });
                     toast.success(`Unlocked: ${achFull.display_name}`, { icon: isTargetRA ? '🎮' : isTargetXbox ? '🟩' : '🏆', style: { background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--accent-green)' } });
                     
-                    if (!isTargetRA && !isTargetXbox) {
+                    if (!isTargetRA && !isTargetXbox && settingsRef.current.autoScreenshots !== false) {
                         invoke("take_unlock_screenshot", { gameName: currentTickGameName, achTitle: achFull.display_name, achIconUrl: achFull.icon }).catch(console.error);
                     }
                   }
@@ -2069,6 +2069,7 @@ const broadcastState = () => {
         isCompanionRunning={isCompanionOpen}
         onChangeShortcut={handleChangeShortcut}
         setIsBackupModalOpen={setIsBackupModalOpen}
+        onToggleAutoScreenshots={() => saveSettings({ ...settingsRef.current, autoScreenshots: settingsRef.current.autoScreenshots === false })}
       />
 
       <PsnReauthModal

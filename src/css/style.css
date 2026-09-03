@@ -3339,7 +3339,7 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   border: none;
   border-bottom: 1px dashed transparent;
   padding: 2px 0;
-  min-width: 80px;
+  width: 100%;
   font-family: inherit;
   border-radius: 0;
 }

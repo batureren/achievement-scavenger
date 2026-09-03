@@ -42,6 +42,9 @@ const ImagePlaceholderIcon = () => (
   </svg>
 );
 
+const ChevronUpIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>;
+const ChevronDownIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>;
+
 function ChecklistThumb({ src, alt, className }: { src: string; alt: string; className?: string }) {
   if (getMediaKind(src) === "video") {
     return <video src={src} className={className} muted loop autoPlay playsInline />;
@@ -77,6 +80,56 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
   const [pendingDeleteItem, setPendingDeleteItem] = useState<ChecklistItem | null>(null);
 
   const persist = (newList: CustomChecklist[]) => onChange(newList);
+
+  const moveCategory = (category: string, direction: "up" | "down") => {
+    if (!activeChecklist) return;
+    const currentGroups = Array.from(
+      activeChecklist.items.reduce((map, item) => {
+        const key = item.category?.trim() || "General";
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(item);
+        return map;
+      }, new Map<string, ChecklistItem[]>()).entries()
+    );
+
+    const catIndex = currentGroups.findIndex(g => g[0] === category);
+    if (catIndex === -1) return;
+    if (direction === "up" && catIndex === 0) return;
+    if (direction === "down" && catIndex === currentGroups.length - 1) return;
+
+    const targetIndex = direction === "up" ? catIndex - 1 : catIndex + 1;
+    
+    const newGroups = [...currentGroups];
+    [newGroups[catIndex], newGroups[targetIndex]] = [newGroups[targetIndex], newGroups[catIndex]];
+
+    const newItems = newGroups.flatMap(g => g[1]);
+    persist(checklists.map(c => c.id === activeChecklist.id ? { ...c, items: newItems } : c));
+  };
+
+  const moveItem = (itemId: string, direction: "up" | "down") => {
+    if (!activeChecklist) return;
+    const itemIndex = activeChecklist.items.findIndex(i => i.id === itemId);
+    if (itemIndex === -1) return;
+    
+    const item = activeChecklist.items[itemIndex];
+    const cat = item.category?.trim() || "General";
+    
+    const catItems = activeChecklist.items.filter(i => (i.category?.trim() || "General") === cat);
+    const idxInCat = catItems.findIndex(i => i.id === itemId);
+    if (idxInCat === -1) return;
+    if (direction === "up" && idxInCat === 0) return;
+    if (direction === "down" && idxInCat === catItems.length - 1) return;
+
+    const targetIdxInCat = direction === "up" ? idxInCat - 1 : idxInCat + 1;
+    const targetItemId = catItems[targetIdxInCat].id;
+    
+    const targetItemIndex = activeChecklist.items.findIndex(i => i.id === targetItemId);
+    
+    const newItems = [...activeChecklist.items];
+    [newItems[itemIndex], newItems[targetItemIndex]] = [newItems[targetItemIndex], newItems[itemIndex]];
+    
+    persist(checklists.map(c => c.id === activeChecklist.id ? { ...c, items: newItems } : c));
+  };
 
   // ---------- Checklist-level actions ----------
   const handleCreateChecklist = (e: FormEvent) => {
@@ -456,18 +509,26 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                   <div className="empty-state">{t("cl.no_search_match")}</div>
                 )}
 
-                {groupedItems.map(([category, items]) => (
+                {groupedItems.map(([category, items], catIndex) => (
                   <div key={category} className="accordion-section">
                     <div className="accordion-header" onClick={() => toggleCategory(category)}>
                       <span className="accordion-title">
                         {hasCategories ? category : t("cl.items_fallback")}
                         <span className="checklist-category-count">{items.filter(i => i.completed).length}/{items.length}</span>
                       </span>
-                      <span className={`accordion-chevron ${!collapsedCategories[category] ? "open" : ""}`}>▼</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        {hasCategories && (
+                          <div style={{ display: "flex", gap: "2px", marginRight: "8px" }} onClick={e => e.stopPropagation()}>
+                            <button className="icon-btn" style={{ width: "22px", height: "22px" }} disabled={catIndex === 0} onClick={() => moveCategory(category, "up")}><ChevronUpIcon /></button>
+                            <button className="icon-btn" style={{ width: "22px", height: "22px" }} disabled={catIndex === groupedItems.length - 1} onClick={() => moveCategory(category, "down")}><ChevronDownIcon /></button>
+                          </div>
+                        )}
+                        <span className={`accordion-chevron ${!collapsedCategories[category] ? "open" : ""}`}>▼</span>
+                      </div>
                     </div>
-                    {!collapsedCategories[category] && (
+                {!collapsedCategories[category] && (
                       <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                        {items.map(item => {
+                        {items.map((item, itemIndex) => {
                           const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
                           const isVideoOpen = expandedVideoId === item.id;
                           return (
@@ -495,6 +556,12 @@ export function ChecklistsPanel({ checklists, onChange, knownChapters = [], t }:
                                     {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
                                   </span>
                                   <div className="cl-item-header-actions">
+                                    <button className="icon-btn hint-visible" title="Move Up" disabled={itemIndex === 0} onClick={() => moveItem(item.id, "up")}>
+                                      <ChevronUpIcon />
+                                    </button>
+                                    <button className="icon-btn hint-visible" title="Move Down" disabled={itemIndex === items.length - 1} onClick={() => moveItem(item.id, "down")}>
+                                      <ChevronDownIcon />
+                                    </button>
                                     <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip")} onClick={() => openEditForm(item)}>
                                       <PencilIcon />
                                     </button>
