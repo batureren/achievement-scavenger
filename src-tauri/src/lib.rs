@@ -15,8 +15,7 @@ use tauri::{
     Manager, Emitter,
 };
 use tauri_plugin_autostart::MacosLauncher;
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
-
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::Html,
@@ -391,11 +390,81 @@ fn write_json_atomic(path: &PathBuf, data: &str) -> Result<(), String> {
     Ok(())
 }
 
-const BACKUP_FILES: [&str; 9] = [
-    "settings.json", "history.json", "tracked.json", "chapters.json",
-    "local_edits.json", "checklists.json", "checklist_progress.json",
-    "user_links.json", "game_links.json",
+const MONOLITHIC_FILES: [&str; 4] = [
+    "settings.json", "history.json", "user_links.json", "game_links.json"
 ];
+
+const SPLIT_FILES: [(&str, &str); 6] = [
+    ("tracked.json", "tracked.json"),
+    ("local_edits.json", "edits.json"),
+    ("chapters.json", "chapters.json"),
+    ("checklists.json", "checklists.json"),
+    ("checklist_progress.json", "checklist_progress.json"),
+    ("guides.json", "guides.json"),
+];
+
+fn get_games_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let mut path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
+    path.push("games");
+    fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    Ok(path)
+}
+
+fn load_aggregated(app_handle: &tauri::AppHandle, suffix: &str) -> Result<String, String> {
+    let dir = get_games_dir(app_handle)?;
+    let mut map = serde_json::Map::new();
+    
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.ends_with(suffix) {
+                let suffix_with_underscore = format!("_{}", suffix);
+                let app_id = name.trim_end_matches(&suffix_with_underscore).to_string();
+                if let Ok(content) = fs::read_to_string(entry.path()) {
+                    if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                        map.insert(app_id, val);
+                    }
+                }
+            }
+        }
+    }
+    Ok(serde_json::Value::Object(map).to_string())
+}
+
+fn save_aggregated(app_handle: &tauri::AppHandle, suffix: &str, data: &str) -> Result<(), String> {
+    let parsed: serde_json::Value = serde_json::from_str(data).map_err(|e| e.to_string())?;
+    if let Some(obj) = parsed.as_object() {
+        for (app_id, val) in obj {
+            save_single(app_handle, app_id, suffix, &val.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn save_single(app_handle: &tauri::AppHandle, app_id: &str, suffix: &str, data: &str) -> Result<(), String> {
+    let dir = get_games_dir(app_handle)?;
+    let safe_id = app_id.replace(|c: char| !c.is_alphanumeric() && c != '_', "_");
+    let filename = format!("{}_{}", safe_id, suffix);
+    let mut path = dir;
+    path.push(filename);
+    write_json_atomic(&path, data)
+}
+
+fn migrate_to_split(app_handle: &tauri::AppHandle) {
+    for (mono_name, suffix) in SPLIT_FILES {
+        if let Ok(path) = get_data_path(app_handle, mono_name) {
+            if path.exists() {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    let _ = save_aggregated(app_handle, suffix, &content);
+                }
+                let mut new_path = path.clone();
+                new_path.set_extension("json.migrated");
+                let _ = fs::rename(&path, &new_path);
+            }
+        }
+    }
+}
+
 const MAX_BACKUPS: usize = 20;
 
 fn get_backups_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -439,11 +508,18 @@ fn perform_backup(app_handle: &tauri::AppHandle) -> Result<String, String> {
     let backups_dir = get_backups_dir(app_handle)?;
 
     let mut files = serde_json::Map::new();
-    for filename in BACKUP_FILES {
+    for filename in MONOLITHIC_FILES {
         let mut p = data_dir.clone();
         p.push(filename);
         if let Ok(content) = fs::read_to_string(&p) {
             if is_valid_json(&content) {
+                files.insert(filename.to_string(), Value::String(content));
+            }
+        }
+    }
+    for (filename, suffix) in SPLIT_FILES {
+        if let Ok(content) = load_aggregated(app_handle, suffix) {
+            if content != "{}" && is_valid_json(&content) {
                 files.insert(filename.to_string(), Value::String(content));
             }
         }
@@ -519,14 +595,16 @@ fn restore_backup(app_handle: tauri::AppHandle, id: String) -> Result<(), String
 
     let data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
     for (filename, value) in files {
-        // Only ever write back the known, expected files.
-        if !BACKUP_FILES.contains(&filename.as_str()) {
-            continue;
-        }
-        if let Some(file_content) = value.as_str() {
-            let mut p = data_dir.clone();
-            p.push(filename);
-            write_json_atomic(&p, file_content)?;
+        if MONOLITHIC_FILES.contains(&filename.as_str()) {
+            if let Some(file_content) = value.as_str() {
+                let mut p = data_dir.clone();
+                p.push(filename);
+                write_json_atomic(&p, file_content)?;
+            }
+        } else if let Some(&(_, suffix)) = SPLIT_FILES.iter().find(|(name, _)| name == &filename.as_str()) {
+            if let Some(file_content) = value.as_str() {
+                save_aggregated(&app_handle, suffix, file_content)?;
+            }
         }
     }
     Ok(())
@@ -964,26 +1042,7 @@ fn save_user_links(app_handle: tauri::AppHandle, data: String) -> Result<(), Str
     let path = get_data_path(&app_handle, "user_links.json")?;
     write_json_atomic(&path, &data)
 }
-#[tauri::command]
-fn load_tracked(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = get_data_path(&app_handle, "tracked.json")?;
-    Ok(read_json_with_fallback(&path, "{}"))
-}
-#[tauri::command]
-fn save_tracked(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "tracked.json")?;
-    write_json_atomic(&path, &data)
-}
-#[tauri::command]
-fn load_local_edits(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = get_data_path(&app_handle, "local_edits.json")?;
-    Ok(read_json_with_fallback(&path, "{}"))
-}
-#[tauri::command]
-fn save_local_edits(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "local_edits.json")?;
-    write_json_atomic(&path, &data)
-}
+
 #[tauri::command]
 fn load_settings(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "settings.json")?;
@@ -1004,16 +1063,48 @@ fn save_history(app_handle: tauri::AppHandle, data: String) -> Result<(), String
     let path = get_data_path(&app_handle, "history.json")?;
     write_json_atomic(&path, &data)
 }
+
 #[tauri::command]
-fn load_chapters(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = get_data_path(&app_handle, "chapters.json")?;
-    Ok(read_json_with_fallback(&path, "{}"))
-}
+fn load_tracked(app_handle: tauri::AppHandle) -> Result<String, String> { load_aggregated(&app_handle, "tracked.json") }
 #[tauri::command]
-fn save_chapters(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "chapters.json")?;
-    write_json_atomic(&path, &data)
-}
+fn save_tracked(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "tracked.json", &data) }
+#[tauri::command]
+fn save_game_tracked(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "tracked.json", &data) }
+
+#[tauri::command]
+fn load_local_edits(app_handle: tauri::AppHandle) -> Result<String, String> { load_aggregated(&app_handle, "edits.json") }
+#[tauri::command]
+fn save_local_edits(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "edits.json", &data) }
+#[tauri::command]
+fn save_game_edits(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "edits.json", &data) }
+
+#[tauri::command]
+fn load_chapters(app_handle: tauri::AppHandle) -> Result<String, String> { load_aggregated(&app_handle, "chapters.json") }
+#[tauri::command]
+fn save_chapters(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "chapters.json", &data) }
+#[tauri::command]
+fn save_game_chapters(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "chapters.json", &data) }
+
+#[tauri::command]
+fn load_checklists(app_handle: tauri::AppHandle) -> Result<String, String> { load_aggregated(&app_handle, "checklists.json") }
+#[tauri::command]
+fn save_checklists(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "checklists.json", &data) }
+#[tauri::command]
+fn save_game_checklists(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "checklists.json", &data) }
+
+#[tauri::command]
+fn load_checklist_progress(app_handle: tauri::AppHandle) -> Result<String, String> { load_aggregated(&app_handle, "checklist_progress.json") }
+#[tauri::command]
+fn save_checklist_progress(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "checklist_progress.json", &data) }
+#[tauri::command]
+fn save_game_checklist_progress(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "checklist_progress.json", &data) }
+
+#[tauri::command]
+fn load_guides(app_handle: tauri::AppHandle) -> String { load_aggregated(&app_handle, "guides.json").unwrap_or_else(|_| "{}".to_string()) }
+#[tauri::command]
+fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String> { save_aggregated(&app_handle, "guides.json", &data) }
+#[tauri::command]
+fn save_game_guides(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "guides.json", &data) }
 
 // --- Steam Status ---
 #[cfg(target_os = "windows")]
@@ -1369,30 +1460,6 @@ fn set_window_transparent(window: tauri::Window, transparent: bool) {
 }
 
 #[tauri::command]
-fn load_checklists(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = get_data_path(&app_handle, "checklists.json")?;
-    Ok(read_json_with_fallback(&path, "{}"))
-}
-
-#[tauri::command]
-fn save_checklists(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "checklists.json")?;
-    write_json_atomic(&path, &data)
-}
-
-#[tauri::command]
-fn load_checklist_progress(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let path = get_data_path(&app_handle, "checklist_progress.json")?;
-    Ok(read_json_with_fallback(&path, "{}"))
-}
-
-#[tauri::command]
-fn save_checklist_progress(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "checklist_progress.json")?;
-    write_json_atomic(&path, &data)
-}
-
-#[tauri::command]
 fn load_game_links(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "game_links.json")?;
     Ok(read_json_with_fallback(&path, "{}"))
@@ -1412,20 +1479,6 @@ fn load_sync_config(app_handle: tauri::AppHandle) -> Result<String, String> {
 #[tauri::command]
 fn save_sync_config(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
     let path = get_data_path(&app_handle, "sync_config.json")?;
-    write_json_atomic(&path, &data)
-}
-
-#[tauri::command]
-fn load_guides(app_handle: tauri::AppHandle) -> String {
-    if let Ok(path) = get_data_path(&app_handle, "guides.json") {
-        return read_json_with_fallback(&path, "{}");
-    }
-    "{}".to_string()
-}
-
-#[tauri::command]
-fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String> {
-    let path = get_data_path(&app_handle, "guides.json")?;
     write_json_atomic(&path, &data)
 }
 
@@ -1532,6 +1585,8 @@ pub fn run() {
                 }
             }).build())
         .setup(|app| {
+            migrate_to_split(app.handle());
+            
             let show_i = MenuItem::with_id(app, "show", "Show Tracker", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
@@ -1584,7 +1639,8 @@ pub fn run() {
             load_psn_credentials, save_psn_credentials, authenticate_psn, refresh_psn_token, get_psn_recent_games, get_psn_trophies,
             update_discord_rpc, clear_discord_rpc, take_unlock_screenshot, open_screenshots_folder,
             load_checklists, save_checklists, load_checklist_progress, save_checklist_progress, load_game_links, save_game_links, load_sync_config, save_sync_config, load_guides, save_guides, start_companion_server, stop_companion_server, broadcast_to_phone, get_window_state, set_window_state, update_toggle_shortcut, get_screenshots,
-            create_backup_now, list_backups, restore_backup, delete_backup
+            create_backup_now, list_backups, restore_backup, delete_backup,
+            save_game_tracked, save_game_edits, save_game_chapters, save_game_checklists, save_game_checklist_progress, save_game_guides
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -124,7 +124,7 @@ function App() {
     saveSettings(updated);
   }, [sortOrder]);
 
-    useEffect(() => {
+  useEffect(() => {
     const unlisten = listen<string>("mobile_action", (event) => {
       const data = safeParseJSON(event.payload, null);
       if (data?.action === "SET_GUIDE_PROGRESS" && data.blockId) {
@@ -134,7 +134,7 @@ function App() {
           if (!safeGuide) return prev;
           
           const updated = { ...safeGuide, currentProgressBlockId: data.blockId };
-          invoke("save_guides", { data: JSON.stringify({...prev, [appId]: updated}) }).catch(console.error);
+          invoke("save_game_guides", { appId, data: JSON.stringify(updated) }).catch(console.error);
           return { ...prev, [appId]: updated };
         });
       } else if (data?.action === "TOGGLE_CHECKLIST_ITEM" && data.checklistId && data.itemId) {
@@ -148,7 +148,7 @@ function App() {
           const isCurrentlyTracked = gameTracked.includes(data.apiname); 
           const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter((id: string) => id !== data.apiname) : [...gameTracked, data.apiname]; 
           const newState = { ...safePrev, [appId]: updatedGameTracked }; 
-          invoke("save_tracked", { data: JSON.stringify(newState) }).catch(console.error); 
+          invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error); 
           return newState; 
         });
       }
@@ -157,14 +157,14 @@ function App() {
     return () => { unlisten.then(fn => fn()); };
   }, []);
 
-    const handleToggleChecklistItem = (checklistId: string, itemId: string) => {
+  const handleToggleChecklistItem = (checklistId: string, itemId: string) => {
     const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
     if (!gameProgress[checklistId]) gameProgress[checklistId] = {};
     gameProgress[checklistId][itemId] = !gameProgress[checklistId][itemId];
     
     const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
     setChecklistProgress(updatedProgress);
-    invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
+    invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
 
     setAllChecklists(prev => {
       const currentLists = prev[selectedAppId] || [];
@@ -177,12 +177,12 @@ function App() {
     });
   };
 
-    const handleSetGuideProgress = (blockId: string) => {
+  const handleSetGuideProgress = (blockId: string) => {
     setAllGuides(prev => {
       const safeGuide = prev[selectedAppId];
       if (!safeGuide) return prev;
       const updated = { ...safeGuide, currentProgressBlockId: blockId };
-      invoke("save_guides", { data: JSON.stringify({...prev, [selectedAppId]: updated}) }).catch(console.error);
+      invoke("save_game_guides", { appId: selectedAppId, data: JSON.stringify(updated) }).catch(console.error);
       return { ...prev, [selectedAppId]: updated };
     });
   };
@@ -221,7 +221,6 @@ function App() {
   const [gameHistory, setGameHistory] = useState<Record<string, GameHistory>>({});
   const [pendingRemoveGame, setPendingRemoveGame] = useState<GameHistory | null>(null);
 
-  const saveEditsTimeoutRef = useRef<number | null>(null);
   const allLocalEditsRef = useRef<Record<string, Record<string, LocalEdit>>>({});
   const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en", discordRPCEnabled: true });
   const apiKeyRef = useRef<string>("");
@@ -355,7 +354,7 @@ function App() {
 
       if (changed) {
         const updated = { ...prev, [appId]: newLists };
-        invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+        invoke("save_game_checklists", { appId, data: JSON.stringify(newLists) }).catch(console.error);
         return updated;
       }
       return prev;
@@ -505,7 +504,7 @@ function App() {
   };
   const handleSaveUiScale = () => { saveSettings({ ...settingsRef.current, uiScale: settings.uiScale }); };
 
-useEffect(() => {
+  useEffect(() => {
     if (appState === "LOADING" || appState === "SETUP") return;
     const shortcut = settings.toggleShortcut !== undefined ? settings.toggleShortcut : "CommandOrControl+Shift+T";
     invoke("update_toggle_shortcut", { oldShortcut: "", newShortcut: shortcut }).catch(console.error);
@@ -1624,7 +1623,7 @@ useEffect(() => {
       const isCurrentlyTracked = gameTracked.includes(apiname); 
       const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter(id => id !== apiname) : [...gameTracked, apiname]; 
       const newState = { ...safePrev, [appId]: updatedGameTracked }; 
-      invoke("save_tracked", { data: JSON.stringify(newState) }).catch(console.error); 
+      invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error); 
       return newState; 
     }); 
   };
@@ -1645,10 +1644,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     setGroupFetchTick(t => t + 1);
   }
 
-  if (saveEditsTimeoutRef.current) window.clearTimeout(saveEditsTimeoutRef.current);
-  saveEditsTimeoutRef.current = window.setTimeout(() => {
-    invoke("save_local_edits", { data: JSON.stringify(newAllEdits) }).catch(console.error); 
-  }, 1000);
+  invoke("save_game_edits", { appId, data: JSON.stringify(updatedGameEdits) }).catch(console.error); 
 };
 
   const currentGameChapters = useMemo(() => {
@@ -1663,7 +1659,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     const groupKey = getGroupKey(selectedAppId);
     const updated = { ...allLocalChapters, [groupKey]: newChapters };
     setAllLocalChapters(updated);
-    await invoke("save_chapters", { data: JSON.stringify(updated) }).catch(console.error);
+    await invoke("save_game_chapters", { appId: groupKey, data: JSON.stringify(newChapters) }).catch(console.error);
   };
 
   const handleAddChapter = (e: React.FormEvent) => {
@@ -2253,7 +2249,7 @@ const broadcastState = () => {
                               <span>{ach.hint}</span>
                             </div>
                           )}
-                          <button className={`track-btn ${currentGameTracked.includes(ach.apiname) ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname)} style={{ position: "absolute", top: 4, right: 4, padding: 2 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
+                          <button className={`track-btn ${currentGameTracked.includes(ach.apiname) ? "tracked" : ""}`} onClick={() => handleToggleTrack(ach.apiname, ach._appId)} style={{ position: "absolute", top: 4, right: 4, padding: 2 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg></button>
                         </div>
                      </div>
                    );
@@ -2790,7 +2786,7 @@ const broadcastState = () => {
               onChange={(newList) => {
                 const updated = { ...allChecklists, [selectedAppId]: newList };
                 setAllChecklists(updated);
-                invoke("save_checklists", { data: JSON.stringify(updated) }).catch(console.error);
+                invoke("save_game_checklists", { appId: selectedAppId, data: JSON.stringify(newList) }).catch(console.error);
 
                 const gameProgress: Record<string, Record<string, boolean>> = { ...(checklistProgressRef.current[selectedAppId] || {}) };
                 newList.forEach(list => {
@@ -2800,7 +2796,7 @@ const broadcastState = () => {
                 });
                 const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
                 setChecklistProgress(updatedProgress);
-                invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
+                invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
               }}
             />
           )}
@@ -2815,7 +2811,7 @@ const broadcastState = () => {
               onChange={(updatedGuide) => {
                 const newGuides = { ...allGuides, [selectedAppId]: updatedGuide };
                 setAllGuides(newGuides);
-                invoke("save_guides", { data: JSON.stringify(newGuides) }).catch(console.error);
+                invoke("save_game_guides", { appId: selectedAppId, data: JSON.stringify(updatedGuide) }).catch(console.error);
               }}
               onToggleChecklistItem={(checklistId, itemId) => {
                 const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
@@ -2824,7 +2820,7 @@ const broadcastState = () => {
                 
                 const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
                 setChecklistProgress(updatedProgress);
-                invoke("save_checklist_progress", { data: JSON.stringify(updatedProgress) }).catch(console.error);
+                invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
 
                 setAllChecklists(prev => {
                   const currentLists = prev[selectedAppId] || [];
