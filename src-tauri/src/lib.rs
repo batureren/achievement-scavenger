@@ -1570,11 +1570,6 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyT);
-            if let Err(e) = app.global_shortcut().register(shortcut) {
-                eprintln!("Failed to register global shortcut: {}", e);
-            }
-
             Ok(())
         })
         
