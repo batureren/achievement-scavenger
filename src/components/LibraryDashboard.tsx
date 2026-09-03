@@ -9,6 +9,7 @@ import { PlatformIcon } from "./Icons";
 import { timeAgo } from "../utils";
 import { BatchImportModal } from "./BatchImportModal";
 import { CommunityDbModal } from "./CommunityDbModal";
+import { ProgressiveImage } from "./ProgressiveImage";
 
 type PlatformFilter = "ALL" | "STEAM" | "RA" | "XBOX" | "PSN";
 
@@ -355,9 +356,9 @@ export function LibraryDashboard({
                       };
 
                       return (
-                        <div key={subGame.appId} className="banner-slice">
+          <div key={subGame.appId} className="banner-slice">
                           {imgSrc ? (
-                            <img src={imgSrc} data-fallbacks={JSON.stringify(fallbacks)} alt="" onLoad={handleImgLoad} onError={handleImgError} />
+                            <ProgressiveImage src={imgSrc} data-fallbacks={JSON.stringify(fallbacks)} alt="" onLoad={handleImgLoad} onError={handleImgError} />
                           ) : (
                             <div className="banner-slice-placeholder">
                               <PlatformIcon platform={subGame.platform} size={20}/>
@@ -473,7 +474,7 @@ export function LibraryDashboard({
 
               return (
                 <div key={s.path} className="library-gallery-card" onClick={() => setLightboxSrc(convertFileSrc(s.path))}>
-                  <img src={convertFileSrc(s.path)} alt={cleanAchName} loading="lazy" />
+                  <ProgressiveImage src={convertFileSrc(s.path)} alt={cleanAchName} loading="lazy" />
                   <div className="library-gallery-info">
                     <span className="gallery-ach-name">{cleanAchName}</span>
                     <span className="gallery-game-name">{cleanGameName}</span>
@@ -502,7 +503,7 @@ export function LibraryDashboard({
                   title={`Jump to "${next.name}" in ${game.name}`}
                 >
                   {next.icon ? (
-                    <img src={next.icon} alt="" className="library-play-next-icon" />
+                    <ProgressiveImage src={next.icon} alt="" className="library-play-next-icon" />
                   ) : (
                     <div className="library-play-next-icon library-play-next-icon--fallback" />
                   )}

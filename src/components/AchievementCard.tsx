@@ -4,6 +4,7 @@ import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
 import { renderHintWithLinks, getYouTubeEmbedUrl } from "../utils";
 import { CollapsibleBox } from "./CollapsibleBox";
+import { ProgressiveImage } from "./ProgressiveImage";
 
 interface AchievementCardProps {
   ach: MergedAchievement;
@@ -68,7 +69,7 @@ function AchievementCardBase({
       
       <div className="card-top" style={{ alignItems: "center" }}>
         <div style={{ position: "relative" }}>
-          <img src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon" />
+          <ProgressiveImage src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon" />
           {!ach.unlocked && <div className="lock-overlay">🔒</div>}
         </div>
 

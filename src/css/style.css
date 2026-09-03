@@ -4879,6 +4879,49 @@ video.cl-item-img {
   text-overflow: ellipsis;
 }
 
+.progressive-wrapper {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.progressive-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-shimmer 1.5s infinite;
+  pointer-events: none;
+}
+
+.progressive-wrapper.loaded {
+  background-color: transparent;
+}
+
+.progressive-wrapper.loaded::after {
+  display: none;
+  animation: none;
+}
+
+.progressive-img {
+  width: 100%;
+  height: 100%;
+  object-fit: inherit;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  display: block;
+}
+
+.progressive-img.loaded {
+  opacity: 1;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
 @keyframes pulse-border {
   0% { border-color: var(--accent-yellow); }
   50% { border-color: rgba(245, 158, 11, 0.3); }
