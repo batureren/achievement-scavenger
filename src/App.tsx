@@ -25,7 +25,7 @@ import {
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, GameLink, CustomGuide
+  CustomChecklist, GameLink, CustomGuide, GameChecklists, ChecklistCollection
 } from "./types";
 import { GuidedModePanel } from "./components/GuidedModePanel";
 import { BUILTIN_THEMES, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL } from "./constants";
@@ -89,7 +89,7 @@ function App() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("DEFAULT");
 
   const [innerTab, setInnerTab] = useState<"ACHIEVEMENTS" | "CHECKLISTS" | "GUIDE">("ACHIEVEMENTS");
-  const [allChecklists, setAllChecklists] = useState<Record<string, CustomChecklist[]>>({});
+  const [allChecklists, setAllChecklists] = useState<Record<string, GameChecklists>>({});
   const [allGuides, setAllGuides] = useState<Record<string, CustomGuide>>({});
   const [checklistProgress, setChecklistProgress] = useState<Record<string, Record<string, Record<string, boolean>>>>({});
   const checklistProgressRef = useRef(checklistProgress);
@@ -167,12 +167,19 @@ function App() {
     invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
 
     setAllChecklists(prev => {
-      const currentLists = prev[selectedAppId] || [];
+      const gameData = prev[selectedAppId];
+      if (!gameData) return prev;
       return {
         ...prev,
-        [selectedAppId]: currentLists.map(c => c.id === checklistId ? {
-          ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
-        } : c)
+        [selectedAppId]: {
+          ...gameData,
+          collections: gameData.collections.map(col => ({
+            ...col,
+            checklists: col.checklists.map(c => c.id === checklistId ? {
+              ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
+            } : c)
+          }))
+        }
       };
     });
   };
@@ -658,17 +665,39 @@ useEffect(() => {
         setAllGuides(safeParseJSON(guidesStr, {}));
 
         const checklistsStr = await invoke<string>("load_checklists").catch(() => "{}");
-        const loadedChecklists = safeParseJSON(checklistsStr, {});
+        const loadedChecklistsRaw = safeParseJSON(checklistsStr, {});
         const progressStr = await invoke<string>("load_checklist_progress").catch(() => "{}");
         const loadedProgress = safeParseJSON(progressStr, {});
         setChecklistProgress(loadedProgress);
-        const mergedChecklists: Record<string, CustomChecklist[]> = {};
-        Object.keys(loadedChecklists).forEach(gameId => {
+        
+        const mergedChecklists: Record<string, GameChecklists> = {};
+        Object.keys(loadedChecklistsRaw).forEach(gameId => {
+          const rawData = loadedChecklistsRaw[gameId];
           const gameProgress = loadedProgress[gameId] || {};
-          mergedChecklists[gameId] = (loadedChecklists[gameId] || []).map((list: CustomChecklist) => ({
-            ...list,
-            items: list.items.map(item => ({ ...item, completed: gameProgress[list.id]?.[item.id] ?? item.completed ?? false })),
+          let gameData: GameChecklists;
+
+          if (Array.isArray(rawData)) {
+            gameData = {
+              appId: gameId,
+              activeCollectionId: "default",
+              collections: [{ id: "default", name: "My Checklists", checklists: rawData }]
+            };
+          } else {
+            gameData = rawData;
+          }
+
+          gameData.collections = gameData.collections.map(col => ({
+            ...col,
+            checklists: col.checklists.map(list => ({
+              ...list,
+              items: list.items.map(item => ({ 
+                ...item, 
+                completed: gameProgress[list.id]?.[item.id] ?? item.completed ?? false 
+              }))
+            }))
           }));
+
+          mergedChecklists[gameId] = gameData;
         });
         setAllChecklists(mergedChecklists);
 
@@ -1677,7 +1706,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     saveGameChapters(newChapters);
   };
 
-const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklists?: boolean } = {}) => {
+  const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklists?: boolean } = {}) => {
     const dbCache = communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] };
     const cData = dbCache.db || [];
     const cLinks = dbCache.links || [];
@@ -1711,25 +1740,25 @@ const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklist
     };
     
     if (opts.includeChecklists) {
-      const gameChecklists = allChecklists[targetAppId] || [];
-      payload.checklists = gameChecklists.map(list => ({
-        id: list.id,
-        title: list.title,
-        items: list.items.map(({ completed, ...contentOnly }) => contentOnly),
-      }));
+      const gameChecklistData = allChecklists[targetAppId];
+      if (gameChecklistData && gameChecklistData.collections.length > 0) {
+        const activeCol = gameChecklistData.collections.find(c => c.id === gameChecklistData.activeCollectionId) || gameChecklistData.collections[0];
+        payload.checklists = activeCol.checklists.map(list => ({
+          id: list.id,
+          title: list.title,
+          items: list.items.map(({ completed, ...contentOnly }) => contentOnly),
+        }));
+      }
     }
     return JSON.stringify(payload, null, 2);
   };
 
-  const handleExportJSON = async (targetAppId: string) => { 
-    try { await invoke<string>("save_file_dialog", { filename: `${targetAppId}.json`, content: generateUnifiedExportJSON(targetAppId, { includeChecklists: true }) }); toast.success("JSON saved successfully!"); } 
-    catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
-  };
-  
-const handleExportHTML = async (targetAppId: string) => { 
+  const handleExportHTML = async (targetAppId: string) => { 
     try { 
       const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
-      const gameChecklistsForExport = allChecklists[targetAppId] || [];
+      const gameChecklistData = allChecklists[targetAppId];
+      const activeCol = gameChecklistData?.collections.find(c => c.id === gameChecklistData.activeCollectionId) || gameChecklistData?.collections[0];
+      const gameChecklistsForExport = activeCol?.checklists || [];
       const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
 
       const checklistsHtml = gameChecklistsForExport.length === 0 ? "" : `
@@ -1759,7 +1788,7 @@ const handleExportHTML = async (targetAppId: string) => {
         </div>
         ${checklistsHtml}
       </body></html>`; 
-      
+
       await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); 
       toast.success("HTML Checklist saved successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
@@ -1767,7 +1796,7 @@ const handleExportHTML = async (targetAppId: string) => {
   
   const handleCreatePR = async (targetAppId: string) => { 
     try { 
-      const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: true }) + "\n";
+      const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: false }) + "\n";
       
       await navigator.clipboard.writeText(jsonString); 
       
@@ -2780,19 +2809,22 @@ const broadcastState = () => {
           {innerTab === "CHECKLISTS" && (
             <ChecklistsPanel
               key={selectedAppId}
-              checklists={allChecklists[selectedAppId] || []}
+              appId={selectedAppId}
+              gameChecklists={allChecklists[selectedAppId] || { appId: selectedAppId, activeCollectionId: null, collections: [] }}
               knownChapters={allKnownChaptersForDropdown}
               t={t}
-              onChange={(newList) => {
-                const updated = { ...allChecklists, [selectedAppId]: newList };
+              onChange={(newGameChecklists) => {
+                const updated = { ...allChecklists, [selectedAppId]: newGameChecklists };
                 setAllChecklists(updated);
-                invoke("save_game_checklists", { appId: selectedAppId, data: JSON.stringify(newList) }).catch(console.error);
+                invoke("save_game_checklists", { appId: selectedAppId, data: JSON.stringify(newGameChecklists) }).catch(console.error);
 
                 const gameProgress: Record<string, Record<string, boolean>> = { ...(checklistProgressRef.current[selectedAppId] || {}) };
-                newList.forEach(list => {
-                  const itemProgress: Record<string, boolean> = {};
-                  list.items.forEach(item => { itemProgress[item.id] = item.completed; });
-                  gameProgress[list.id] = itemProgress;
+                newGameChecklists.collections.forEach(col => {
+                  col.checklists.forEach(list => {
+                    const itemProgress: Record<string, boolean> = {};
+                    list.items.forEach(item => { itemProgress[item.id] = item.completed; });
+                    gameProgress[list.id] = itemProgress;
+                  });
                 });
                 const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
                 setChecklistProgress(updatedProgress);
@@ -2806,7 +2838,7 @@ const broadcastState = () => {
               appId={selectedAppId}
               guide={allGuides[selectedAppId] || null}
               achievements={displayedAchievements}
-              checklists={allChecklists[selectedAppId] || []}
+              checklists={allChecklists[selectedAppId] ? allChecklists[selectedAppId].collections.flatMap(c => c.checklists) : []}
               t={t}
               onChange={(updatedGuide) => {
                 const newGuides = { ...allGuides, [selectedAppId]: updatedGuide };
@@ -2814,23 +2846,7 @@ const broadcastState = () => {
                 invoke("save_game_guides", { appId: selectedAppId, data: JSON.stringify(updatedGuide) }).catch(console.error);
               }}
               onToggleChecklistItem={(checklistId, itemId) => {
-                const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
-                if (!gameProgress[checklistId]) gameProgress[checklistId] = {};
-                gameProgress[checklistId][itemId] = !gameProgress[checklistId][itemId];
-                
-                const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
-                setChecklistProgress(updatedProgress);
-                invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
-
-                setAllChecklists(prev => {
-                  const currentLists = prev[selectedAppId] || [];
-                  return {
-                    ...prev,
-                    [selectedAppId]: currentLists.map(c => c.id === checklistId ? {
-                      ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i)
-                    } : c)
-                  };
-                });
+                handleToggleChecklistItem(checklistId, itemId);
               }}
             />
           )}

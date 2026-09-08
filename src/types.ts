@@ -70,6 +70,27 @@ export interface CustomChecklist {
   items: ChecklistItem[];
 }
 
+export interface ChecklistCollection {
+  id: string;
+  name: string;
+  author?: string;
+  description?: string;
+  checklists: CustomChecklist[];
+}
+
+export interface GameChecklists {
+  appId: string;
+  activeCollectionId: string | null;
+  collections: ChecklistCollection[];
+}
+
+export interface SharedChecklistCollection {
+  appId: string;
+  author: string;
+  description: string;
+  checklists: CustomChecklist[];
+}
+
 export interface GameLink {
   id: string;
   appIds: string[];
