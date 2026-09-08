@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { 
@@ -62,8 +62,9 @@ export function LibraryDashboard({
     setVisibleCount(40);
   }, [libraryFilter, platformFilter, librarySearch, librarySort]);
 
+
   const observer = useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = (node: HTMLDivElement | null) => {
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
     
     observer.current = new IntersectionObserver(entries => {
@@ -73,7 +74,7 @@ export function LibraryDashboard({
     }, { rootMargin: "800px" });
 
     if (node) observer.current.observe(node);
-  };
+  }, []);
 
   const groupedGames: any[] = [];
   const processedLinkIds = new Set<string>();

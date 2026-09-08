@@ -851,11 +851,11 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
 
                               <div className="cl-item-info">
                                 <div className="cl-item-header">
-                                  <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <h3 className="cl-item-title">{item.name}</h3>
-                                    {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
-                                  </span>
-                                  <div className="cl-item-header-actions">
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                      <h3 className="cl-item-title">{item.name}</h3>
+                                      {item.chapter && <span className="chapter-tag">{item.chapter}</span>}
+                                    </div>
+                                    <div className="cl-item-header-actions">
                                     <button className="icon-btn hint-visible" title="Move Up" disabled={itemIndex === 0} onClick={() => moveItem(item.id, "up")}>
                                       <ChevronUpIcon />
                                     </button>

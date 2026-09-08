@@ -240,11 +240,12 @@ async fn take_unlock_screenshot(
 
     let app_handle_clone = app_handle.clone();
     let capture_result = tauri::async_runtime::spawn_blocking(move || -> Result<String, String> {
-        let monitors = xcap::Monitor::all().map_err(|e| e.to_string())?;
+        let mut monitors = xcap::Monitor::all().map_err(|e| e.to_string())?;
         let primary = monitors
             .into_iter()
             .find(|m| m.is_primary())
-            .ok_or("No primary monitor found")?;
+            .or_else(|| xcap::Monitor::all().unwrap_or_default().into_iter().next())
+            .ok_or("No monitors found")?;
 
         let mut screen_img = primary.capture_image().map_err(|e| e.to_string())?;
 
