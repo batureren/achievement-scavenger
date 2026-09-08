@@ -329,39 +329,49 @@ function App() {
     if (!communityChecklists || communityChecklists.length === 0) return;
     
     setAllChecklists(prev => {
-      const existing = prev[appId] || [];
-      let changed = false;
+      const existingData = prev[appId];
+      if (!existingData) return prev;
       
-      const newLists = existing.map(localList => {
-        const cList = communityChecklists.find((c: any) => c.id === localList.id);
-        if (!cList) return localList;
+      const activeColId = existingData.activeCollectionId || existingData.collections[0]?.id;
+      if (!activeColId) return prev;
+
+      let changed = false;
+      const newCols = existingData.collections.map(col => {
+        if (col.id !== activeColId) return col;
         
-        let listChanged = false;
-        const newItems = [...localList.items];
-        
-        for (const cItem of cList.items || []) {
-          if (!newItems.some(i => i.id === cItem.id)) {
-            newItems.push({ ...cItem, completed: false });
-            listChanged = true;
+        const newLists = col.checklists.map(localList => {
+          const cList = communityChecklists.find((c: any) => c.id === localList.id);
+          if (!cList) return localList;
+          
+          let listChanged = false;
+          const newItems = [...localList.items];
+          
+          for (const cItem of cList.items || []) {
+            if (!newItems.some(i => i.id === cItem.id)) {
+              newItems.push({ ...cItem, completed: false });
+              listChanged = true;
+            }
+          }
+          if (listChanged) { changed = true; return { ...localList, items: newItems }; }
+          return localList;
+        });
+
+        for (const cList of communityChecklists) {
+          if (!newLists.some(l => l.id === cList.id)) {
+            newLists.push({
+              ...cList,
+              items: (cList.items || []).map((item: any) => ({ ...item, completed: false }))
+            });
+            changed = true;
           }
         }
-        if (listChanged) { changed = true; return { ...localList, items: newItems }; }
-        return localList;
+        
+        return { ...col, checklists: newLists };
       });
 
-      for (const cList of communityChecklists) {
-        if (!newLists.some(l => l.id === cList.id)) {
-          newLists.push({
-            ...cList,
-            items: (cList.items || []).map((item: any) => ({ ...item, completed: false }))
-          });
-          changed = true;
-        }
-      }
-
       if (changed) {
-        const updated = { ...prev, [appId]: newLists };
-        invoke("save_game_checklists", { appId, data: JSON.stringify(newLists) }).catch(console.error);
+        const updated = { ...prev, [appId]: { ...existingData, collections: newCols } };
+        invoke("save_game_checklists", { appId, data: JSON.stringify(updated[appId]) }).catch(console.error);
         return updated;
       }
       return prev;
@@ -1753,6 +1763,19 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     return JSON.stringify(payload, null, 2);
   };
 
+  const handleExportJSON = async (targetAppId: string) => {
+    try {
+      const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
+      const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: true });
+      const filename = `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data.json`;
+      
+      await invoke<string>("save_file_dialog", { filename, content: jsonString });
+      toast.success("JSON exported successfully!");
+    } catch (e) {
+      if (e !== "Cancelled by user") toast.error(`Failed to export JSON: ${e}`);
+    }
+  };
+
   const handleExportHTML = async (targetAppId: string) => { 
     try { 
       const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
@@ -2044,7 +2067,7 @@ const broadcastState = () => {
           banner: resolvedBanner,
           tracked: trackedDetails,
           recent: recentDetails,
-          checklists: allChecklists[selectedAppId] || [],
+          checklists: allChecklists[selectedAppId] || { appId: selectedAppId, activeCollectionId: null, collections: [] },
           guide: allGuides[selectedAppId] || null,
           guideAchs: lightAchs,
           allAchievements: achievements,
@@ -2291,10 +2314,15 @@ const broadcastState = () => {
 
 {miniTab === "CL" && (
                <>
-                 {(allChecklists[selectedAppId] || []).length === 0 ? (
-                   <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No checklists available.</p>
-                 ) : (
-                   allChecklists[selectedAppId].map(list => (
+                 {(() => {
+                   const gameData = allChecklists[selectedAppId];
+                   const lists = gameData ? (gameData.collections.find(c => c.id === gameData.activeCollectionId)?.checklists || gameData.collections[0]?.checklists || []) : [];
+                   
+                   if (lists.length === 0) {
+                     return <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No checklists available.</p>;
+                   }
+                   
+                   return lists.map(list => (
                      <div key={list.id}>
                         <h4 style={{ fontSize: "0.95rem", color: "var(--accent-green)", margin: "0 0 8px", borderBottom: "1px solid var(--border-color)", paddingBottom: "4px" }}>{list.title}</h4>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
@@ -2360,8 +2388,8 @@ const broadcastState = () => {
                         })}
                         </div>
                      </div>
-                   ))
-                 )}
+                   ));
+                 })()}
                </>
              )}
 
@@ -2417,7 +2445,9 @@ const broadcastState = () => {
                                       })()}
                                       {block.type === "checklist" && (() => {
                                         let foundItem: any = null;
-                                        for (const cl of (allChecklists[selectedAppId] || [])) {
+                                        const gameData = allChecklists[selectedAppId];
+                                        const lists = gameData ? gameData.collections.flatMap(c => c.checklists) : [];
+                                        for (const cl of lists) {
                                           foundItem = cl.items.find(i => i.id === block.content);
                                           if (foundItem) break;
                                         }

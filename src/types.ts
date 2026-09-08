@@ -86,6 +86,7 @@ export interface GameChecklists {
 
 export interface SharedChecklistCollection {
   appId: string;
+  name?: string;
   author: string;
   description: string;
   checklists: CustomChecklist[];
