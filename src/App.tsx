@@ -25,7 +25,7 @@ import {
   AppSettings, MergedAchievement, UserLink, CommunityLink, 
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, GameLink, CustomGuide, GameChecklists, ChecklistCollection
+  CustomChecklist, GameLink, CustomGuide, GameChecklists
 } from "./types";
 import { GuidedModePanel } from "./components/GuidedModePanel";
 import { BUILTIN_THEMES, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL } from "./constants";
