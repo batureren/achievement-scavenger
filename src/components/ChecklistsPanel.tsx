@@ -521,28 +521,31 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     <div className="checklists-layout">
       <div className="checklists-sidebar" style={{ backgroundColor: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
         
-        <div className="guided-header" style={{ marginBottom: "12px", background: "var(--card-bg)" }}>
-          <div className="guided-controls" style={{ flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-              <select 
-                  className="control-select" 
-                  value={activeCollectionId}
-                  onChange={e => {
-                    persist({ ...safeData, activeCollectionId: e.target.value });
-                    setIsEditingCollection(false);
-                    setIsAddingCollection(false);
-                  }}
-              >
-                  {safeData.collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px" }} onClick={handleOpenEditCollection} title="Edit Collection Info"><PencilIcon /></button>
-              {safeData.collections.length > 1 && (
-                <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={() => setPendingDeleteCollection(activeCollection)} title="Delete Collection"><TrashIcon /></button>
-              )}
-            </div>
-            
-            <button className="btn-small" onClick={() => { setIsAddingCollection(true); setIsEditingCollection(false); }}>New Collection</button>
-          </div>
+    <div className="guided-header" style={{ marginBottom: "12px", background: "var(--card-bg)" }}>
+      <div className="guided-controls" style={{ flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+          <select 
+              className="control-select" 
+              value={activeCollectionId}
+              onChange={e => {
+                persist({ ...safeData, activeCollectionId: e.target.value });
+                setIsEditingCollection(false);
+                setIsAddingCollection(false);
+              }}
+          >
+              {safeData.collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px" }} onClick={handleOpenEditCollection} title="Edit Collection Info"><PencilIcon /></button>
+          {safeData.collections.length > 1 && (
+            <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={() => setPendingDeleteCollection(activeCollection)} title="Delete Collection"><TrashIcon /></button>
+          )}
+        </div>
+        
+        <button className="btn-small" onClick={() => { setIsAddingCollection(true); setIsEditingCollection(false); }}>New Collection</button>
+        <button className="btn-small btn-small-success" onClick={handlePublishChecklists} title="Publish Checklists" disabled={checklists.length === 0}>
+          <GitHubIcon /> Publish
+        </button>
+      </div>
 
           {isAddingCollection && (
               <form onSubmit={handleCreateCollection} className="guided-inline-form" style={{flexDirection: "column", alignItems: "flex-start", marginTop: "10px", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed var(--border-color)"}}>
@@ -643,14 +646,11 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                   onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                 />
                 
-                <div className="btn-group" style={{ alignSelf: "flex-start" }}>
+              <div className="btn-group" style={{ alignSelf: "flex-start" }}>
                   <button className="btn-small" onClick={() => markAll(true)} disabled={totalCount === 0}>{t("cl.mark_all_found", { defaultValue: "Mark All Found" })}</button>
                   <button className="btn-small" onClick={() => markAll(false)} disabled={totalCount === 0}>{t("cl.reset", { defaultValue: "Reset" })}</button>
                   <button className="btn-small btn-small-success" onClick={openAddForm}>{t("cl.add_item_btn", { defaultValue: "Add Item" })}</button>
                   
-                  <button className="btn-small btn-small-success" onClick={handlePublishChecklists} title="Publish Checklists" disabled={checklists.length === 0}>
-                      <GitHubIcon /> Publish
-                  </button>
                   <button className="btn-small" onClick={fetchCommunityChecklists}>
                       Community Lists {availableCollectionCount !== null && availableCollectionCount > 0 ? `(${availableCollectionCount})` : ""}
                   </button>

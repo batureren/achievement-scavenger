@@ -1716,7 +1716,7 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
     saveGameChapters(newChapters);
   };
 
-  const generateUnifiedExportJSON = (targetAppId: string, opts: { includeChecklists?: boolean } = {}) => {
+const generateUnifiedExportJSON = (targetAppId: string, opts: { includeAchievements?: boolean, includeChecklists?: boolean, includeGuide?: boolean } = {}) => {
     const dbCache = communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] };
     const cData = dbCache.db || [];
     const cLinks = dbCache.links || [];
@@ -1724,30 +1724,33 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
 
     let safeGameName = gameHistory[targetAppId]?.name || targetAppId;
 
-    const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
-
-    const unifiedAchievements = gameAchievements.map(ach => {
-      const orig = cData.find((m: any) => m.apiname === ach.apiname) || {};
-      const edits = gameEdits[ach.apiname] || {};
-      return {
-        apiname: ach.apiname, display_name: orig.display_name || ach.display_name, description: orig.description || ach.description,
-        chapter: edits.chapter ?? orig.chapter ?? "", hint: edits.hint ?? orig.hint ?? "", is_missable: edits.is_missable ?? orig.is_missable ?? false,
-        is_spoiler: edits.is_spoiler ?? orig.is_spoiler ?? false, video_url: edits.video_url ?? orig.video_url ?? "", requires: edits.requires ?? orig.requires ?? []
-      };
-    });
-
-    const mergedLinksMap = new Map();
-    cLinks.forEach((l: any) => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
-    
-    const specificGameLinks = userLinks.filter(l => l.appId === targetAppId);
-    specificGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
-
     const payload: Record<string, unknown> = { 
-      gameName: safeGameName, 
-      chapters: currentGameChapters, 
-      links: Array.from(mergedLinksMap.values()),
-      achievements: unifiedAchievements 
+      gameName: safeGameName 
     };
+
+    if (opts.includeAchievements !== false && opts.includeChecklists !== true && opts.includeGuide !== true) {
+      const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
+
+      const unifiedAchievements = gameAchievements.map(ach => {
+        const orig = cData.find((m: any) => m.apiname === ach.apiname) || {};
+        const edits = gameEdits[ach.apiname] || {};
+        return {
+          apiname: ach.apiname, display_name: orig.display_name || ach.display_name, description: orig.description || ach.description,
+          chapter: edits.chapter ?? orig.chapter ?? "", hint: edits.hint ?? orig.hint ?? "", is_missable: edits.is_missable ?? orig.is_missable ?? false,
+          is_spoiler: edits.is_spoiler ?? orig.is_spoiler ?? false, video_url: edits.video_url ?? orig.video_url ?? "", requires: edits.requires ?? orig.requires ?? []
+        };
+      });
+
+      const mergedLinksMap = new Map();
+      cLinks.forEach((l: any) => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+      
+      const specificGameLinks = userLinks.filter(l => l.appId === targetAppId);
+      specificGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+
+      payload.chapters = currentGameChapters;
+      payload.links = Array.from(mergedLinksMap.values());
+      payload.achievements = unifiedAchievements;
+    }
     
     if (opts.includeChecklists) {
       const gameChecklistData = allChecklists[targetAppId];
@@ -1758,16 +1761,34 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
           title: list.title,
           items: list.items.map(({ completed, ...contentOnly }) => contentOnly),
         }));
+      } else {
+        payload.checklists = [];
       }
     }
+
+    if (opts.includeGuide) {
+      const guideData = allGuides[targetAppId];
+      if (guideData && guideData.activePlaythroughId) {
+        const pt = guideData.playthroughs.find(p => p.id === guideData.activePlaythroughId);
+        if (pt) payload.guide = pt;
+      }
+    }
+
     return JSON.stringify(payload, null, 2);
   };
 
-  const handleExportJSON = async (targetAppId: string) => {
+const handleExportJSON = async (targetAppId: string) => {
     try {
       const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
-      const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: true });
-      const filename = `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_data.json`;
+      const opts = {
+        includeAchievements: innerTab === "ACHIEVEMENTS",
+        includeChecklists: innerTab === "CHECKLISTS",
+        includeGuide: innerTab === "GUIDE"
+      };
+      
+      const jsonString = generateUnifiedExportJSON(targetAppId, opts);
+      const suffix = innerTab === "CHECKLISTS" ? "_checklists" : innerTab === "GUIDE" ? "_guide" : "_data";
+      const filename = `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${suffix}.json`;
       
       await invoke<string>("save_file_dialog", { filename, content: jsonString });
       toast.success("JSON exported successfully!");
@@ -1779,21 +1800,67 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
   const handleExportHTML = async (targetAppId: string) => { 
     try { 
       const safeGameName = gameHistory[targetAppId]?.name || targetAppId;
-      const gameChecklistData = allChecklists[targetAppId];
-      const activeCol = gameChecklistData?.collections.find(c => c.id === gameChecklistData.activeCollectionId) || gameChecklistData?.collections[0];
-      const gameChecklistsForExport = activeCol?.checklists || [];
-      const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
+      
+      let bodyContent = "";
+      let docTitle = "";
+      let suffix = "";
 
-      const checklistsHtml = gameChecklistsForExport.length === 0 ? "" : `
-        <h1 style="margin-top: 2.5rem;">${safeGameName} - Checklists</h1>
-        ${gameChecklistsForExport.map(list => `
-          <h2 style="color: #f4f4f5; border-bottom: 1px solid #3f3f46; padding-bottom: 6px; margin-top: 1.5rem;">${list.title} <span style="color: #a1a1aa; font-size: 0.8rem; font-weight: normal;">(${list.items.filter(i => i.completed).length}/${list.items.length})</span></h2>
+      if (innerTab === "CHECKLISTS") {
+        const gameChecklistData = allChecklists[targetAppId];
+        const activeCol = gameChecklistData?.collections.find(c => c.id === gameChecklistData.activeCollectionId) || gameChecklistData?.collections[0];
+        const gameChecklistsForExport = activeCol?.checklists || [];
+        
+        suffix = "_checklists";
+        docTitle = `${safeGameName} - Checklists`;
+        bodyContent = `
+          <h1>${safeGameName} - Checklists</h1>
+          ${gameChecklistsForExport.length === 0 ? '<p>No checklists found.</p>' : ''}
+          ${gameChecklistsForExport.map(list => `
+            <h2 style="color: #f4f4f5; border-bottom: 1px solid #3f3f46; padding-bottom: 6px; margin-top: 1.5rem;">${list.title} <span style="color: #a1a1aa; font-size: 0.8rem; font-weight: normal;">(${list.items.filter(i => i.completed).length}/${list.items.length})</span></h2>
+            <div class="ach-grid">
+              ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
+            </div>
+          `).join('')}
+        `;
+      } else if (innerTab === "GUIDE") {
+        const guide = allGuides[targetAppId];
+        const activePt = guide?.playthroughs.find(p => p.id === guide.activePlaythroughId) || guide?.playthroughs[0];
+        
+        suffix = "_guide";
+        docTitle = `${safeGameName} - Guide`;
+
+        if (activePt) {
+          bodyContent = `
+            <h1>${safeGameName} - Guide (${activePt.name})</h1>
+            ${activePt.indexes.map((idx, i) => `
+              <h2 style="color: #f59e0b; margin-top: 1.5rem;">${i + 1}. ${idx.title}</h2>
+              <div style="background: #27272a; padding: 1rem; border-radius: 8px; border: 1px solid #3f3f46; margin-bottom: 1rem;">
+                ${idx.blocks.map(b => {
+                  if (b.type === 'text') return `<div style="margin-bottom: 10px;">${b.content.replace(/\n/g, '<br/>')}</div>`;
+                  if (b.type === 'achievement') return `<div style="color: #34d399; font-weight: bold; margin-bottom: 10px;">🏆 Achievement: ${b.content}</div>`;
+                  if (b.type === 'checklist') return `<div style="color: #60a5fa; font-weight: bold; margin-bottom: 10px;">📋 Item: ${b.content}</div>`;
+                  if (b.type === 'media') return `<div style="margin-bottom: 10px;"><a href="${b.content}" target="_blank" style="color: #f59e0b;">View Media</a></div>`;
+                  return '';
+                }).join('')}
+              </div>
+            `).join('')}
+          `;
+        } else {
+          bodyContent = `<h1>${safeGameName} - Guide</h1><p>No guide available.</p>`;
+        }
+      } else {
+        const gameAchievements = displayedAchievements.filter(a => a._appId === targetAppId);
+        suffix = "_achievements";
+        docTitle = `${safeGameName} - Achievements`;
+        bodyContent = `
+          <h1>${safeGameName} - Achievements</h1>
           <div class="ach-grid">
-            ${list.items.map(item => `<div class="ach ${item.completed ? 'unlocked' : ''}">${item.imageUrl ? `<img src="${item.imageUrl}" />` : ''}<div>${item.chapter ? `<div class="missable" style="color:#60a5fa;border-color:#60a5fa;">${item.chapter}</div>` : ''}<h3>${item.name} ${item.completed ? '✅' : '⬜'}</h3>${item.location ? `<p style="color:#f59e0b;">📍 ${item.location}</p>` : ''}${item.desc ? `<p>${item.desc}</p>` : ''}</div></div>`).join('')}
+            ${gameAchievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}
           </div>
-        `).join('')}
-      `;
-      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${safeGameName} - Achievement Checklist</title><style>
+        `;
+      }
+
+      const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${docTitle}</title><style>
         body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 1000px; margin: 0 auto; padding: 2rem; } 
         h1 { color: #34d399; } 
         .ach-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
@@ -1805,15 +1872,11 @@ const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceA
         .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}
         @media (max-width: 768px) { .ach-grid { grid-template-columns: 1fr; } }
       </style></head><body>
-        <h1>${safeGameName} - Checklist</h1>
-        <div class="ach-grid">
-          ${gameAchievements.map(a => `<div class="ach ${a.unlocked ? 'unlocked' : ''}"><img src="${a.unlocked ? a.icon : a.icongray}" /><div>${a.is_missable ? '<div class="missable">MISSABLE</div>' : ''}<h3>${a.display_name} ${a.unlocked ? '✅' : '⬜'}</h3><p>${a.description}</p>${a.hint ? `<p style="margin-top: 5px; color: #f59e0b;">💡 ${a.hint}</p>` : ''}</div></div>`).join('')}
-        </div>
-        ${checklistsHtml}
+        ${bodyContent}
       </body></html>`; 
 
-      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_checklist.html`, content: htmlTemplate }); 
-      toast.success("HTML Checklist saved successfully!"); 
+      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${suffix}.html`, content: htmlTemplate }); 
+      toast.success("HTML exported successfully!"); 
     } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
   };
   
@@ -2569,14 +2632,12 @@ const broadcastState = () => {
                         <div className="links-header">
                           <h3>{t("sec.shortcuts")}</h3>
                           <div className="btn-group">
-                            <button onClick={() => setEditMode(!editMode)} className={`btn-small ${editMode ? "btn-small-danger" : ""}`}>{editMode ? <>{t("btn.close_edit")}</> : <><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginRight:"4px"}}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>{t("btn.edit_db")}</>}</button>
                             
                             {getGroupAppIds(selectedAppId).map(id => (
                               <div key={id} style={{ display: "flex", gap: "6px", alignItems: "center", borderLeft: getGroupAppIds(selectedAppId).length > 1 ? "1px solid var(--border-color)" : "none", paddingLeft: getGroupAppIds(selectedAppId).length > 1 ? "8px" : "0" }}>
                                 {getGroupAppIds(selectedAppId).length > 1 && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: "bold" }} title={id}>{gameHistory[id]?.name}:</span>}
                                 <button onClick={() => handleExportJSON(id)} className="btn-small btn-small-success">{t("btn.json")}</button>
                                 <button onClick={() => handleExportHTML(id)} className="btn-small btn-small-success">{t("btn.html")}</button>
-                                <button onClick={() => handleCreatePR(id)} className="btn-small btn-small-success"><GitHubIcon size={12}/> {t("btn.pr")}</button>
                               </div>
                             ))}
                           </div>
@@ -2738,30 +2799,57 @@ const broadcastState = () => {
               )}
 
               <div className="controls-container">
-                <div className="filter-bar">
-                  <div className="filter-btns">
-                    <button className={`filter-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>{t("filter.all")} ({totalAch})</button>
-                    <button className={`filter-btn ${filter === "LOCKED" ? "active" : ""}`} onClick={() => setFilter("LOCKED")}>{t("filter.locked")} ({lockedAch})</button>
-                    <button className={`filter-btn ${filter === "UNLOCKED" ? "active" : ""}`} onClick={() => setFilter("UNLOCKED")}>{t("filter.unlocked")} ({unlockedAch})</button>
-                    <button className={`filter-btn ${filter === "TRACKED" ? "active" : ""}`} onClick={() => setFilter("TRACKED")}>{t("filter.tracked")} ({trackedAchCount})</button>
-                    <button className={`filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""} ${missableAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("MISSABLE")}>{t("filter.missable")} {missableAchCount > 0 && <span className="filter-badge">{missableAchCount}</span>}</button>
-                    <button className={`filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""} ${spoilerAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("SPOILER")}>{t("filter.spoilers")} {spoilerAchCount > 0 && <span className="filter-badge filter-badge-spoiler">{spoilerAchCount}</span>}</button>
-                    <button className={`filter-btn guided-toggle ${guidedMode ? "active" : ""}`} onClick={() => setGuidedMode(!guidedMode)}>{guidedMode ? t("filter.guidedOn") : t("filter.guided")}</button>
-                  </div>
-                  <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select">
-                    <option value="ALL">{t("chap.all")}</option>
-                    {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
-                      <option value="No Chapter">
-                        {t("chap.fallback")} ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
-                      </option>
-                    )}
-                    {allKnownChaptersForDropdown.map((chap) => { 
-                      const stats = chapterCounts[chap] || { total: 0, unlocked: 0 }; 
-                      if (stats.total === 0 && !editMode) return null; 
-                      return <option key={chap} value={chap}>{chap} ({stats.unlocked}/{stats.total})</option>; 
-                    })}
-                  </select>
-                </div>
+<div className="filter-bar">
+    <div className="filter-btns">
+      <button className={`filter-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>{t("filter.all")} ({totalAch})</button>
+      <button className={`filter-btn ${filter === "LOCKED" ? "active" : ""}`} onClick={() => setFilter("LOCKED")}>{t("filter.locked")} ({lockedAch})</button>
+      <button className={`filter-btn ${filter === "UNLOCKED" ? "active" : ""}`} onClick={() => setFilter("UNLOCKED")}>{t("filter.unlocked")} ({unlockedAch})</button>
+      <button className={`filter-btn ${filter === "TRACKED" ? "active" : ""}`} onClick={() => setFilter("TRACKED")}>{t("filter.tracked")} ({trackedAchCount})</button>
+      <button className={`filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""} ${missableAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("MISSABLE")}>{t("filter.missable")} {missableAchCount > 0 && <span className="filter-badge">{missableAchCount}</span>}</button>
+      <button className={`filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""} ${spoilerAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("SPOILER")}>{t("filter.spoilers")} {spoilerAchCount > 0 && <span className="filter-badge filter-badge-spoiler">{spoilerAchCount}</span>}</button>
+      <button className={`filter-btn guided-toggle ${guidedMode ? "active" : ""}`} onClick={() => setGuidedMode(!guidedMode)}>{guidedMode ? t("filter.guidedOn") : t("filter.guided")}</button>
+    </div>
+    
+    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <button 
+        onClick={() => setEditMode(!editMode)} 
+        className={`btn-small ${editMode ? "btn-small-danger" : ""}`}
+        style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", height: "36px" }}
+      >
+        {editMode ? (
+          <>{t("btn.close_edit", "Close Edit")}</>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            {t("btn.edit_db", "Edit DB")}
+          </>
+        )}
+      </button>
+
+      <button 
+        onClick={() => handleCreatePR(selectedSetFilter === "ALL" ? selectedAppId : selectedSetFilter)} 
+        className="btn-small btn-small-success" 
+        style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", height: "36px" }}
+        title="Create PR for current game database"
+      >
+        <GitHubIcon size={12}/> {t("btn.pr", "Create PR")}
+      </button>
+
+      <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select" style={{ height: "36px" }}>
+        <option value="ALL">{t("chap.all")}</option>
+        {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
+          <option value="No Chapter">
+            {t("chap.fallback")} ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
+          </option>
+        )}
+        {allKnownChaptersForDropdown.map((chap) => { 
+          const stats = chapterCounts[chap] || { total: 0, unlocked: 0 }; 
+          if (stats.total === 0 && !editMode) return null; 
+          return <option key={chap} value={chap}>{chap} ({stats.unlocked}/{stats.total})</option>; 
+        })}
+      </select>
+    </div>
+  </div>
 
             <div className="search-sort-bar">
                   <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
