@@ -50,6 +50,7 @@ export interface GameHistory {
   rarestUnlocked?: { name: string; percent: number; color: string } | null;
   raImageIcon?: string;
   easiestNext?: { apiname: string; name: string; percent: number; icon: string; color: string } | null;
+  customName?: string;
 }
 
 export interface ChecklistItem {

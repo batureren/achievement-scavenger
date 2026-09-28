@@ -58,3 +58,18 @@ export const STEAM_LANG_MAP: Record<string, string> = {
   "es-419": "latam", "pt-BR": "brazilian", "pt-PT": "portuguese", "it": "italian",
   "pl": "polish", "uk": "ukrainian", "cs": "czech", "nl": "dutch", "th": "thai", "vi": "vietnamese"
 };
+
+export const KNOWN_CODENAMES: Record<string, string> = {
+  "Cannula": "SILENT HILL: Townfall",
+  "NOCE": "SILENT HILL f",
+};
+
+export function resolveKnownCodename(nameOrId: string): string | null {
+  if (!nameOrId) return null;
+  if (KNOWN_CODENAMES[nameOrId]) return KNOWN_CODENAMES[nameOrId];
+  const lower = nameOrId.toLowerCase().trim();
+  for (const [code, realName] of Object.entries(KNOWN_CODENAMES)) {
+    if (code.toLowerCase() === lower) return realName;
+  }
+  return null;
+}
