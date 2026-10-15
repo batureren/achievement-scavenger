@@ -1877,6 +1877,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   z-index: 1000;
   backdrop-filter: blur(2px);
   animation: fadeIn 0.12s ease;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
 }
 
 @keyframes fadeIn {
@@ -1892,6 +1894,13 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   width: min(380px, 90vw);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.15s ease;
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
+}
+
+.confirm-dialog input {
+  pointer-events: auto !important;
+  -webkit-app-region: no-drag !important;
 }
 
 @keyframes slideUp {

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { PSNIcon } from "./Icons";
 
 interface PsnCredsLike {
@@ -26,6 +27,7 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn, t }: PsnR
   const [isValidating, setIsValidating] = useState(false);
   const [autoStatus, setAutoStatus] = useState<"idle" | "trying" | "failed">("idle");
   const attemptedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -33,6 +35,10 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn, t }: PsnR
       setAutoStatus("idle");
       return;
     }
+
+    // Ensure the Tauri window gains focus when modal opens
+    getCurrentWebviewWindow().setFocus().catch(() => {});
+
     if (attemptedRef.current) return;
     attemptedRef.current = true;
 
@@ -100,10 +106,14 @@ export function PsnReauthModal({ isOpen, onClose, onSaved, currentPsn, t }: PsnR
     }
   };
 
-if (autoStatus === "trying") {
+  if (autoStatus === "trying") {
     return (
-      <div className="confirm-dialog-overlay">
-        <div className="confirm-dialog" style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}>
+      <div className="confirm-dialog-overlay" onClick={onClose}>
+        <div 
+          className="confirm-dialog" 
+          style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}
+          onClick={e => e.stopPropagation()}
+        >
           <h3 id="psn-reauth-title" className="confirm-dialog-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <PSNIcon size={20} /> {t("psn.reconnect_title")}
           </h3>
@@ -117,25 +127,33 @@ if (autoStatus === "trying") {
 
   return (
     <div className="confirm-dialog-overlay" onClick={onClose}>
-      <div className="confirm-dialog" style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}>
+      <div 
+        className="confirm-dialog" 
+        style={{ maxWidth: "440px", width: "100%", textAlign: "left" }}
+        onClick={e => e.stopPropagation()}
+      >
         <h3 id="psn-reauth-title" className="confirm-dialog-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <PSNIcon size={20} /> {t("psn.reconnect_title")}
         </h3>
         <p className="confirm-dialog-message" style={{ textAlign: "left" }}>
           {autoStatus === "failed" ? t("psn.auto_failed") : t("psn.manual_desc")}
-          <a href="#" onClick={(e) => { e.preventDefault(); open("https://playstation.com"); }} style={{ color: "var(--accent-green)", textDecoration: "underline", marginLeft: "4px" }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); open("https://playstation.com"); }} style={{ color: "var(--accent-green)", textDecoration: "underline", marginLeft: "4px" }}>
             PlayStation.com
-          </a>, {t("setup.psn_desc2")} <a href="#" onClick={(e) => { e.preventDefault(); open("https://ca.account.sony.com/api/v1/ssocookie"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
+          </a>, {t("setup.psn_desc2")} <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); open("https://ca.account.sony.com/api/v1/ssocookie"); }} style={{ color: "var(--accent-green)", textDecoration: "underline" }}>
             {t("setup.psn_desc_link")}
           </a>. {t("setup.psn_desc3")}
         </p>
 
         <input
+          ref={inputRef}
           type="password"
           placeholder={t("psn.placeholder")}
           value={npsso}
+          onClick={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
           onChange={e => { setNpsso(e.target.value); setError(""); }}
           style={{ padding: "10px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", backgroundColor: "var(--bg-color)", color: "white", fontSize: "0.9rem", width: "100%", boxSizing: "border-box", margin: "4px 0 12px 0" }}
+          autoFocus
         />
 
         {error && <p style={{ color: "var(--accent-red)", fontSize: "0.85rem", margin: "0 0 12px 0" }}>⚠ {error}</p>}
