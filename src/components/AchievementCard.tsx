@@ -1,23 +1,158 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import toast from "react-hot-toast";
 import { MergedAchievement, LocalEdit } from "../types";
 import { getRarityTier } from "./RarityBadge";
-import { renderHintWithLinks, getYouTubeEmbedUrl } from "../utils";
+import { renderHintWithLinks, renderMarkdown, getYouTubeEmbedUrl } from "../utils";
 import { CollapsibleBox } from "./CollapsibleBox";
 import { ProgressiveImage } from "./ProgressiveImage";
 
 interface AchievementCardProps {
   ach: MergedAchievement;
+  achievements: MergedAchievement[];
   isTracked: boolean;
   isHintHidden: boolean;
   editMode: boolean;
   localOrOfficialEditData: Partial<LocalEdit>;
   allKnownChaptersForDropdown: string[];
-  achievements: MergedAchievement[];
+  gameName?: string;
+  geminiApiKey?: string;
   handleToggleTrack: (apiname: string) => void;
   handleToggleHint: (apiname: string) => void;
   handleEdit: (apiname: string, field: keyof LocalEdit, value: any) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
+}
+
+async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
+  if (!url || !url.startsWith("http")) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const mimeType = blob.type || "image/png";
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Data = (reader.result as string).split(",")[1];
+        if (base64Data) resolve({ mimeType, data: base64Data });
+        else resolve(null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function requestAiGuide(
+  apiKey: string,
+  gameName: string,
+  ach: MergedAchievement
+): Promise<string> {
+  const rawAppId = ach._appId || "";
+  const isRA = rawAppId.startsWith("RA_") || (ach.ra_points !== undefined && !rawAppId.startsWith("XBOX_") && !rawAppId.startsWith("PSN_"));
+  const isXbox = rawAppId.startsWith("XBOX_");
+  const isPSN = rawAppId.startsWith("PSN_");
+
+  let platformContext = "Platform: Steam / PC";
+  if (isRA) {
+    const pureRaId = rawAppId.replace("RA_", "");
+    platformContext = `Platform: RetroAchievements (Game ID: ${pureRaId}, Badge ID: ${ach.apiname}). Check RetroAchievements game forums and unlock rules.`;
+  } else if (isXbox) {
+    platformContext = "Platform: Xbox Live / Xbox Series / Xbox One";
+  } else if (isPSN) {
+    platformContext = "Platform: PlayStation Network (Trophy)";
+  } else {
+    platformContext = "Platform: Steam / PC";
+  }
+
+  const verifiedMissable = ach.is_missable 
+    ? "YES (CRITICAL: This achievement is strictly missable. Identify the exact point of no return)" 
+    : "No known lockout reported";
+  const verifiedChapter = ach.chapter ? `Chapter / Region: "${ach.chapter}"` : "";
+  const verifiedHint = ach.hint ? `Database Hint: "${ach.hint}"` : "";
+
+  const promptText = `You are a video game achievement verification specialist. Search live internet walkthroughs, wikis, and achievement databases to construct an accurate guide.
+
+Game: "${gameName}"
+${platformContext}
+Achievement Title: "${ach.display_name}"
+Achievement Description: "${ach.description}"
+${verifiedChapter}
+Verified Status: Missable = ${verifiedMissable}
+${verifiedHint}
+
+ACCURACY AND MATCHING INSTRUCTIONS:
+1. PLATFORM AWARENESS: Search for guides corresponding to ${platformContext}. Do not reference other platforms unless cross-platform mechanics are identical.
+2. VISUAL IDENTIFICATION: Inspect the achievement badge icon carefully to identify the exact target, collectible, or encounter.
+3. CHRONOLOGY & SCOPE: Identify the first/earliest occurrence where this specific image and description match. Stop explaining the exact moment the unlock condition is satisfied.
+4. HARD STOP ON UNLOCK: Never describe subsequent story events, endings, or future chapters.
+5. NO EMOJIS anywhere in the output.
+
+Format your guide using these exact markdown headers:
+
+### Objective
+A concise statement of the exact unlock condition and what type of achievement this is.
+
+### How to Unlock
+Numbered, chronological steps leading directly to the unlock. Stop as soon as the criteria is satisfied.
+
+### Missable or Lockout Notes
+${ach.is_missable ? "State the exact point of no return or cutoff that makes this missable." : "Note if any chapter selection, mode settings, difficulty constraints, or bugs affect this unlock."}
+
+### Recommended Strategy and Tips
+Provide practical shortcuts, optimal routes, gear/settings recommendations, or common mistakes to avoid.`;
+
+  const iconUrl = ach.icon || ach.icongray;
+  const imagePart = await fetchImageAsBase64(iconUrl);
+
+  const parts: any[] = [{ text: promptText }];
+  if (imagePart) {
+    parts.unshift({
+      inlineData: {
+        mimeType: imagePart.mimeType,
+        data: imagePart.data,
+      },
+    });
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      tools: [{ google_search: {} }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 1400,
+        thinkingConfig: {
+          thinkingBudget: 0,
+        },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Request failed with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  const candidate = data.candidates?.[0];
+  let text = candidate?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    return "No guide could be generated.";
+  }
+
+  if (candidate.finishReason === "MAX_TOKENS") {
+    text += "\n\n> **Notice:** The generation hit the maximum token limit. Click **Regenerate** to request a more concise response.";
+  }
+
+  return text;
 }
 
 function AchievementCardBase({ 
@@ -28,6 +163,8 @@ function AchievementCardBase({
   editMode, 
   localOrOfficialEditData, 
   allKnownChaptersForDropdown, 
+  gameName = "Game",
+  geminiApiKey = "",
   handleToggleTrack, 
   handleToggleHint, 
   handleEdit, 
@@ -36,6 +173,28 @@ function AchievementCardBase({
 
   const [showRequires, setShowRequires] = useState(false);
   const [reqSearch, setReqSearch] = useState("");
+
+  const storageKey = `scavenger_ai_${ach._appId || "default"}_${ach.apiname}`;
+
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiGuide, setAiGuide] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  });
+
+  const [showAiGuide, setShowAiGuide] = useState(false);
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(storageKey);
+      setAiGuide(cached);
+    } catch {
+      setAiGuide(null);
+    }
+  }, [storageKey]);
 
   const tier = ach.globalPercent != null ? getRarityTier(ach.globalPercent) : null;
   const pColor = tier ? tier.color : "var(--text-muted)";
@@ -49,6 +208,49 @@ function AchievementCardBase({
       el.classList.add("chain-highlight"); 
       setTimeout(() => el.classList.remove("chain-highlight"), 1500); 
     }
+  };
+
+  const executeFetchAi = async () => {
+    if (!geminiApiKey) {
+      const query = encodeURIComponent(`${gameName} "${ach.display_name}" achievement guide`);
+      open(`https://www.youtube.com/results?search_query=${query}`);
+      toast("Opened YouTube walkthrough search (configure Gemini API key for inline guides).");
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const result = await requestAiGuide(geminiApiKey, gameName, ach);
+      setAiGuide(result);
+      setShowAiGuide(true);
+      try {
+        localStorage.setItem(storageKey, result);
+      } catch {}
+      toast.success("AI guide generated and saved locally.");
+    } catch (err: any) {
+      toast.error(`AI Error: ${err.message || err}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleToggleAiGuide = () => {
+    if (showAiGuide) {
+      setShowAiGuide(false);
+      return;
+    }
+
+    if (aiGuide) {
+      setShowAiGuide(true);
+      return;
+    }
+
+    executeFetchAi();
+  };
+
+  const handleRedoAi = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    executeFetchAi();
   };
 
   return (
@@ -69,7 +271,12 @@ function AchievementCardBase({
       
       <div className="card-top" style={{ alignItems: "center" }}>
         <div style={{ position: "relative" }}>
-          <ProgressiveImage src={ach.unlocked ? ach.icon : ach.icongray} alt="icon" className="ach-icon" />
+          <ProgressiveImage 
+            src={ach.unlocked ? ach.icon : (ach.icongray || ach.icon)} 
+            fallbackSrc={ach.icon}
+            alt={ach.display_name} 
+            className={`ach-icon ${!ach.unlocked && (!ach.icongray || ach.icongray === ach.icon) ? "is-gray-fallback" : ""}`} 
+          />
           {!ach.unlocked && <div className="lock-overlay">🔒</div>}
         </div>
 
@@ -93,22 +300,53 @@ function AchievementCardBase({
             </h3>
             {ach.chapter && !editMode && <span className="chapter-tag">{ach.chapter}</span>}
             <div className="card-actions">
-            {ach.ra_type === "progression" && (
-              <span
-                className="ra-type-badge ra-type-badge--progression"
-                title={t("ach.progression_tooltip")}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-              </span>
-            )}
-            {ach.ra_type === "win_condition" && (
-              <span
-                className="ra-type-badge ra-type-badge--win-condition"
-                title={t("ach.win_condition_tooltip")}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-              </span>
-            )}
+              {ach.ra_type === "progression" && (
+                <span
+                  className="ra-type-badge ra-type-badge--progression"
+                  title={t("ach.progression_tooltip")}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                </span>
+              )}
+              {ach.ra_type === "win_condition" && (
+                <span
+                  className="ra-type-badge ra-type-badge--win-condition"
+                  title={t("ach.win_condition_tooltip")}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                </span>
+              )}
+
+              {!editMode && (
+                <button 
+                  className={`icon-btn icon-btn--ai ${aiGuide ? "has-cached-guide" : ""} ${showAiGuide ? "active-guide-open" : ""} ${!geminiApiKey && !aiGuide ? "is-yt-fallback" : ""}`}
+                  onClick={handleToggleAiGuide}
+                  disabled={aiLoading}
+                  title={
+                    aiGuide
+                      ? (showAiGuide ? "Hide saved AI guide" : "View saved AI guide (available offline)")
+                      : geminiApiKey
+                        ? "Search online & generate AI guide"
+                        : "Search YouTube walkthrough"
+                  }
+                >
+                  {aiLoading ? (
+                    <span className="spin-icon" style={{ fontSize: "0.75rem", lineHeight: 1 }}>↻</span>
+                  ) : (geminiApiKey || aiGuide) ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill={aiGuide ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      <line x1="8" y1="10" x2="8.01" y2="10" strokeWidth="3" />
+                      <line x1="12" y1="10" x2="12.01" y2="10" strokeWidth="3" />
+                      <line x1="16" y1="10" x2="16.01" y2="10" strokeWidth="3" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  )}
+                </button>
+              )}
+
               {ach.hint && !editMode && (
                 <button className={`icon-btn ${isHintHidden ? "hint-hidden" : "hint-visible"}`} onClick={() => handleToggleHint(ach.apiname)} title={t("ach.toggle_hint_tooltip")}>
                   {isHintHidden ? (
@@ -140,6 +378,64 @@ function AchievementCardBase({
           </CollapsibleBox>
         </div>
       </div>
+
+      {showAiGuide && aiGuide && !editMode && (
+        <div className={`ai-guide-box ${aiLoading ? "is-regenerating" : ""}`}>
+          {aiLoading && <div className="ai-guide-sweep" />}
+
+          <div className="ai-guide-header">
+            <div className="ai-guide-title">
+              <span>AI Guide (Online Grounded)</span>
+            </div>
+            <div className="ai-guide-actions">
+              <button 
+                className="ai-guide-btn" 
+                onClick={handleRedoAi} 
+                disabled={aiLoading} 
+                title="Search internet again and regenerate"
+              >
+                <svg 
+                  className={aiLoading ? "spin-icon" : ""} 
+                  width="13" 
+                  height="13" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span>{aiLoading ? "Regenerating..." : "Regenerate"}</span>
+              </button>
+              <button 
+                className="btn-remove-link" 
+                onClick={() => setShowAiGuide(false)} 
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="ai-guide-content">
+            {renderMarkdown(aiGuide)}
+          </div>
+
+          <div className="ai-guide-footer">
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                open(`https://www.youtube.com/results?search_query=${encodeURIComponent(`${gameName} ${ach.display_name} achievement guide`)}`);
+              }}
+            >
+              Search Video Walkthrough on YouTube
+            </a>
+          </div>
+        </div>
+      )}
 
       {editMode ? (
         <div className="edit-panel">
@@ -273,6 +569,8 @@ export const AchievementCard = React.memo(AchievementCardBase, (prevProps, nextP
     prevProps.isHintHidden === nextProps.isHintHidden &&
     prevProps.editMode === nextProps.editMode &&
     prevProps.localOrOfficialEditData === nextProps.localOrOfficialEditData &&
-    prevProps.achievements === nextProps.achievements
+    prevProps.achievements === nextProps.achievements &&
+    prevProps.gameName === nextProps.gameName &&
+    prevProps.geminiApiKey === nextProps.geminiApiKey
   );
 });

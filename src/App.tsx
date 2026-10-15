@@ -2288,6 +2288,7 @@ function App() {
         onChangeShortcut={handleChangeShortcut}
         setIsBackupModalOpen={setIsBackupModalOpen}
         onToggleAutoScreenshots={() => saveSettings({ ...settingsRef.current, autoScreenshots: settingsRef.current.autoScreenshots === false })}
+        onChangeGeminiKey={(key) => saveSettings({ ...settingsRef.current, geminiApiKey: key })}
       />
 
       <PsnReauthModal
@@ -3038,6 +3039,8 @@ function App() {
                     editMode={editMode}
                     localOrOfficialEditData={allLocalEdits[ach._appId || selectedAppId]?.[ach.apiname] || EMPTY_LOCAL_EDIT}
                     allKnownChaptersForDropdown={allKnownChaptersForDropdown}
+                    gameName={gameName}
+                    geminiApiKey={settings.geminiApiKey}
                     handleToggleTrack={(apiname) => handleToggleTrack(apiname, ach._appId)}
                     handleToggleHint={(apiname) => handleToggleHint(apiname, ach._appId)}
                     handleEdit={(apiname, field, value) => handleEdit(apiname, field, value, ach._appId)}

@@ -41,6 +41,7 @@ export interface AppSettings {
   minimizeToTray?: boolean; companionAutoStart?: boolean; 
   windowX?: number; windowY?: number; isMaximized?: boolean; gridColumns?: number;
   toggleShortcut?: string; autoScreenshots?: boolean;
+  geminiApiKey?: string;
 }
 
 export interface GameHistory {

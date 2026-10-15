@@ -27,13 +27,14 @@ interface MenuBarProps {
   onChangeShortcut: (sc: string) => void;
   setIsBackupModalOpen: (mode: true | false ) => void;
   onToggleAutoScreenshots: () => void;
+  onChangeGeminiKey?: (key: string) => void;
 }
 
 export function MenuBar({
   settings, themes, isMiniMode, t,
   onToggleAlwaysOnTop, onChangeTheme, onChangeApiKey, onToggleSound, onToggleMiniMode,
   onChangeOpacity, onSaveOpacity, onSetWindowMode, onChangeUiScale, onSaveUiScale, onChangeLanguage,
-  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut, setIsBackupModalOpen, onToggleAutoScreenshots
+  onChangeOverlayStyle, onToggleTransparency, onToggleStartup, onOpenScreenshots, onToggleDiscordRPC, onToggleMinimizeToTray, onOpenCloudSync, onOpenCompanion, isCompanionRunning, onChangeShortcut, setIsBackupModalOpen, onToggleAutoScreenshots, onChangeGeminiKey 
 }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState<string>("");
@@ -356,6 +357,39 @@ export function MenuBar({
       <button className="menu-option" onClick={() => { onChangeApiKey(); setOpenMenu(null); }}>
         {t("menu.keys")}
       </button>
+
+<div className="menu-option column" style={{ gap: "4px" }}>
+  <div className="justify-between" style={{ alignItems: "center" }}>
+    <span style={{ fontWeight: 600 }}>Gemini AI Guides</span>
+    <a 
+      href="#" 
+      onClick={(e) => { 
+        e.preventDefault(); 
+        open("https://aistudio.google.com/app/api-keys"); 
+      }} 
+      style={{ fontSize: "0.72rem", color: "var(--accent-green)", textDecoration: "underline" }}
+    >
+      Get Free API Key ↗
+    </a>
+  </div>
+
+  <input
+    type="password"
+    className="edit-input"
+    placeholder="..."
+    value={settings.geminiApiKey || ""}
+    onChange={(e) => onChangeGeminiKey?.(e.target.value.trim())}
+    style={{ margin: "4px 0 2px" }}
+  />
+
+  <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.35 }}>
+    Enables live AI walkthroughs directly inside achievement cards.
+  </div>
+
+  <div style={{ fontSize: "0.72rem", color: "var(--accent-yellow)", lineHeight: 1.35, marginTop: "2px" }}>
+    ⚠️ Uses Gemini 2.5 Flash free tier. <br /> Responses are saved locally to preserve your quota. <br /> (Replaces Search YouTube Walkthrough button)
+  </div>
+</div>
 
       <button className="menu-option" onClick={() => { onOpenCloudSync(); setOpenMenu(null); }}>
         {t("menu.cloudSync")}
