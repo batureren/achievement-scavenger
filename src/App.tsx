@@ -42,7 +42,8 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>({ 
     alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
     opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
-    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, autoScreenshots: true, toggleShortcut: "CommandOrControl+Shift+T"
+    windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, autoScreenshots: true, toggleShortcut: "CommandOrControl+Shift+T",
+    disabledCommunityDbGames: {}
   });
 
   const handleChangeShortcut = async (newShortcut: string) => {
@@ -231,7 +232,7 @@ function App() {
   const [pendingRemoveGame, setPendingRemoveGame] = useState<GameHistory | null>(null);
 
   const allLocalEditsRef = useRef<Record<string, Record<string, LocalEdit>>>({});
-  const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en", discordRPCEnabled: true });
+  const settingsRef = useRef<AppSettings>({ alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, windowHeight: 800, isMiniMode: false, language: "en", discordRPCEnabled: true, disabledCommunityDbGames: {} });
   const apiKeyRef = useRef<string>("");
   const raCredsRef = useRef<{ user: string; key: string }>({ user: "", key: "" });
   const xboxCredsRef = useRef<{ apiKey: string; xuid: string; gamertag: string }>({ apiKey: "", xuid: "", gamertag: "" });
@@ -283,6 +284,33 @@ function App() {
   const [companionUrl, setCompanionUrl] = useState<string>("");
   const [isCompanionOpen, setIsCompanionOpen] = useState(false);
   const [isCompanionModalOpen, setIsCompanionModalOpen] = useState(false);
+
+  const isCommunityDbDisabled = !!settings.disabledCommunityDbGames?.[selectedAppId];
+
+  const handleToggleCommunityDb = () => {
+    if (!selectedAppId) return;
+    const currentDisabled = !!settingsRef.current.disabledCommunityDbGames?.[selectedAppId];
+    const newDisabled = !currentDisabled;
+
+    const updated = {
+      ...settingsRef.current,
+      disabledCommunityDbGames: {
+        ...(settingsRef.current.disabledCommunityDbGames || {}),
+        [selectedAppId]: newDisabled
+      }
+    };
+    saveSettings(updated);
+
+    if (newDisabled) {
+      toast("Community database disabled for this game.", { icon: "🚫" });
+    } else {
+      toast.success("Community database enabled for this game!");
+    }
+
+    lastNetworkFetchRef.current = 0;
+    lastXboxNetworkFetchRef.current = 0;
+    tickRef.current({ forceTabSwitch: true });
+  };
 
   const handleStartCompanion = async (silent = false) => {
     try {
@@ -627,6 +655,7 @@ function App() {
         const settingsStr = await invoke<string>("load_settings");
         const savedSettings: AppSettings = { ...settingsRef.current, ...safeParseJSON(settingsStr, {}) };
         if (savedSettings.uiScale === undefined) savedSettings.uiScale = 1.0;
+        if (!savedSettings.disabledCommunityDbGames) savedSettings.disabledCommunityDbGames = {};
 
         settingsRef.current = savedSettings;
         setSettings(savedSettings);
@@ -737,7 +766,7 @@ function App() {
         setChecklistProgress(loadedProgress);
         
         const mergedChecklists: Record<string, GameChecklists> = {};
-        Object.keys(loadedChecklistsRaw).forEach(gameId => {
+                Object.keys(loadedChecklistsRaw).forEach(gameId => {
           const rawData = loadedChecklistsRaw[gameId];
           const gameProgress = loadedProgress[gameId] || {};
           let gameData: GameChecklists;
@@ -1240,7 +1269,8 @@ function App() {
                 setHasCommunityDb(false);
               }
               
-              setCommunityLinks(communityDbCacheRef.current[targetAppId].links);
+              const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
+              setCommunityLinks(isTargetCommunityDisabled ? [] : (communityDbCacheRef.current[targetAppId]?.links || []));
               setSelectedChapter("ALL"); setSearchQuery(""); setSortOrder("DEFAULT"); setGuidedMode(false); setMissableAlertDismissed(false);
               setIsProfilePrivate(false);
 
@@ -1257,7 +1287,11 @@ function App() {
           });
 
           const cData = communityDbCacheRef.current[targetAppId];
-          if (cData) { setCommunityLinks(cData.links); setHasCommunityDb(cData.db.length > 0); }
+          const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
+          if (cData) { 
+            setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links); 
+            setHasCommunityDb(cData.db.length > 0); 
+          }
         }
 
         if (!schemaJustLoaded && !options.forceTabSwitch) {
@@ -1277,7 +1311,11 @@ function App() {
         try {
             const gameEdits = allLocalEditsRef.current[targetAppId] || {};
             let merged: MergedAchievement[] = [];
-            const cData = communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] };
+            
+            const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
+            const cData = isTargetCommunityDisabled 
+              ? { db: [], links: [], chapters: [] }
+              : (communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] });
 
             if (isTargetRA) {
                 const pureId = targetAppId.replace("RA_", "");
@@ -1390,7 +1428,7 @@ function App() {
                   const localEdit = gameEdits[schemaAch.name] || {};
                       
                   return {
-                    apiname: schemaAch.name, display_name: schemaAch.displayName || communityAch.display_name, description: schemaAch.description || communityAch.description,
+                    apiname: schemaAch.name, display_name: communityAch.display_name || schemaAch.displayName, description: communityAch.description || schemaAch.description,
                     icon: schemaAch.icon, icongray: schemaAch.icongray, unlocked: liveAch ? liveAch.achieved === 1 : false,
                     is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false,
                     chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "", 
@@ -1501,7 +1539,11 @@ function App() {
         }
       } catch { communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] }; }
     }
-    const cData = communityDbCacheRef.current[appId] || { db: [], links: [], chapters: [] };
+    
+    const isCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[appId];
+    const cData = isCommunityDisabled
+      ? { db: [], links: [], chapters: [] }
+      : (communityDbCacheRef.current[appId] || { db: [], links: [], chapters: [] });
 
     let merged: MergedAchievement[] = [];
 
@@ -1613,7 +1655,7 @@ function App() {
         const communityAch = cData.db.find((m: any) => m.apiname === schemaAch.name) || {};
         const localEdit = gameEdits[schemaAch.name] || {};
         return {
-          apiname: schemaAch.name, display_name: schemaAch.displayName || communityAch.display_name, description: schemaAch.description || communityAch.description,
+          apiname: schemaAch.name, display_name: communityAch.display_name || schemaAch.displayName, description: communityAch.description || schemaAch.description,
           icon: schemaAch.icon, icongray: schemaAch.icongray, unlocked: liveAch ? liveAch.achieved === 1 : false,
           is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false,
           chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
@@ -1738,7 +1780,13 @@ function App() {
     if (achievementsCacheRef.current[id]) {
       setAchievements(achievementsCacheRef.current[id]);
       const cData = communityDbCacheRef.current[id];
-      if (cData) { setCommunityLinks(cData.links); setHasCommunityDb(cData.db.length > 0); } else { setHasCommunityDb(null); }
+      const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[id];
+      if (cData) { 
+        setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links); 
+        setHasCommunityDb(cData.db.length > 0); 
+      } else { 
+        setHasCommunityDb(null); 
+      }
     } else { setAchievements([]); setHasCommunityDb(null); }
 
     const savedSort = settingsRef.current.gameSortOrders?.[id];
@@ -1797,8 +1845,9 @@ function App() {
     const groupKey = getGroupKey(selectedAppId);
     const local = allLocalChapters[groupKey];
     if (Array.isArray(local) && local.length > 0) return local;
+    if (settings.disabledCommunityDbGames?.[selectedAppId]) return [];
     return communityDbCacheRef.current[selectedAppId]?.chapters ?? [];
-  }, [allLocalChapters, selectedAppId, hasCommunityDb, gameLinks]);
+  }, [allLocalChapters, selectedAppId, hasCommunityDb, gameLinks, settings.disabledCommunityDbGames]);
 
   const saveGameChapters = async (newChapters: string[]) => {
     if (!selectedAppId) return;
@@ -2702,20 +2751,42 @@ function App() {
                       title={t("game.rename_tooltip", { defaultValue: "Rename Game" })}
                       style={{ width: "22px", height: "22px", padding: 0 }}
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
                   </div>
                 )}
                 {hasCommunityDb !== null && (
                   <>
                     {hasCommunityDb ? (
-                      <span className="community-db-badge community-db-badge--available" title="Hints, chapters, and community guides are available for this game.">
-                        {t("db.available")}
+                      <span className={`community-db-badge ${isCommunityDbDisabled ? "community-db-badge--disabled" : "community-db-badge--available"}`} title={isCommunityDbDisabled ? "Community database is currently disabled for this game." : "Hints, chapters, and community guides are available for this game."}>
+                        {isCommunityDbDisabled ? "DB Disabled" : t("db.available")}
                       </span>
                     ) : (
                       <span className="community-db-badge community-db-badge--missing" title="No community database found for this game yet. You can help by submitting one!">
                         {t("db.missing")}
                       </span>
+                    )}
+                    {hasCommunityDb && (
+                      <button 
+                        className={`icon-btn hint-visible ${isCommunityDbDisabled ? "icon-btn--db-toggle disabled" : ""}`} 
+                        onClick={handleToggleCommunityDb} 
+                        title={isCommunityDbDisabled ? "Enable Community Database" : "Disable Community Database"}
+                        style={{ width: "22px", height: "22px", padding: 0, marginLeft: "4px" }}
+                      >
+                        {isCommunityDbDisabled ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4.5 4.5 3 6v12c0 1.66 4 3 9 3 2.5 0 4.7-.67 6.2-1.74M21 15V6c0-1.66-4-3-9-3-2.1 0-4 .3-5.4.8" />
+                            <path d="M3 12c0 1.66 4 3 9 3 1.5 0 2.9-.2 4.1-.6" />
+                            <line x1="2" y1="2" x2="22" y2="22" />
+                          </svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <ellipse cx="12" cy="5" rx="9" ry="3" />
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                          </svg>
+                        )}
+                      </button>
                     )}
                     <button 
                       className="icon-btn hint-visible" 

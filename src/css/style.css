@@ -337,7 +337,7 @@ a:hover {
   display: flex; 
   align-items: center; 
   flex-wrap: wrap; 
-  gap: 4px
+  gap: 4px;
 }
 
 .tracking-header .game-label {
@@ -374,6 +374,19 @@ a:hover {
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.35);
   cursor: default;
+}
+
+.community-db-badge--disabled {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  opacity: 0.75;
+}
+
+.icon-btn--db-toggle.disabled {
+  color: var(--accent-red) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.14) !important;
 }
 
 .game-link-header-btn {
@@ -2873,7 +2886,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   z-index: 1;
 }
 
-
 .tile-preview--default {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -2948,7 +2960,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 
 /* ============================================================
    OVERLAY MODE CLASSES
-   Themes define Colors. Overlays define Shapes & Blurs.
    ============================================================ */
 
 html.overlay-ghost, html.overlay-ghost body, html.overlay-ghost #app-container,
@@ -4027,7 +4038,6 @@ video.cl-item-img {
   color: var(--text-muted);
   margin-top: 16px;
 }
-
 
 /* ============================================================
    GUIDED MODE (Timeline & Blocks)

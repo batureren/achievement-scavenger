@@ -42,6 +42,7 @@ export interface AppSettings {
   windowX?: number; windowY?: number; isMaximized?: boolean; gridColumns?: number;
   toggleShortcut?: string; autoScreenshots?: boolean;
   geminiApiKey?: string;
+  disabledCommunityDbGames?: Record<string, boolean>;
 }
 
 export interface GameHistory {
