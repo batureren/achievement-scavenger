@@ -19,18 +19,19 @@ import { GameLinkModal } from "./components/GameLinkModal";
 import { PlatformIcon, GitHubIcon } from "./components/Icons";
 import { CloudSyncModal } from "./components/CloudSyncModal";
 import { BackupModal } from "./components/BackupModal";
+import { CompletionStatCard, CompletionRatingEditor, parseCompletionRating, hasCompletionRating } from "./components/CompletionRating";
 import { SyncConfig } from "./types";
 
-import { 
-  AppSettings, MergedAchievement, UserLink, CommunityLink, 
+import {
+  AppSettings, MergedAchievement, UserLink, CommunityLink,
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, GameLink, CustomGuide, GameChecklists
+  CustomChecklist, GameLink, CustomGuide, GameChecklists, CompletionRating
 } from "./types";
 import { GuidedModePanel } from "./components/GuidedModePanel";
 import { BUILTIN_THEMES, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL, resolveKnownCodename } from "./constants";
 import { useTranslation } from "react-i18next";
-import { 
+import {
   safeParseJSON, safeParseTracked, applyTheme, unwrapXboxData, renderHintWithLinks, getYouTubeEmbedUrl
 } from "./utils";
 import deepEqual from "fast-deep-equal";
@@ -38,10 +39,10 @@ const EMPTY_LOCAL_EDIT = {};
 
 function App() {
   const [appState, setAppState] = useState<"LOADING" | "SETUP" | "WAITING" | "PLAYING">("LOADING");
-  
-  const [settings, setSettings] = useState<AppSettings>({ 
-    alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true, 
-    opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200, 
+
+  const [settings, setSettings] = useState<AppSettings>({
+    alwaysOnTop: false, themeId: "default", hiddenHints: {}, soundEnabled: true,
+    opacity: 1.0, gameSortOrders: {}, lastSelectedTab: "", windowWidth: 1200,
     windowHeight: 800, language: "en", enableTransparency: true, runOnStartup: false, discordRPCEnabled: true, minimizeToTray: false, autoScreenshots: true, toggleShortcut: "CommandOrControl+Shift+T",
     disabledCommunityDbGames: {}
   });
@@ -84,7 +85,7 @@ function App() {
       { id: "psn-auth-error", duration: 8000 }
     );
   };
-  
+
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
   const [selectedSetFilter, setSelectedSetFilter] = useState<string>("ALL");
@@ -135,7 +136,7 @@ function App() {
           const appId = selectedAppIdRef.current;
           const safeGuide = prev[appId];
           if (!safeGuide) return prev;
-          
+
           const updated = { ...safeGuide, currentProgressBlockId: data.blockId };
           invoke("save_game_guides", { appId, data: JSON.stringify(updated) }).catch(console.error);
           return { ...prev, [appId]: updated };
@@ -143,16 +144,16 @@ function App() {
       } else if (data?.action === "TOGGLE_CHECKLIST_ITEM" && data.checklistId && data.itemId) {
         handleToggleChecklistItem(data.checklistId, data.itemId);
       } else if (data?.action === "TOGGLE_TRACK" && data.apiname) {
-        setTrackedData(prev => { 
+        setTrackedData(prev => {
           const appId = selectedAppIdRef.current;
           if (!appId) return prev;
-          const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {}; 
-          const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : []; 
-          const isCurrentlyTracked = gameTracked.includes(data.apiname); 
-          const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter((id: string) => id !== data.apiname) : [...gameTracked, data.apiname]; 
-          const newState = { ...safePrev, [appId]: updatedGameTracked }; 
-          invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error); 
-          return newState; 
+          const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {};
+          const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : [];
+          const isCurrentlyTracked = gameTracked.includes(data.apiname);
+          const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter((id: string) => id !== data.apiname) : [...gameTracked, data.apiname];
+          const newState = { ...safePrev, [appId]: updatedGameTracked };
+          invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error);
+          return newState;
         });
       }
     });
@@ -164,7 +165,7 @@ function App() {
     const gameProgress = { ...(checklistProgressRef.current[selectedAppId] || {}) };
     if (!gameProgress[checklistId]) gameProgress[checklistId] = {};
     gameProgress[checklistId][itemId] = !gameProgress[checklistId][itemId];
-    
+
     const updatedProgress = { ...checklistProgressRef.current, [selectedAppId]: gameProgress };
     setChecklistProgress(updatedProgress);
     invoke("save_game_checklist_progress", { appId: selectedAppId, data: JSON.stringify(gameProgress) }).catch(console.error);
@@ -209,7 +210,7 @@ function App() {
   const [missableAlertDismissed, setMissableAlertDismissed] = useState(false);
 
   const [runningAppIds, setRunningAppIds] = useState<string[]>([]);
-  const [selectedAppId, setSelectedAppId] = useState<string>(""); 
+  const [selectedAppId, setSelectedAppId] = useState<string>("");
   const [pendingAchievementAnchor, setPendingAchievementAnchor] = useState<string | null>(null);
   const isSelectedGameRA = selectedAppId.startsWith("RA_");
   const isSelectedGameXbox = selectedAppId.startsWith("XBOX_");
@@ -218,9 +219,9 @@ function App() {
   const [userLinks, setUserLinks] = useState<UserLink[]>([]);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-  
-  const [newChapterInput, setNewChapterInput] = useState(""); 
-  const [allLocalChapters, setAllLocalChapters] = useState<Record<string, string[]>>({}); 
+
+  const [newChapterInput, setNewChapterInput] = useState("");
+  const [allLocalChapters, setAllLocalChapters] = useState<Record<string, string[]>>({});
 
   const [trackedData, setTrackedData] = useState<Record<string, string[]>>({});
   const [editMode, setEditMode] = useState(false);
@@ -240,15 +241,15 @@ function App() {
   const selectedAppIdRef = useRef<string>("");
   const prevRunningAppIdsRef = useRef<string[]>([]);
   const gameNameRef = useRef<string>("Unknown Game");
-  
+
   const achievementsCacheRef = useRef<Record<string, MergedAchievement[]>>({});
   const schemaCacheRef = useRef<Record<string, any[]>>({});
   const percentagesCacheRef = useRef<Record<string, Map<string, number>>>({});
-  const communityDbCacheRef = useRef<Record<string, { db: any[], links: CommunityLink[], chapters: string[], checklists?: CustomChecklist[], gameName?: string }>>({});
+  const communityDbCacheRef = useRef<Record<string, { db: any[], links: CommunityLink[], chapters: string[], checklists?: CustomChecklist[], gameName?: string, completion?: CompletionRating }>>({});
 
   const lastNetworkFetchRef = useRef<number>(0);
   const prevUnlockedRef = useRef<Record<string, Set<string>>>({});
-  
+
   const lastRaPollTimeRef = useRef<number>(0);
   const lastSteamStatusPollRef = useRef<number>(0);
   const tickInFlightRef = useRef<boolean>(false);
@@ -256,9 +257,9 @@ function App() {
   const tickRef = useRef<(options?: { forceTabSwitch?: boolean }) => Promise<void>>(async () => {});
   const cachedRunningAppIdsRef = useRef<string[]>([]);
   const cachedSteamIdRef = useRef<string>("");
-  const activeRaIdsRef = useRef<Set<string>>(new Set()); 
+  const activeRaIdsRef = useRef<Set<string>>(new Set());
   const lastXboxPollTimeRef = useRef<number>(0);
-  const lastXboxNetworkFetchRef = useRef<number>(0); 
+  const lastXboxNetworkFetchRef = useRef<number>(0);
   const activeXboxIdRef = useRef<string | null>(null);
   const lastPsnPollTimeRef = useRef<number>(0);
   const activePsnIdRef = useRef<string | null>(null);
@@ -286,6 +287,21 @@ function App() {
   const [isCompanionModalOpen, setIsCompanionModalOpen] = useState(false);
 
   const isCommunityDbDisabled = !!settings.disabledCommunityDbGames?.[selectedAppId];
+  const ratingTargetAppId = selectedSetFilter === "ALL" ? selectedAppId : selectedSetFilter;
+  const communityCompletion = useMemo(() => {
+    if (!ratingTargetAppId || settings.disabledCommunityDbGames?.[ratingTargetAppId]) return undefined;
+    return communityDbCacheRef.current[ratingTargetAppId]?.completion;
+  }, [ratingTargetAppId, hasCommunityDb, communityLinks, groupFetchTick, settings.disabledCommunityDbGames]);
+  const localCompletion = ratingTargetAppId ? settings.completionRatings?.[ratingTargetAppId] : undefined;
+  const displayCompletion = localCompletion ?? communityCompletion;
+
+  const handleSetCompletionRating = (next: CompletionRating | null) => {
+    if (!ratingTargetAppId) return;
+    const ratings = { ...(settingsRef.current.completionRatings || {}) };
+    if (next === null) delete ratings[ratingTargetAppId];
+    else ratings[ratingTargetAppId] = next;
+    saveSettings({ ...settingsRef.current, completionRatings: ratings });
+  };
 
   const handleToggleCommunityDb = () => {
     if (!selectedAppId) return;
@@ -384,25 +400,25 @@ function App() {
 
   const mergeCommunityChecklists = (appId: string, communityChecklists: any[]) => {
     if (!communityChecklists || communityChecklists.length === 0) return;
-    
+
     setAllChecklists(prev => {
       const existingData = prev[appId];
       if (!existingData) return prev;
-      
+
       const activeColId = existingData.activeCollectionId || existingData.collections[0]?.id;
       if (!activeColId) return prev;
 
       let changed = false;
       const newCols = existingData.collections.map(col => {
         if (col.id !== activeColId) return col;
-        
+
         const newLists = col.checklists.map(localList => {
           const cList = communityChecklists.find((c: any) => c.id === localList.id);
           if (!cList) return localList;
-          
+
           let listChanged = false;
           const newItems = [...localList.items];
-          
+
           for (const cItem of cList.items || []) {
             if (!newItems.some(i => i.id === cItem.id)) {
               newItems.push({ ...cItem, completed: false });
@@ -422,7 +438,7 @@ function App() {
             changed = true;
           }
         }
-        
+
         return { ...col, checklists: newLists };
       });
 
@@ -443,7 +459,7 @@ function App() {
     try {
       const dbUrl = `${GITHUB_DB_BASE_URL}/${appId}.json?t=${Date.now()}`;
       const dbRes = await fetch(dbUrl);
-      
+
       if (!dbRes.ok) {
         toast.error("Failed to fetch database.", { id: toastId });
         return;
@@ -452,22 +468,22 @@ function App() {
       const communityData = await dbRes.json();
       let cDb = [], cLinks = [], cChapters = [], cChecklists = [];
       let cGameName: string | undefined = undefined;
-      
-      if (Array.isArray(communityData)) { 
+
+      if (Array.isArray(communityData)) {
         cDb = communityData;
-      } else { 
-        cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
-        cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
+      } else {
+        cDb = Array.isArray(communityData.achievements) ? communityData.achievements : [];
+        cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) =>
           typeof l === "string" ? { title: "Community Link", url: l } : l
-        ) : []; 
-        cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
-        cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : []; 
+        ) : [];
+        cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : [];
+        cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : [];
         if (communityData.gameName && typeof communityData.gameName === "string") {
           cGameName = communityData.gameName.trim();
         }
       }
 
-      const newCacheData = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists, gameName: cGameName };
+      const newCacheData = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists, gameName: cGameName, completion: parseCompletionRating(communityData) };
       const oldCacheData = communityDbCacheRef.current[appId];
 
       if (deepEqual(newCacheData, oldCacheData)) {
@@ -489,13 +505,13 @@ function App() {
           return updated;
         });
       }
-      
+
       if (cChecklists.length > 0) {
         mergeCommunityChecklists(appId, cChecklists);
       }
 
       tickRef.current({ forceTabSwitch: true });
-      
+
       toast.success("Database updated!", { id: toastId });
     } catch (e) {
       toast.error("Error checking for updates.", { id: toastId });
@@ -586,10 +602,10 @@ function App() {
 
   const playUnlockSound = useUnlockSound(settings.soundEnabled);
 
-  const handleChangeUiScale = (scale: number) => { 
-    setSettings(prev => ({ ...prev, uiScale: scale })); 
-    settingsRef.current.uiScale = scale; 
-    document.documentElement.style.setProperty("--ui-scale", scale.toString()); 
+  const handleChangeUiScale = (scale: number) => {
+    setSettings(prev => ({ ...prev, uiScale: scale }));
+    settingsRef.current.uiScale = scale;
+    document.documentElement.style.setProperty("--ui-scale", scale.toString());
   };
   const handleSaveUiScale = () => { saveSettings({ ...settingsRef.current, uiScale: settings.uiScale }); };
 
@@ -600,14 +616,14 @@ function App() {
     let debounceTimer: number | undefined;
 
     const saveState = async () => {
-      if (settingsRef.current.isMiniMode) return; 
+      if (settingsRef.current.isMiniMode) return;
       try {
         const stateStr = await invoke<string>("get_window_state");
         const state = JSON.parse(stateStr);
         if (state.width > 100 && state.height > 100) {
-          const updated = { 
-            ...settingsRef.current, 
-            windowWidth: state.width, 
+          const updated = {
+            ...settingsRef.current,
+            windowWidth: state.width,
             windowHeight: state.height,
             windowX: state.x,
             windowY: state.y,
@@ -624,14 +640,14 @@ function App() {
     };
 
     let unlistenResize: any, unlistenMove: any;
-    
+
     getCurrentWebviewWindow().onResized(handleEvent).then(f => unlistenResize = f);
     getCurrentWebviewWindow().onMoved(handleEvent).then(f => unlistenMove = f);
     window.addEventListener("resize", handleEvent);
 
-    return () => { 
-      window.removeEventListener("resize", handleEvent); 
-      if (debounceTimer) window.clearTimeout(debounceTimer); 
+    return () => {
+      window.removeEventListener("resize", handleEvent);
+      if (debounceTimer) window.clearTimeout(debounceTimer);
       if (unlistenResize) unlistenResize();
       if (unlistenMove) unlistenMove();
     };
@@ -661,7 +677,7 @@ function App() {
         setSettings(savedSettings);
         applyTheme(allThemes.find(t => t.id === savedSettings.themeId) || BUILTIN_THEMES[0]);
         document.documentElement.style.setProperty("--ui-scale", savedSettings.uiScale.toString());
-        const loadedLang = savedSettings.language || "en"; 
+        const loadedLang = savedSettings.language || "en";
         document.documentElement.lang = loadedLang;
         i18n.changeLanguage(loadedLang);
         setIsMiniMode(savedSettings.isMiniMode || false);
@@ -670,34 +686,34 @@ function App() {
           await invoke("set_custom_window_size", { width: 380.0, height: 500.0 }).catch(() => {});
         } else {
           if (savedSettings.windowWidth && savedSettings.windowHeight && savedSettings.windowX !== undefined && savedSettings.windowY !== undefined) {
-             await invoke("set_window_state", { 
-               x: savedSettings.windowX, 
-               y: savedSettings.windowY, 
-               width: savedSettings.windowWidth, 
-               height: savedSettings.windowHeight, 
-               isMaximized: savedSettings.isMaximized || false 
+             await invoke("set_window_state", {
+               x: savedSettings.windowX,
+               y: savedSettings.windowY,
+               width: savedSettings.windowWidth,
+               height: savedSettings.windowHeight,
+               isMaximized: savedSettings.isMaximized || false
              }).catch(() => {});
           } else if (savedSettings.windowWidth && savedSettings.windowHeight) {
              await invoke("set_custom_window_size", { width: savedSettings.windowWidth, height: savedSettings.windowHeight }).catch(() => {});
           }
         }
 
-        if (savedSettings.alwaysOnTop) await invoke("set_always_on_top", { value: true }).catch(() => {}); 
+        if (savedSettings.alwaysOnTop) await invoke("set_always_on_top", { value: true }).catch(() => {});
         if (savedSettings.opacity !== undefined && savedSettings.opacity !== 1.0) await invoke("set_window_opacity", { opacity: savedSettings.opacity }).catch(() => {});
 
         const savedKey = await invoke<string>("load_api_key");
         const savedRa = await invoke<string>("load_ra_credentials");
         const savedXbox = await invoke<string>("load_xbox_credentials");
         const savedPsn = await invoke<string>("load_psn_credentials");
-        
+
         const rawRa = safeParseJSON(savedRa, {});
         const parsedRa = { user: rawRa.user || "", key: rawRa.key || "" };
 
         const rawXbox = safeParseJSON(savedXbox, {});
         const parsedXbox = { apiKey: rawXbox.apiKey || "", xuid: rawXbox.xuid || "", gamertag: rawXbox.gamertag || "" };
-        
-        setApiKey(savedKey); 
-        apiKeyRef.current = savedKey; 
+
+        setApiKey(savedKey);
+        apiKeyRef.current = savedKey;
         setRaCreds(parsedRa);
         raCredsRef.current = parsedRa;
         setXboxCreds(parsedXbox);
@@ -714,11 +730,11 @@ function App() {
         setPsnCreds(parsedPsn);
         psnCredsRef.current = parsedPsn;
 
-        if ((savedKey && savedKey.length > 0) || (parsedRa.user && parsedRa.key) || (parsedXbox.apiKey && parsedXbox.xuid) || (parsedPsn.accessToken && parsedPsn.accountId)) { 
-          setAppState("WAITING"); 
-        } else { 
-          setAppState("SETUP"); 
-          return; 
+        if ((savedKey && savedKey.length > 0) || (parsedRa.user && parsedRa.key) || (parsedXbox.apiKey && parsedXbox.xuid) || (parsedPsn.accessToken && parsedPsn.accountId)) {
+          setAppState("WAITING");
+        } else {
+          setAppState("SETUP");
+          return;
         }
 
         try {
@@ -729,8 +745,8 @@ function App() {
         const syncStr = await invoke<string>("load_sync_config").catch(() => "{}");
         const parsedSync = safeParseJSON(syncStr, { githubToken: "", gistId: "", lastSync: 0 });
         setSyncConfig(parsedSync);
-        
-        const historyStr = await invoke<string>("load_history"); 
+
+        const historyStr = await invoke<string>("load_history");
         const parsedHistory = safeParseJSON(historyStr, {});
         Object.keys(parsedHistory).forEach(id => {
           const g = parsedHistory[id];
@@ -746,11 +762,11 @@ function App() {
         const linksStr = await invoke<string>("load_user_links"); setUserLinks(Array.isArray(safeParseJSON(linksStr, [])) ? safeParseJSON(linksStr, []) : []);
         const trackedStr = await invoke<string>("load_tracked"); setTrackedData(safeParseTracked(trackedStr));
         const chaptersStr = await invoke<string>("load_chapters"); setAllLocalChapters(safeParseJSON(chaptersStr, {}));
-        const editsStr = await invoke<string>("load_local_edits"); 
+        const editsStr = await invoke<string>("load_local_edits");
         const editsData = safeParseJSON(editsStr, {});
-        setAllLocalEdits(editsData); 
+        setAllLocalEdits(editsData);
         allLocalEditsRef.current = editsData;
-        
+
         const gameLinksStr = await invoke<string>("load_game_links").catch(() => "{}");
         const loadedGameLinks = safeParseJSON(gameLinksStr, {});
         setGameLinks(loadedGameLinks);
@@ -764,7 +780,7 @@ function App() {
         const progressStr = await invoke<string>("load_checklist_progress").catch(() => "{}");
         const loadedProgress = safeParseJSON(progressStr, {});
         setChecklistProgress(loadedProgress);
-        
+
         const mergedChecklists: Record<string, GameChecklists> = {};
                 Object.keys(loadedChecklistsRaw).forEach(gameId => {
           const rawData = loadedChecklistsRaw[gameId];
@@ -785,9 +801,9 @@ function App() {
             ...col,
             checklists: col.checklists.map(list => ({
               ...list,
-              items: list.items.map(item => ({ 
-                ...item, 
-                completed: gameProgress[list.id]?.[item.id] ?? item.completed ?? false 
+              items: list.items.map(item => ({
+                ...item,
+                completed: gameProgress[list.id]?.[item.id] ?? item.completed ?? false
               }))
             }))
           }));
@@ -832,8 +848,8 @@ function App() {
         if (savedSettings.companionAutoStart) {
           handleStartCompanion(true);
         }
-      } catch (e) { 
-        setAppState("SETUP"); 
+      } catch (e) {
+        setAppState("SETUP");
       }
     }
     init();
@@ -841,7 +857,7 @@ function App() {
 
   const saveSettings = async (updated: AppSettings) => { settingsRef.current = updated; setSettings(updated); await invoke("save_settings", { data: JSON.stringify(updated) }).catch(console.error); };
   const handleToggleAlwaysOnTop = async () => { const newVal = !settingsRef.current.alwaysOnTop; await invoke("set_always_on_top", { value: newVal }).catch(console.error); saveSettings({ ...settingsRef.current, alwaysOnTop: newVal }); };
-  
+
   const handleToggleMiniMode = async () => {
     const newVal = !isMiniMode;
     try {
@@ -861,19 +877,19 @@ function App() {
     saveSettings({ ...settingsRef.current, language: lang });
     document.documentElement.lang = lang;
     i18n.changeLanguage(lang);
-    
+
     communityDbCacheRef.current = {};
     achievementsCacheRef.current = {};
-    schemaCacheRef.current = {}; 
+    schemaCacheRef.current = {};
     percentagesCacheRef.current = {};
-    
+
     lastNetworkFetchRef.current = 0;
     lastXboxNetworkFetchRef.current = 0;
-    
+
     setGameName("Loading...");
     gameNameRef.current = "Loading...";
     setAchievements([]);
-    
+
     tickRef.current({ forceTabSwitch: true });
   };
 
@@ -884,14 +900,14 @@ function App() {
     const OVERLAY_CLASS_PREFIX = "overlay-";
     const TRANSPARENT_STYLES: OverlayStyle[] = ["ghost", "mmo", "neon", "tactical", "frosted"];
 
-    const classesToRemove = Array.from(html.classList).filter(cls => 
+    const classesToRemove = Array.from(html.classList).filter(cls =>
       cls.startsWith(OVERLAY_CLASS_PREFIX) || cls === "overlay-opaque"
     );
     classesToRemove.forEach(cls => html.classList.remove(cls));
-    
+
     const isLinux = navigator.userAgent.toLowerCase().includes("linux");
     const safeIsTransparent = isLinux ? false : isTransparent;
-    
+
     if (style !== "default") {
       html.classList.add(`${OVERLAY_CLASS_PREFIX}${style}`);
       if (!safeIsTransparent) html.classList.add("overlay-opaque");
@@ -930,7 +946,7 @@ function App() {
       }
       tickInFlightRef.current = true;
       try {
-        const key = apiKeyRef.current; 
+        const key = apiKeyRef.current;
         const ra = raCredsRef.current;
         const xbox = xboxCredsRef.current;
         const psn = psnCredsRef.current;
@@ -954,7 +970,7 @@ function App() {
                   const isLive = (Date.now() - lastPlayedUTC) < 4 * 60 * 1000;
                   if (isLive) nextLiveIds.add(gameIdStr);
 
-                  const base: Record<string, GameHistory> = historyUpdated || gameHistoryRef.current;                  
+                  const base: Record<string, GameHistory> = historyUpdated || gameHistoryRef.current;
                   const existing = base[gameIdStr];
                   const timeToSave = isLive ? Date.now() : lastPlayedUTC;
                   if (existing && Math.abs(existing.lastPlayed - timeToSave) < 60000 && existing.name === recentGame.Title) continue;
@@ -1111,7 +1127,7 @@ function App() {
         if (currentTickGameName === "Library Dashboard" || currentTickGameName === "Loading...") {
             currentTickGameName = gameHistoryRef.current[targetAppId]?.customName || gameHistoryRef.current[targetAppId]?.name || `App ${targetAppId}`;
         }
-        
+
         const isTargetRA = targetAppId.startsWith("RA_");
         const isTargetXbox = targetAppId.startsWith("XBOX_");
         const isTargetPSN = targetAppId.startsWith("PSN_");
@@ -1141,13 +1157,13 @@ function App() {
                       return updated;
                     });
                   }
-                  schemaCacheRef.current[targetAppId] = [{ appIdMarker: targetAppId }]; 
+                  schemaCacheRef.current[targetAppId] = [{ appIdMarker: targetAppId }];
               } else if (isTargetXbox) {
                   const pureId = targetAppId.replace("XBOX_", "");
                   const xboxGameStr = await invoke<string>("get_xbox_achievements", { apiKey: xbox.apiKey, xuid: xbox.xuid, titleId: pureId });
                   const xboxData = unwrapXboxData(safeParseJSON(xboxGameStr, {}));
                   const xboxAchList = Array.isArray(xboxData.achievements) ? xboxData.achievements : [];
-                  
+
                   const resolvedName = gameHistoryRef.current[targetAppId]?.customName || xboxAchList[0]?.titleAssociations?.[0]?.name || `Xbox Title: ${pureId}`;
                   setGameName(resolvedName); gameNameRef.current = resolvedName; currentTickGameName = resolvedName;
 
@@ -1187,7 +1203,7 @@ function App() {
                     invoke<string>("get_game_schema", { appId: targetAppId, apiKey: key, lang: steamLang }),
                     invoke<string>("get_global_achievement_percentages", { appId: targetAppId })
                   ]);
-                  
+
                   const parsedSchema = safeParseJSON(schemaRes);
                   let newSchema = [{ appIdMarker: targetAppId }];
                   if (parsedSchema.game) {
@@ -1195,22 +1211,22 @@ function App() {
                       newSchema = [{ appIdMarker: targetAppId }, ...achs];
                   }
                   schemaCacheRef.current[targetAppId] = newSchema;
-        
+
                   const parsedPct = safeParseJSON(pctRes);
                   const pctMap = new Map<string, number>();
                   if (parsedPct.achievementpercentages?.achievements) {
                     for (const a of parsedPct.achievementpercentages.achievements) { pctMap.set(a.name, Number(a.percent)); }
                   }
                   percentagesCacheRef.current[targetAppId] = pctMap;
-        
+
                   let resolvedName = gameHistoryRef.current[targetAppId]?.customName
                     || resolveKnownCodename(targetAppId)
                     || parsedSchema.game?.gameName
                     || `AppID: ${targetAppId}`;
 
-                  try { 
-                    const storeName = await invoke<string>("get_app_name", { appId: targetAppId, lang: steamLang }); 
-                    if (storeName) resolvedName = storeName; 
+                  try {
+                    const storeName = await invoke<string>("get_app_name", { appId: targetAppId, lang: steamLang });
+                    if (storeName) resolvedName = storeName;
                   } catch { }
 
                   const alias = resolveKnownCodename(resolvedName) || resolveKnownCodename(targetAppId);
@@ -1233,22 +1249,22 @@ function App() {
                   let cDb = [], cLinks = [], cChapters = [], cChecklists = [];
                   let cGameName: string | undefined = undefined;
 
-                  if (Array.isArray(communityData)) { 
+                  if (Array.isArray(communityData)) {
                     cDb = communityData;
-                  } else { 
-                    cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
-                    
-                    cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
-                      typeof l === "string" ? { title: "Community Link", url: l } : l
-                    ) : []; 
+                  } else {
+                    cDb = Array.isArray(communityData.achievements) ? communityData.achievements : [];
 
-                    cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
-                    cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : []; 
+                    cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) =>
+                      typeof l === "string" ? { title: "Community Link", url: l } : l
+                    ) : [];
+
+                    cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : [];
+                    cChecklists = Array.isArray(communityData.checklists) ? communityData.checklists : [];
                     if (communityData.gameName && typeof communityData.gameName === "string") {
                       cGameName = communityData.gameName.trim();
                     }
                   }
-                  communityDbCacheRef.current[targetAppId] = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists, gameName: cGameName };
+                  communityDbCacheRef.current[targetAppId] = { db: cDb, links: cLinks, chapters: cChapters, checklists: cChecklists, gameName: cGameName, completion: parseCompletionRating(communityData) };
                   setHasCommunityDb(cDb.length > 0);
 
                   if (cGameName && !gameHistoryRef.current[targetAppId]?.customName) {
@@ -1260,15 +1276,15 @@ function App() {
                   if (cChecklists.length > 0) {
                     mergeCommunityChecklists(targetAppId, cChecklists);
                   }
-                } else { 
+                } else {
                   communityDbCacheRef.current[targetAppId] = { db: [], links: [], chapters: [] };
                   setHasCommunityDb(false);
                 }
-              } catch (e) { 
+              } catch (e) {
                 communityDbCacheRef.current[targetAppId] = { db: [], links: [], chapters: [] };
                 setHasCommunityDb(false);
               }
-              
+
               const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
               setCommunityLinks(isTargetCommunityDisabled ? [] : (communityDbCacheRef.current[targetAppId]?.links || []));
               setSelectedChapter("ALL"); setSearchQuery(""); setSortOrder("DEFAULT"); setGuidedMode(false); setMissableAlertDismissed(false);
@@ -1288,21 +1304,21 @@ function App() {
 
           const cData = communityDbCacheRef.current[targetAppId];
           const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
-          if (cData) { 
-            setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links); 
-            setHasCommunityDb(cData.db.length > 0); 
+          if (cData) {
+            setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links);
+            setHasCommunityDb(cData.db.length > 0);
           }
         }
 
         if (!schemaJustLoaded && !options.forceTabSwitch) {
-          if (isTargetXbox || isTargetPSN) { 
-            if (now - lastXboxNetworkFetchRef.current < 60000) return; 
-          } else if (isTargetRA) { 
-            if (now - lastNetworkFetchRef.current < 15000) return; 
-          } else { 
+          if (isTargetXbox || isTargetPSN) {
+            if (now - lastXboxNetworkFetchRef.current < 60000) return;
+          } else if (isTargetRA) {
+            if (now - lastNetworkFetchRef.current < 15000) return;
+          } else {
             const isLiveSteam = actualRunningAppIds.includes(targetAppId);
             const fetchDelay = isLiveSteam ? 3000 : 15000;
-            if (now - lastNetworkFetchRef.current < fetchDelay) return; 
+            if (now - lastNetworkFetchRef.current < fetchDelay) return;
           }
         }
 
@@ -1311,9 +1327,9 @@ function App() {
         try {
             const gameEdits = allLocalEditsRef.current[targetAppId] || {};
             let merged: MergedAchievement[] = [];
-            
+
             const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
-            const cData = isTargetCommunityDisabled 
+            const cData = isTargetCommunityDisabled
               ? { db: [], links: [], chapters: [] }
               : (communityDbCacheRef.current[targetAppId] || { db: [], links: [], chapters: [] });
 
@@ -1322,14 +1338,14 @@ function App() {
                 const raGameStr = await invoke<string>("get_ra_achievements", { user: ra.user, apiKey: ra.key, gameId: pureId });
                 const raData = safeParseJSON(raGameStr, {});
                 const raAch = Object.values(raData.Achievements || {}) as any[];
-                
+
                 const totalPlayers = Math.max(Number(raData.NumDistinctPlayersCasual || raData.NumDistinctPlayers || raData.NumPlayers || 1), 1);
-                
+
                 merged = raAch.map(a => {
                     const apiname = a.ID.toString();
                     const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
                     const localEdit = gameEdits[apiname] || {};
-                    
+
                     const rawType = a.type || a.Type || "";
                     const isOfficialMissable = typeof rawType === "string" && rawType.toLowerCase() === "missable";
                     const calcPercent = (Number(a.NumAwarded || 0) / totalPlayers) * 100;
@@ -1338,10 +1354,10 @@ function App() {
                         apiname, display_name: communityAch.display_name || a.Title, description: communityAch.description || a.Description,
                         icon: `https://media.retroachievements.org/Badge/${a.BadgeName}.png`, icongray: `https://media.retroachievements.org/Badge/${a.BadgeName}_lock.png`,
                         unlocked: !!a.DateEarned, is_official_missable: isOfficialMissable,
-                        is_missable: isOfficialMissable ? true : (localEdit.is_missable ?? communityAch.is_missable ?? false), 
+                        is_missable: isOfficialMissable ? true : (localEdit.is_missable ?? communityAch.is_missable ?? false),
                         is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false, chapter: localEdit.chapter ?? communityAch.chapter ?? "",
                         hint: localEdit.hint ?? communityAch.hint ?? "", video_url: localEdit.video_url ?? communityAch.video_url ?? "",
-                        notes: localEdit.notes || "", globalPercent: Math.min(calcPercent, 100), 
+                        notes: localEdit.notes || "", globalPercent: Math.min(calcPercent, 100),
                         ra_points: a.Points != null ? Number(a.Points) : undefined, ra_trueratio: a.TrueRatio != null ? Number(a.TrueRatio) : undefined,
                         ra_type: typeof rawType === "string" && rawType ? rawType.toLowerCase() : undefined,
                         requires: localEdit.requires ?? communityAch.requires ?? [],
@@ -1395,7 +1411,7 @@ function App() {
                     const communityAch = cData.db.find((m: any) => m.apiname === apiname) || {};
                     const localEdit = gameEdits[apiname] || {};
                     const prog = progAchs.find((p: any) => p.trophyId === a.trophyId) || {};
-                    
+
                     const isUnlocked = prog.earned === true;
                     const rarityPct = prog.trophyEarnedRate ? Number(prog.trophyEarnedRate) : undefined;
 
@@ -1413,26 +1429,26 @@ function App() {
             } else {
                 const achRes = await invoke<string>("get_achievements", { steamId, appId: targetAppId, apiKey: key, lang: steamLang });
                 const liveData = safeParseJSON(achRes);
-                
+
                 const currentSchema = schemaCacheRef.current[targetAppId] || [];
                 const currentPcts = percentagesCacheRef.current[targetAppId] || new Map();
-                
+
                 const hasNoAchievements = currentSchema.filter(a => !a.appIdMarker).length === 0;
                 setIsProfilePrivate(!hasNoAchievements && liveData.error === "PRIVATE_PROFILE");
                 const playerAchievements = liveData.playerstats?.achievements || [];
 
                 merged = currentSchema.map((schemaAch) => {
-                  if (schemaAch.appIdMarker) return schemaAch; 
+                  if (schemaAch.appIdMarker) return schemaAch;
                   const liveAch = playerAchievements.find((a: any) => a.apiname === schemaAch.name);
                   const communityAch = cData.db.find((m: any) => m.apiname === schemaAch.name) || {};
                   const localEdit = gameEdits[schemaAch.name] || {};
-                      
+
                   return {
                     apiname: schemaAch.name, display_name: communityAch.display_name || schemaAch.displayName, description: communityAch.description || schemaAch.description,
                     icon: schemaAch.icon, icongray: schemaAch.icongray, unlocked: liveAch ? liveAch.achieved === 1 : false,
                     is_missable: localEdit.is_missable ?? communityAch.is_missable ?? false, is_spoiler: localEdit.is_spoiler ?? communityAch.is_spoiler ?? false,
-                    chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "", 
-                    video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "", 
+                    chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
+                    video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
                     globalPercent: currentPcts.get(schemaAch.name), requires: localEdit.requires ?? communityAch.requires ?? [],
                   };
                 }).filter(a => a.apiname);
@@ -1455,7 +1471,7 @@ function App() {
                   if (achFull) {
                     newSessionUnlocks.push({ time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), ach: achFull });
                     toast.success(`Unlocked: ${achFull.display_name}`, { icon: isTargetRA ? '🎮' : isTargetXbox ? '🟩' : '🏆', style: { background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--accent-green)' } });
-                    
+
                     if (!isTargetRA && !isTargetXbox && settingsRef.current.autoScreenshots !== false) {
                         invoke("take_unlock_screenshot", { gameName: currentTickGameName, achTitle: achFull.display_name, achIconUrl: achFull.icon }).catch(console.error);
                     }
@@ -1475,7 +1491,7 @@ function App() {
               const next = prev.map((old, i) => {
                 const m = merged[i];
                 if (
-                  old.unlocked !== m.unlocked || old.chapter !== m.chapter || old.hint !== m.hint || old.video_url !== m.video_url || 
+                  old.unlocked !== m.unlocked || old.chapter !== m.chapter || old.hint !== m.hint || old.video_url !== m.video_url ||
                   old.is_missable !== m.is_missable || old.is_spoiler !== m.is_spoiler || old.notes !== m.notes || old.globalPercent !== m.globalPercent ||
                   old.ra_points !== m.ra_points || old.ra_trueratio !== m.ra_trueratio || old.is_official_missable !== m.is_official_missable ||
                   old.display_name !== m.display_name || old.description !== m.description
@@ -1523,23 +1539,23 @@ function App() {
           let cDb = [], cLinks = [], cChapters = [];
           let cGameName: string | undefined = undefined;
           if (Array.isArray(communityData)) { cDb = communityData; }
-          else { 
-            cDb = Array.isArray(communityData.achievements) ? communityData.achievements : []; 
-            cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) => 
+          else {
+            cDb = Array.isArray(communityData.achievements) ? communityData.achievements : [];
+            cLinks = Array.isArray(communityData.links) ? communityData.links.map((l: any) =>
               typeof l === "string" ? { title: "Community Link", url: l } : l
-            ) : []; 
-            cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : []; 
+            ) : [];
+            cChapters = Array.isArray(communityData.chapters) ? communityData.chapters : [];
             if (communityData.gameName && typeof communityData.gameName === "string") {
               cGameName = communityData.gameName.trim();
             }
           }
-          communityDbCacheRef.current[appId] = { db: cDb, links: cLinks, chapters: cChapters, gameName: cGameName };
+          communityDbCacheRef.current[appId] = { db: cDb, links: cLinks, chapters: cChapters, gameName: cGameName, completion: parseCompletionRating(communityData) };
         } else {
           communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] };
         }
       } catch { communityDbCacheRef.current[appId] = { db: [], links: [], chapters: [] }; }
     }
-    
+
     const isCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[appId];
     const cData = isCommunityDisabled
       ? { db: [], links: [], chapters: [] }
@@ -1733,22 +1749,22 @@ function App() {
         easiestNext = { apiname: easiest.apiname, name: easiest.display_name, percent: p, icon: easiest.icon, color };
       }
 
-      const updated = { 
-        ...prev, 
-        [appId]: { 
-          appId, 
-          name: safeName, 
+      const updated = {
+        ...prev,
+        [appId]: {
+          appId,
+          name: safeName,
           customName: existing?.customName,
-          totalAch: achs.length, 
-          unlockedAch: achs.filter(a => a.unlocked).length, 
-          lastPlayed: existing?.lastPlayed ?? Date.now(), 
-          platform: resolvePlatform(appId), 
-          pinned: existing?.pinned, 
-          completionStatus: existing?.completionStatus, 
-          rarestUnlocked, 
-          easiestNext, 
-          raImageIcon: existing?.raImageIcon 
-        } 
+          totalAch: achs.length,
+          unlockedAch: achs.filter(a => a.unlocked).length,
+          lastPlayed: existing?.lastPlayed ?? Date.now(),
+          platform: resolvePlatform(appId),
+          pinned: existing?.pinned,
+          completionStatus: existing?.completionStatus,
+          rarestUnlocked,
+          easiestNext,
+          raImageIcon: existing?.raImageIcon
+        }
       };
       invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
       return updated;
@@ -1763,29 +1779,29 @@ function App() {
     setSelectedAppId(id); selectedAppIdRef.current = id;
     if (id === "") {
       setAppState("WAITING"); setAchievements([]); setHasCommunityDb(null); setGameName("Library Dashboard"); gameNameRef.current = "Library Dashboard";
-      saveSettings({ ...settingsRef.current, lastSelectedTab: id }); return; 
+      saveSettings({ ...settingsRef.current, lastSelectedTab: id }); return;
     }
 
     setAppState("PLAYING");
 
-    if (gameHistory[id]) { 
+    if (gameHistory[id]) {
       const n = gameHistory[id].customName || gameHistory[id].name;
-      setGameName(n); 
-      gameNameRef.current = n; 
-    } else { 
-      setGameName("Loading..."); 
-      gameNameRef.current = "Loading..."; 
+      setGameName(n);
+      gameNameRef.current = n;
+    } else {
+      setGameName("Loading...");
+      gameNameRef.current = "Loading...";
     }
-    
+
     if (achievementsCacheRef.current[id]) {
       setAchievements(achievementsCacheRef.current[id]);
       const cData = communityDbCacheRef.current[id];
       const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[id];
-      if (cData) { 
-        setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links); 
-        setHasCommunityDb(cData.db.length > 0); 
-      } else { 
-        setHasCommunityDb(null); 
+      if (cData) {
+        setCommunityLinks(isTargetCommunityDisabled ? [] : cData.links);
+        setHasCommunityDb(cData.db.length > 0);
+      } else {
+        setHasCommunityDb(null);
       }
     } else { setAchievements([]); setHasCommunityDb(null); }
 
@@ -1793,7 +1809,7 @@ function App() {
     setSortOrder(savedSort ?? "DEFAULT");
     setSelectedSetFilter("ALL");
     saveSettings({ ...settingsRef.current, lastSelectedTab: id });
-    
+
     lastNetworkFetchRef.current = 0; lastXboxNetworkFetchRef.current = 0;
     tickRef.current({ forceTabSwitch: true });
   };
@@ -1809,36 +1825,36 @@ function App() {
     handleSelectTab(appId);
   };
 
-  const handleToggleTrack = async (apiname: string, sourceAppId?: string) => { 
-    const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; 
-    setTrackedData(prev => { 
-      const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {}; 
-      const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : []; 
-      const isCurrentlyTracked = gameTracked.includes(apiname); 
-      const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter(id => id !== apiname) : [...gameTracked, apiname]; 
-      const newState = { ...safePrev, [appId]: updatedGameTracked }; 
-      invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error); 
-      return newState; 
-    }); 
+  const handleToggleTrack = async (apiname: string, sourceAppId?: string) => {
+    const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return;
+    setTrackedData(prev => {
+      const safePrev = (prev && typeof prev === "object" && !Array.isArray(prev)) ? prev : {};
+      const gameTracked: string[] = Array.isArray(safePrev[appId]) ? safePrev[appId] : [];
+      const isCurrentlyTracked = gameTracked.includes(apiname);
+      const updatedGameTracked = isCurrentlyTracked ? gameTracked.filter(id => id !== apiname) : [...gameTracked, apiname];
+      const newState = { ...safePrev, [appId]: updatedGameTracked };
+      invoke("save_game_tracked", { appId, data: JSON.stringify(updatedGameTracked) }).catch(console.error);
+      return newState;
+    });
   };
-  
-  const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceAppId?: string) => { 
-    const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return; 
-    const gameEdits = allLocalEditsRef.current[appId] || {}; 
-    const updatedGameEdits = { ...gameEdits, [apiname]: { ...(gameEdits[apiname] || {}), [field]: value } }; 
-    const newAllEdits = { ...allLocalEditsRef.current, [appId]: updatedGameEdits }; 
-    
-    setAllLocalEdits(newAllEdits); 
-    allLocalEditsRef.current = newAllEdits; 
+
+  const handleEdit = (apiname: string, field: keyof LocalEdit, value: any, sourceAppId?: string) => {
+    const appId = sourceAppId || selectedAppIdRef.current; if (!appId) return;
+    const gameEdits = allLocalEditsRef.current[appId] || {};
+    const updatedGameEdits = { ...gameEdits, [apiname]: { ...(gameEdits[apiname] || {}), [field]: value } };
+    const newAllEdits = { ...allLocalEditsRef.current, [appId]: updatedGameEdits };
+
+    setAllLocalEdits(newAllEdits);
+    allLocalEditsRef.current = newAllEdits;
 
     if (appId === selectedAppIdRef.current) {
-      setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a)); 
+      setAchievements(prev => prev.map(a => a.apiname === apiname ? { ...a, [field]: value } : a));
     } else {
       achievementsCacheRef.current[appId] = (achievementsCacheRef.current[appId] || []).map(a => a.apiname === apiname ? { ...a, [field]: value } : a);
       setGroupFetchTick(t => t + 1);
     }
 
-    invoke("save_game_edits", { appId, data: JSON.stringify(updatedGameEdits) }).catch(console.error); 
+    invoke("save_game_edits", { appId, data: JSON.stringify(updatedGameEdits) }).catch(console.error);
   };
 
   const currentGameChapters = useMemo(() => {
@@ -1880,8 +1896,8 @@ function App() {
 
     let safeGameName = gameHistory[targetAppId]?.customName || gameHistory[targetAppId]?.name || targetAppId;
 
-    const payload: Record<string, unknown> = { 
-      gameName: safeGameName 
+    const payload: Record<string, unknown> = {
+      gameName: safeGameName
     };
 
     if (opts.includeAchievements !== false && opts.includeChecklists !== true && opts.includeGuide !== true) {
@@ -1899,15 +1915,18 @@ function App() {
 
       const mergedLinksMap = new Map();
       cLinks.forEach((l: any) => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
-      
+
       const specificGameLinks = userLinks.filter(l => l.appId === targetAppId);
       specificGameLinks.forEach(l => mergedLinksMap.set(l.url, { title: l.title, url: l.url }));
+
+      const completion = settings.completionRatings?.[targetAppId] ?? communityDbCacheRef.current[targetAppId]?.completion;
+      if (hasCompletionRating(completion)) payload.completion = completion;
 
       payload.chapters = currentGameChapters;
       payload.links = Array.from(mergedLinksMap.values());
       payload.achievements = unifiedAchievements;
     }
-    
+
     if (opts.includeChecklists) {
       const gameChecklistData = allChecklists[targetAppId];
       if (gameChecklistData && gameChecklistData.collections.length > 0) {
@@ -1941,11 +1960,11 @@ function App() {
         includeChecklists: innerTab === "CHECKLISTS",
         includeGuide: innerTab === "GUIDE"
       };
-      
+
       const jsonString = generateUnifiedExportJSON(targetAppId, opts);
       const suffix = innerTab === "CHECKLISTS" ? "_checklists" : innerTab === "GUIDE" ? "_guide" : "_data";
       const filename = `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${suffix}.json`;
-      
+
       await invoke<string>("save_file_dialog", { filename, content: jsonString });
       toast.success("JSON exported successfully!");
     } catch (e) {
@@ -1953,10 +1972,10 @@ function App() {
     }
   };
 
-  const handleExportHTML = async (targetAppId: string) => { 
-    try { 
+  const handleExportHTML = async (targetAppId: string) => {
+    try {
       const safeGameName = gameHistory[targetAppId]?.customName || gameHistory[targetAppId]?.name || targetAppId;
-      
+
       let bodyContent = "";
       let docTitle = "";
       let suffix = "";
@@ -1965,7 +1984,7 @@ function App() {
         const gameChecklistData = allChecklists[targetAppId];
         const activeCol = gameChecklistData?.collections.find(c => c.id === gameChecklistData.activeCollectionId) || gameChecklistData?.collections[0];
         const gameChecklistsForExport = activeCol?.checklists || [];
-        
+
         suffix = "_checklists";
         docTitle = `${safeGameName} - Checklists`;
         bodyContent = `
@@ -1981,7 +2000,7 @@ function App() {
       } else if (innerTab === "GUIDE") {
         const guide = allGuides[targetAppId];
         const activePt = guide?.playthroughs.find(p => p.id === guide.activePlaythroughId) || guide?.playthroughs[0];
-        
+
         suffix = "_guide";
         docTitle = `${safeGameName} - Guide`;
 
@@ -2017,46 +2036,46 @@ function App() {
       }
 
       const htmlTemplate = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${docTitle}</title><style>
-        body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 1000px; margin: 0 auto; padding: 2rem; } 
-        h1 { color: #34d399; } 
+        body { font-family: system-ui, sans-serif; background: #18181b; color: #f4f4f5; max-width: 1000px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #34d399; }
         .ach-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-        .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; border-radius: 8px; border: 1px solid #3f3f46; min-width: 0; } 
-        .ach.unlocked { opacity: 0.6; } 
-        img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; flex-shrink: 0; } 
-        h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; } 
-        p { margin: 0; color: #a1a1aa; font-size: 0.9rem;} 
+        .ach { display: flex; gap: 1rem; background: #27272a; padding: 1rem; border-radius: 8px; border: 1px solid #3f3f46; min-width: 0; }
+        .ach.unlocked { opacity: 0.6; }
+        img { width: 64px; height: 64px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+        h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+        p { margin: 0; color: #a1a1aa; font-size: 0.9rem;}
         .missable { color: #ef4444; font-weight: bold; font-size: 0.8rem; border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px;}
         @media (max-width: 768px) { .ach-grid { grid-template-columns: 1fr; } }
       </style></head><body>
         ${bodyContent}
-      </body></html>`; 
+      </body></html>`;
 
-      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${suffix}.html`, content: htmlTemplate }); 
-      toast.success("HTML exported successfully!"); 
-    } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); } 
+      await invoke<string>("save_file_dialog", { filename: `${safeGameName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}${suffix}.html`, content: htmlTemplate });
+      toast.success("HTML exported successfully!");
+    } catch (e) { if (e !== "Cancelled by user") toast.error(`Failed to save: ${e}`); }
   };
-  
-  const handleCreatePR = async (targetAppId: string) => { 
-    try { 
+
+  const handleCreatePR = async (targetAppId: string) => {
+    try {
       const jsonString = generateUnifiedExportJSON(targetAppId, { includeChecklists: false }) + "\n";
-      
-      await navigator.clipboard.writeText(jsonString); 
-      
+
+      await navigator.clipboard.writeText(jsonString);
+
       await new Promise(resolve => setTimeout(resolve, 200));
 
       const checkUrl = `https://api.github.com/repos/batureren/achievement-scavenger-database/contents/games/${targetAppId}.json`;
       const res = await fetch(checkUrl);
       const fileExists = res.ok;
 
-      const targetUrl = fileExists 
-        ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${targetAppId}.json` 
+      const targetUrl = fileExists
+        ? `https://github.com/batureren/achievement-scavenger-database/edit/main/games/${targetAppId}.json`
         : `https://github.com/batureren/achievement-scavenger-database/new/main/games?filename=${targetAppId}.json`;
 
-      await open(targetUrl); 
-      toast.success("Data copied to clipboard! Paste it on GitHub.", { duration: 5000 }); 
-    } catch (err) { 
-      toast.error(`Failed to copy to clipboard: ${err}`); 
-    } 
+      await open(targetUrl);
+      toast.success("Data copied to clipboard! Paste it on GitHub.", { duration: 5000 });
+    } catch (err) {
+      toast.error(`Failed to copy to clipboard: ${err}`);
+    }
   };
 
   const currentGameTracked = useMemo(() => Array.isArray(trackedData[selectedAppId]) ? trackedData[selectedAppId] : [], [trackedData, selectedAppId]);
@@ -2087,15 +2106,15 @@ function App() {
     return displayedAchievements.filter(a => a._appId === selectedSetFilter);
   }, [displayedAchievements, selectedSetFilter]);
 
-  const chapterCounts = useMemo(() => { 
-    const counts: Record<string, { total: number; unlocked: number }> = {}; 
-    achievementsInSelectedSet.forEach(a => { 
-      const c = a.chapter?.trim() || "No Chapter"; 
+  const chapterCounts = useMemo(() => {
+    const counts: Record<string, { total: number; unlocked: number }> = {};
+    achievementsInSelectedSet.forEach(a => {
+      const c = a.chapter?.trim() || "No Chapter";
       if (!counts[c]) counts[c] = { total: 0, unlocked: 0 };
       counts[c].total += 1;
       if (a.unlocked) counts[c].unlocked += 1;
-    }); 
-    return counts; 
+    });
+    return counts;
   }, [achievementsInSelectedSet]);
 
   const allKnownChaptersForDropdown = useMemo(() => {
@@ -2103,8 +2122,8 @@ function App() {
     Object.keys(chapterCounts).forEach(c => { if (c !== "No Chapter" && !list.includes(c)) list.push(c); });
     return list;
   }, [currentGameChapters, chapterCounts]);
-  
-  const totalAch = achievementsInSelectedSet.length; const unlockedAch = achievementsInSelectedSet.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch; 
+
+  const totalAch = achievementsInSelectedSet.length; const unlockedAch = achievementsInSelectedSet.filter(a => a.unlocked).length; const lockedAch = totalAch - unlockedAch;
   const trackedAchCount = achievementsInSelectedSet.filter(a => isAchievementTracked(a)).length;
   const missableAchCount = achievementsInSelectedSet.filter(a => a.is_missable && !a.unlocked).length;
   const spoilerAchCount = achievementsInSelectedSet.filter(a => a.is_spoiler).length;
@@ -2114,7 +2133,7 @@ function App() {
     if (selectedChapter === "ALL") return [];
     return achievementsInSelectedSet.filter(a => a.is_missable && !a.unlocked && (a.chapter?.trim() || "No Chapter") === selectedChapter);
   }, [achievementsInSelectedSet, runningAppIds, selectedAppId, selectedChapter, gameLinks]);
-  
+
   const filteredAchievements = useMemo(() => {
     let result = achievementsInSelectedSet.filter(ach => {
       const isTracked = isAchievementTracked(ach);
@@ -2130,8 +2149,8 @@ function App() {
         }
       }
 
-      if (filter === "UNLOCKED" && !ach.unlocked) return false; 
-      if (filter === "LOCKED" && ach.unlocked) return false; 
+      if (filter === "UNLOCKED" && !ach.unlocked) return false;
+      if (filter === "LOCKED" && ach.unlocked) return false;
       if (filter === "TRACKED" && !isTracked) return false;
       if (filter === "MISSABLE" && !ach.is_missable) return false;
       if (filter === "SPOILER" && !ach.is_spoiler) return false;
@@ -2140,10 +2159,10 @@ function App() {
         const q = searchQuery.toLowerCase();
         if (!(ach.display_name?.toLowerCase().includes(q) || ach.description?.toLowerCase().includes(q))) return false;
       }
-      
+
       return true;
     });
-    
+
     if (sortOrder === "DEFAULT") { }
     else if (sortOrder === "A_Z") result.sort((a, b) => (a.display_name || "").localeCompare(b.display_name || ""));
     else if (sortOrder === "Z_A") result.sort((a, b) => (b.display_name || "").localeCompare(a.display_name || ""));
@@ -2169,9 +2188,9 @@ function App() {
   const { averagePercent, rarityBreakdown, totalPoints, earnedPoints, totalTruePoints, earnedTruePoints, totalGamerscore, earnedGamerscore } = useMemo(() => {
     let sum = 0, valid = 0; const rCount = { C: 0, U: 0, R: 0, VR: 0, UR: 0 };
     let totalPts = 0, earnedPts = 0, totalTruePts = 0, earnedTruePts = 0; let totalGs = 0, earnedGs = 0;
-    achievementsInSelectedSet.forEach(a => { 
-      if (a.globalPercent !== undefined && a.globalPercent >= 0) { sum += a.globalPercent; valid++; } 
-      const p = a.globalPercent || 0; 
+    achievementsInSelectedSet.forEach(a => {
+      if (a.globalPercent !== undefined && a.globalPercent >= 0) { sum += a.globalPercent; valid++; }
+      const p = a.globalPercent || 0;
       if (p >= 40) rCount.C++; else if (p >= 20) rCount.U++; else if (p >= 10) rCount.R++; else if (p >= 5) rCount.VR++; else rCount.UR++;
       if (a.ra_points !== undefined) { totalPts += a.ra_points; totalTruePts += a.ra_trueratio ?? a.ra_points; if (a.unlocked) { earnedPts += a.ra_points; earnedTruePts += a.ra_trueratio ?? a.ra_points; } }
       if (a.xbox_gamerscore !== undefined) { totalGs += a.xbox_gamerscore; if (a.unlocked) earnedGs += a.xbox_gamerscore; }
@@ -2182,9 +2201,9 @@ function App() {
   const isSelectedGameLive = runningAppIds.includes(selectedAppId);
 
   useEffect(() => {
-    if (settings.discordRPCEnabled === false || appState !== "PLAYING" || !selectedAppId || gameName === "Loading..." || gameName === "Library Dashboard") { 
-      invoke("clear_discord_rpc").catch(() => {}); 
-      return; 
+    if (settings.discordRPCEnabled === false || appState !== "PLAYING" || !selectedAppId || gameName === "Loading..." || gameName === "Library Dashboard") {
+      invoke("clear_discord_rpc").catch(() => {});
+      return;
     }
     const firstTrackedLocked = achievements.find((a) => currentGameTracked.includes(a.apiname) && !a.unlocked);
     invoke("update_discord_rpc", { gameName: gameName, unlocked: unlockedAch, total: totalAch, hunting: firstTrackedLocked ? firstTrackedLocked.display_name : "" }).catch(console.error);
@@ -2212,7 +2231,7 @@ function App() {
 
   useEffect(() => {
     let unlistenFn: () => void;
-    
+
     const setupCloseListener = async () => {
       unlistenFn = await getCurrentWebviewWindow().onCloseRequested((event) => {
         if (settingsRef.current.minimizeToTray) {
@@ -2221,9 +2240,9 @@ function App() {
         }
       });
     };
-    
+
     setupCloseListener();
-    
+
     return () => {
       if (unlistenFn) unlistenFn();
     };
@@ -2234,7 +2253,7 @@ function App() {
       const broadcastState = () => {
         const gameInfo = gameHistory[selectedAppId] || null;
         const hiddenHintsForGame = settings.hiddenHints[selectedAppId] || [];
-        
+
         let resolvedBanner = gameInfo?.raImageIcon || null;
         if (gameInfo) {
           if (gameInfo.platform === "STEAM") {
@@ -2243,11 +2262,11 @@ function App() {
             resolvedBanner = `https://media.retroachievements.org${resolvedBanner}`;
           }
         }
-        
+
         const trackedDetails = currentGameTracked.map(id => {
           const ach = achievements.find(a => a.apiname === id);
           if (!ach) return null;
-          
+
           const isHintHidden = hiddenHintsForGame.includes(ach.apiname);
 
           return {
@@ -2270,11 +2289,11 @@ function App() {
 
         const lightAchs: Record<string, any> = {};
         achievements.forEach(a => {
-          lightAchs[a.apiname] = { 
-            name: a.display_name, 
-            icon: a.unlocked ? a.icon : a.icongray, 
-            unlocked: a.unlocked, 
-            desc: a.description 
+          lightAchs[a.apiname] = {
+            name: a.display_name,
+            icon: a.unlocked ? a.icon : a.icongray,
+            unlocked: a.unlocked,
+            desc: a.description
           };
         });
 
@@ -2308,7 +2327,7 @@ function App() {
       const syncInterval = setInterval(broadcastState, 2000);
       return () => clearInterval(syncInterval);
     }
-  }, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId, allGuides, allChecklists]); 
+  }, [appState, isCompanionOpen, isCompanionModalOpen, gameName, unlockedAch, totalAch, currentGameTracked, achievements, sessionUnlocks, gameHistory, selectedAppId, allGuides, allChecklists]);
 
   if (appState === "LOADING") return <div id="app-container"><div className="setup-screen"><h1 className="app-title">Achievement Scavenger</h1><p className="status-text">Loading...</p></div></div>;
   if (appState === "SETUP") return <div id="app-container"><SetupScreen onKeySaved={(key, ra, xbox, psn) => { setApiKey(key); apiKeyRef.current = key; setRaCreds(ra); raCredsRef.current = ra; setXboxCreds(xbox); xboxCredsRef.current = xbox; setPsnCreds(psn); psnCredsRef.current = psn; if (psn.accessToken && psn.accountId) { psnAuthErrorRef.current = false; setPsnAuthError(false); } setAppState("WAITING"); }} currentKey={apiKey} currentRa={raCreds} currentXbox={xboxCreds} currentPsn={psnCreds} t={t}/></div>;
@@ -2317,11 +2336,11 @@ function App() {
     <div id="app-container" className={isMiniMode ? "mini-mode-active" : ""}>
       <Toaster position="bottom-right" toastOptions={{ style: { background: 'var(--card-bg)', color: 'var(--text-main)', border: '1px solid var(--border-color)' } }} />
 
-      <MenuBar 
+      <MenuBar
         settings={settings} themes={themes} isMiniMode={isMiniMode} t={t}
-        onToggleAlwaysOnTop={handleToggleAlwaysOnTop} onChangeTheme={handleChangeTheme} onChangeApiKey={() => setAppState("SETUP")} 
-        onToggleSound={() => saveSettings({ ...settingsRef.current, soundEnabled: !settingsRef.current.soundEnabled })} 
-        onToggleMiniMode={handleToggleMiniMode} 
+        onToggleAlwaysOnTop={handleToggleAlwaysOnTop} onChangeTheme={handleChangeTheme} onChangeApiKey={() => setAppState("SETUP")}
+        onToggleSound={() => saveSettings({ ...settingsRef.current, soundEnabled: !settingsRef.current.soundEnabled })}
+        onToggleMiniMode={handleToggleMiniMode}
         onChangeOpacity={handleChangeOpacity} onSaveOpacity={handleSaveOpacity}
         onSetWindowMode={handleSetWindowMode} onChangeUiScale={handleChangeUiScale} onSaveUiScale={handleSaveUiScale}
         onChangeLanguage={handleChangeLanguage}
@@ -2383,13 +2402,13 @@ function App() {
                 .filter(([dictKey, game]) => {
                   const safeAppId = game.appId || dictKey;
                   const groupKey = getGroupKey(safeAppId);
-                  
+
                   const link = linkForAppId(safeAppId);
                   const isGrouped = !!link && link.appIds.length > 1;
                   const isGroupLive = isGrouped ? link!.appIds.some(id => runningAppIds.includes(id)) : runningAppIds.includes(safeAppId);
-                  
+
                   const shouldShow = game.pinned || isGroupLive || selectedAppId === safeAppId;
-                  
+
                   if (!shouldShow) return false;
                   if (seenGroups.has(groupKey)) return false;
                   seenGroups.add(groupKey);
@@ -2446,6 +2465,7 @@ function App() {
             psnCreds={psnCreds}
             t={t}
             language={settings.language}
+            completionRatings={settings.completionRatings}
           />
         </div>
       ) : isMiniMode ? (
@@ -2455,7 +2475,7 @@ function App() {
              <div className="progress-text" style={{ fontSize: "0.8rem" }}>{unlockedAch}/{totalAch}</div>
           </div>
           <div className="progress-bar-track mini-track"><div className="progress-bar-fill" style={{ width: totalAch > 0 ? `${(unlockedAch / totalAch) * 100}%` : "0%" }} /></div>
-          
+
           <div className="mini-content-area">
              {miniTab === "ACH" && (
                <>
@@ -2501,7 +2521,7 @@ function App() {
                    </div>
                  )}
 
-                 {(miniAchTab === "TRACKED" 
+                 {(miniAchTab === "TRACKED"
                     ? filteredAchievements.filter(a => currentGameTracked.includes(a.apiname))
                     : filteredAchievements.filter(a => !a.unlocked)
                  ).map(ach => {
@@ -2527,7 +2547,7 @@ function App() {
                      </div>
                    );
                  })}
-                 
+
                  {miniAchTab === "TRACKED" && trackedAchCount === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No achievements tracked.</p>}
                  {miniAchTab === "LOCKED" && filteredAchievements.filter(a => !a.unlocked).length === 0 && <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No locked achievements match your filters.</p>}
                </>
@@ -2538,11 +2558,11 @@ function App() {
                  {(() => {
                    const gameData = allChecklists[selectedAppId];
                    const lists = gameData ? (gameData.collections.find(c => c.id === gameData.activeCollectionId)?.checklists || gameData.collections[0]?.checklists || []) : [];
-                   
+
                    if (lists.length === 0) {
                      return <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No checklists available.</p>;
                    }
-                   
+
                    return lists.map(list => (
                      <div key={list.id}>
                         <h4 style={{ fontSize: "0.95rem", color: "var(--accent-green)", margin: "0 0 8px", borderBottom: "1px solid var(--border-color)", paddingBottom: "4px" }}>{list.title}</h4>
@@ -2550,25 +2570,25 @@ function App() {
                         {list.items.map(item => {
                            const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
                            const isVideoOpen = expandedMiniVideoId === item.id;
-                           
+
                            return (
                              <div key={item.id} className={`achievement-card mini-card ${item.completed ? "unlocked" : ""}`} style={{ alignItems: "flex-start", paddingRight: "12px" }}>
-                               
+
                                <div onClick={() => handleToggleChecklistItem(list.id, item.id)} style={{ cursor: "pointer", fontSize: "1.1rem", flexShrink: 0, marginTop: "2px" }}>
                                  {item.completed ? "✅" : "⬜"}
                                </div>
-                               
+
                                {item.imageUrl && (
                                  <img src={item.imageUrl} className="ach-icon mini-icon" style={{ width: 44, height: 44, objectFit: "cover", cursor: "pointer" }} onClick={() => handleToggleChecklistItem(list.id, item.id)} />
                                )}
-                               
+
                                <div className="card-header-content" style={{ paddingRight: 0 }}>
                                  <h3 className="ach-title" style={{ fontSize: "0.85rem", marginBottom: "2px", cursor: "pointer", display: "inline-block" }} onClick={() => handleToggleChecklistItem(list.id, item.id)}>
                                    {item.name}
                                  </h3>
-                                 
+
                                  {item.location && <p className="ach-desc" style={{ color: "var(--accent-yellow)", fontSize: "0.75rem", marginBottom: "2px" }}>📍 {item.location}</p>}
-                                 
+
                                  {item.desc && (
                                    <p className="ach-desc" style={{ fontSize: "0.75rem", lineHeight: "1.35", marginTop: "4px" }}>
                                      {renderHintWithLinks(item.desc)}
@@ -2577,8 +2597,8 @@ function App() {
 
                                  {item.videoUrl && (
                                    <div style={{ marginTop: "8px" }}>
-                                     <button 
-                                       className="btn-small" 
+                                     <button
+                                       className="btn-small"
                                        style={{ fontSize: "0.7rem", padding: "4px 8px" }}
                                        onClick={(e) => {
                                          e.stopPropagation();
@@ -2602,7 +2622,7 @@ function App() {
                                      )}
                                    </div>
                                  )}
-                                 
+
                                </div>
                              </div>
                            );
@@ -2621,7 +2641,7 @@ function App() {
                    return <p className="empty-state" style={{ fontSize: "0.8rem", padding: "20px 0" }}>No guides available.</p>;
                  }
                  const activePt = guide.playthroughs.find(p => p.id === guide.activePlaythroughId) || guide.playthroughs[0];
-                 
+
                  return (
                    <div style={{ paddingBottom: "12px" }}>
                      <div style={{ background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", border: "1px solid var(--border-color)", marginBottom: "16px" }}>
@@ -2639,8 +2659,8 @@ function App() {
                                const isCurrent = guide.currentProgressBlockId === block.id;
                                return (
                                  <div key={block.id} id={`mini-guided-block-${block.id}`} className={`guided-block ${isCurrent ? "is-current" : ""}`} style={{ padding: "12px", minHeight: "auto" }}>
-                                   <button 
-                                     className="guided-set-progress-btn" 
+                                   <button
+                                     className="guided-set-progress-btn"
                                      style={{ top: "6px", right: "6px", padding: "2px 6px", fontSize: "0.65rem" }}
                                      onClick={() => handleSetGuideProgress(block.id)}
                                    >
@@ -2688,7 +2708,7 @@ function App() {
                           </div>
                         </div>
                      ))}
-                     
+
                      {guide.currentProgressBlockId && (
                        <button id="jump-current"
                          onClick={() => {
@@ -2731,11 +2751,11 @@ function App() {
               <div className="game-name-wrapper">
                 {isEditingGameName ? (
                   <form onSubmit={handleSaveGameName} style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <input 
-                      type="text" 
-                      className="edit-input" 
-                      value={gameNameInput} 
-                      onChange={e => setGameNameInput(e.target.value)} 
+                    <input
+                      type="text"
+                      className="edit-input"
+                      value={gameNameInput}
+                      onChange={e => setGameNameInput(e.target.value)}
                       autoFocus
                       style={{ fontSize: "1.1rem", fontWeight: "bold", padding: "3px 8px", width: "auto", minWidth: "220px" }}
                     />
@@ -2745,8 +2765,8 @@ function App() {
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <h1 className="game-title">{gameName}</h1>
-                    <button 
-                      className="icon-btn hint-visible" 
+                    <button
+                      className="icon-btn hint-visible"
                       onClick={() => { setGameNameInput(gameName); setIsEditingGameName(true); }}
                       title={t("game.rename_tooltip", { defaultValue: "Rename Game" })}
                       style={{ width: "22px", height: "22px", padding: 0 }}
@@ -2767,9 +2787,9 @@ function App() {
                       </span>
                     )}
                     {hasCommunityDb && (
-                      <button 
-                        className={`icon-btn hint-visible ${isCommunityDbDisabled ? "icon-btn--db-toggle disabled" : ""}`} 
-                        onClick={handleToggleCommunityDb} 
+                      <button
+                        className={`icon-btn hint-visible ${isCommunityDbDisabled ? "icon-btn--db-toggle disabled" : ""}`}
+                        onClick={handleToggleCommunityDb}
                         title={isCommunityDbDisabled ? "Enable Community Database" : "Disable Community Database"}
                         style={{ width: "22px", height: "22px", padding: 0, marginLeft: "4px" }}
                       >
@@ -2788,9 +2808,9 @@ function App() {
                         )}
                       </button>
                     )}
-                    <button 
-                      className="icon-btn hint-visible" 
-                      onClick={handleRefreshCommunityDb} 
+                    <button
+                      className="icon-btn hint-visible"
+                      onClick={handleRefreshCommunityDb}
                       title="Refresh Community Database"
                       style={{ width: "22px", height: "22px", padding: 0, marginLeft: "4px" }}
                     >
@@ -2837,7 +2857,7 @@ function App() {
                         <div className="links-header">
                           <h3>{t("sec.shortcuts")}</h3>
                           <div className="btn-group">
-                            
+
                             {getGroupAppIds(selectedAppId).map(id => (
                               <div key={id} style={{ display: "flex", gap: "6px", alignItems: "center", borderLeft: getGroupAppIds(selectedAppId).length > 1 ? "1px solid var(--border-color)" : "none", paddingLeft: getGroupAppIds(selectedAppId).length > 1 ? "8px" : "0" }}>
                                 {getGroupAppIds(selectedAppId).length > 1 && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: "bold" }} title={id}>{gameHistory[id]?.customName || gameHistory[id]?.name}:</span>}
@@ -2861,7 +2881,7 @@ function App() {
                           <button type="submit" className="btn-add-link">{t("btn.add")}</button>
                         </form>
                       </div>
-                      
+
                       {editMode && (
                         <div className="user-links-section chapter-manager-section">
                           <div className="links-header"><h3>{t("sec.chapters")}</h3></div>
@@ -2911,20 +2931,20 @@ function App() {
           </div>
 
           <div className="inner-tabs-container">
-            <button 
-              className={`inner-tab ${innerTab === "ACHIEVEMENTS" ? "active" : ""}`} 
+            <button
+              className={`inner-tab ${innerTab === "ACHIEVEMENTS" ? "active" : ""}`}
               onClick={() => setInnerTab("ACHIEVEMENTS")}
             >
               {t("tab.achievements")}
             </button>
-            <button 
-              className={`inner-tab ${innerTab === "CHECKLISTS" ? "active" : ""}`} 
+            <button
+              className={`inner-tab ${innerTab === "CHECKLISTS" ? "active" : ""}`}
               onClick={() => setInnerTab("CHECKLISTS")}
             >
               {t("tab.checklists")}
             </button>
-            <button 
-              className={`inner-tab ${innerTab === "GUIDE" ? "active" : ""}`} 
+            <button
+              className={`inner-tab ${innerTab === "GUIDE" ? "active" : ""}`}
               onClick={() => setInnerTab("GUIDE")}
             >
               {t("tab.guide")}
@@ -2943,6 +2963,7 @@ function App() {
                     <div className="accordion-body" style={{ paddingTop: 0 }}>
                       <div className="stats-dashboard">
                         <div className="stat-card"><span className="stat-label">{t("stat.avgCompletion")}</span><span className="stat-value">{averagePercent}%</span></div>
+                        <CompletionStatCard rating={displayCompletion} t={t} />
                         {isSelectedGameRA && totalPoints > 0 && (
                           <div className="stat-card">
                             <span className="stat-label">{t("stat.raPoints")}</span>
@@ -3003,6 +3024,15 @@ function App() {
                 </div>
               )}
 
+              {editMode && (
+                <CompletionRatingEditor
+                  value={displayCompletion}
+                  isOverridden={!!localCompletion}
+                  onChange={handleSetCompletionRating}
+                  t={t}
+                />
+              )}
+
               <div className="controls-container">
 <div className="filter-bar">
     <div className="filter-btns">
@@ -3014,10 +3044,10 @@ function App() {
       <button className={`filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""} ${spoilerAchCount > 0 ? "has-items" : ""}`} onClick={() => setFilter("SPOILER")}>{t("filter.spoilers")} {spoilerAchCount > 0 && <span className="filter-badge filter-badge-spoiler">{spoilerAchCount}</span>}</button>
       <button className={`filter-btn guided-toggle ${guidedMode ? "active" : ""}`} onClick={() => setGuidedMode(!guidedMode)}>{guidedMode ? t("filter.guidedOn") : t("filter.guided")}</button>
     </div>
-    
+
     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      <button 
-        onClick={() => setEditMode(!editMode)} 
+      <button
+        onClick={() => setEditMode(!editMode)}
         className={`btn-small ${editMode ? "btn-small-danger" : ""}`}
         style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", height: "36px" }}
       >
@@ -3031,9 +3061,9 @@ function App() {
         )}
       </button>
 
-      <button 
-        onClick={() => handleCreatePR(selectedSetFilter === "ALL" ? selectedAppId : selectedSetFilter)} 
-        className="btn-small btn-small-success" 
+      <button
+        onClick={() => handleCreatePR(selectedSetFilter === "ALL" ? selectedAppId : selectedSetFilter)}
+        className="btn-small btn-small-success"
         style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", height: "36px" }}
         title="Create PR for current game database"
       >
@@ -3047,10 +3077,10 @@ function App() {
             {t("chap.fallback")} ({chapterCounts["No Chapter"]?.unlocked || 0}/{chapterCounts["No Chapter"]?.total || 0})
           </option>
         )}
-        {allKnownChaptersForDropdown.map((chap) => { 
-          const stats = chapterCounts[chap] || { total: 0, unlocked: 0 }; 
-          if (stats.total === 0 && !editMode) return null; 
-          return <option key={chap} value={chap}>{chap} ({stats.unlocked}/{stats.total})</option>; 
+        {allKnownChaptersForDropdown.map((chap) => {
+          const stats = chapterCounts[chap] || { total: 0, unlocked: 0 };
+          if (stats.total === 0 && !editMode) return null;
+          return <option key={chap} value={chap}>{chap} ({stats.unlocked}/{stats.total})</option>;
         })}
       </select>
     </div>
@@ -3059,11 +3089,11 @@ function App() {
             <div className="search-sort-bar">
                   <input type="text" placeholder={t("search.achievements")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="control-input search-input" />
                   <select id="grid-control"
-                    value={settings.gridColumns || 2} 
+                    value={settings.gridColumns || 2}
                     onChange={e => {
                         const cols = Number(e.target.value);
                         saveSettings({...settingsRef.current, gridColumns: cols});
-                    }} 
+                    }}
                     className="control-select"
                     title="Grid Columns"
                   >
@@ -3101,7 +3131,7 @@ function App() {
 
               <div className="achievement-list" style={{ '--grid-cols': settings.gridColumns || 2 } as React.CSSProperties}>
                 {filteredAchievements.map((ach) => (
-                  <AchievementCard 
+                  <AchievementCard
                     key={`${ach._appId || selectedAppId}-${ach.apiname}`}
                     ach={ach}
                     achievements={displayedAchievements}
@@ -3186,7 +3216,7 @@ function App() {
         <div className="confirm-dialog-overlay" onClick={() => setIsCompanionModalOpen(false)}>
           <div className="confirm-dialog companion-modal" onClick={e => e.stopPropagation()}>
             <h3 className="confirm-dialog-title" style={{ textAlign: "center", marginBottom: "8px" }}>{t("companion.title")}</h3>
-            
+
             {isCompanionOpen ? (
               <>
                 <p className="confirm-dialog-message" style={{ textAlign: "center", marginBottom: "16px" }}>
@@ -3217,9 +3247,9 @@ function App() {
             <div style={{ width: "100%", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--border-color)", marginBottom: "16px" }}>
               <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem", marginBottom: "12px" }}>
                 <span><strong>{t("companion.server_status")}</strong> ({isCompanionOpen ? t("companion.online") : t("companion.offline")})</span>
-                <input 
-                  type="checkbox" 
-                  checked={isCompanionOpen} 
+                <input
+                  type="checkbox"
+                  checked={isCompanionOpen}
                   onChange={(e) => {
                     if (e.target.checked) handleStartCompanion(true);
                     else handleStopCompanion();
@@ -3227,12 +3257,12 @@ function App() {
                   style={{ width: "18px", height: "18px", accentColor: "var(--accent-green)", cursor: "pointer" }}
                 />
               </label>
-              
+
               <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", fontSize: "0.85rem" }}>
                 <span>{t("companion.auto_start")}</span>
-                <input 
-                  type="checkbox" 
-                  checked={settings.companionAutoStart || false} 
+                <input
+                  type="checkbox"
+                  checked={settings.companionAutoStart || false}
                   onChange={(e) => {
                     const newVal = e.target.checked;
                     saveSettings({ ...settingsRef.current, companionAutoStart: newVal });

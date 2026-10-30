@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
-import { 
-  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink 
+import {
+  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink, CompletionRating
 } from "../types";
 import { COMPLETION_CONFIG, COMPLETION_KEYS } from "../constants";
 import { PlatformIcon } from "./Icons";
@@ -10,6 +10,7 @@ import { timeAgo } from "../utils";
 import { BatchImportModal } from "./BatchImportModal";
 import { CommunityDbModal } from "./CommunityDbModal";
 import { ProgressiveImage } from "./ProgressiveImage";
+import { CompletionRatingBadge, hasCompletionRating, useCommunityRatings } from "./CompletionRating";
 
 type PlatformFilter = "ALL" | "STEAM" | "RA" | "XBOX" | "PSN";
 
@@ -33,6 +34,7 @@ interface LibraryDashboardProps {
   raCreds: { user: string; key: string };
   xboxCreds: { apiKey: string; xuid: string; gamertag: string };
   psnCreds: { accessToken: string; accountId: string };
+  completionRatings?: Record<string, CompletionRating>;
 }
 
 let imgCacheSaveTimer: ReturnType<typeof setTimeout>;
@@ -41,7 +43,7 @@ export function LibraryDashboard({
   gameHistory, gameLinks, runningAppIds, libraryFilter, setLibraryFilter,
   librarySort, setLibrarySort, librarySearch, setLibrarySearch,
   handleSelectTab, onSelectAchievement, handleRemoveGame, setGameHistory, t, language,
-  steamApiKey, raCreds, xboxCreds, psnCreds
+  steamApiKey, raCreds, xboxCreds, psnCreds, completionRatings
 }: LibraryDashboardProps) {
 
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("ALL");
@@ -51,6 +53,17 @@ export function LibraryDashboard({
   const [visibleCount, setVisibleCount] = useState(40);
   const [screenshots, setScreenshots] = useState<any[]>([]);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  const libraryAppIds = useMemo(() => Object.keys(gameHistory), [gameHistory]);
+  const communityRatings = useCommunityRatings(libraryAppIds);
+
+  const ratingFor = (appIds: string[]): CompletionRating | undefined => {
+    for (const id of appIds) {
+      const r = completionRatings?.[id] ?? communityRatings[id];
+      if (hasCompletionRating(r)) return r;
+    }
+    return undefined;
+  };
 
   useEffect(() => {
     invoke("get_screenshots")
@@ -66,7 +79,7 @@ export function LibraryDashboard({
   const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (observer.current) observer.current.disconnect();
-    
+
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
         setVisibleCount(prev => prev + 40);
@@ -93,10 +106,10 @@ export function LibraryDashboard({
       const unlockedAch = linkedGames.reduce((sum, curr) => sum + curr.unlockedAch, 0);
       const lastPlayed = Math.max(...linkedGames.map(curr => curr.lastPlayed));
       const pinned = linkedGames.some(curr => curr.pinned);
-      
+
       const unlockedRarities = linkedGames.map(curr => curr.rarestUnlocked).filter(Boolean);
-      const rarestUnlocked = unlockedRarities.length > 0 
-        ? unlockedRarities.reduce((min, curr) => curr!.percent < min!.percent ? curr : min) 
+      const rarestUnlocked = unlockedRarities.length > 0
+        ? unlockedRarities.reduce((min, curr) => curr!.percent < min!.percent ? curr : min)
         : null;
 
       const name = link.name || linkedGames.map(curr => curr.name).join(" | ");
@@ -182,7 +195,7 @@ export function LibraryDashboard({
         <p className="status-text" style={{ justifyContent: "center" }}>
           Launch any Steam game, or play any game on RetroAchievements. We'll automatically detect it and create a tab for it here!
         </p>
-        
+
         <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginTop: "16px", flexWrap: "wrap" }}>
           <button className="library-filter-chip library-import-btn" onClick={() => setIsImportOpen(true)}>
             {t("batch.import_games_btn")}
@@ -289,6 +302,7 @@ export function LibraryDashboard({
           {visibleGames.map(game => {
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
             const isRunning = game.linkedGames.some((sub: any) => runningAppIds.includes(sub.appId));
+            const cardRating = ratingFor(game.linkedGames.map((sub: any) => sub.appId));
 
             const barColor = game.totalAch === 0 ? "var(--border-color)"
               : percent >= 100 ? "#a78bfa"
@@ -311,7 +325,7 @@ export function LibraryDashboard({
                         `https://cdn.akamai.steamstatic.com/steam/apps/${subGame.appId}/capsule_231x87.jpg`,
                         `https://cdn.akamai.steamstatic.com/steam/apps/${subGame.appId}/capsule_sm_120.jpg`,
                       ])) : [];
-                      
+
                       const isXbox = subGame.platform === "XBOX";
                       const isPSN = subGame.platform === "PSN";
                       const raSrc = (!isSteam && subGame.raImageIcon)
@@ -347,7 +361,7 @@ export function LibraryDashboard({
                           img.dataset.apiTried = "1";
                           invoke<string>("get_steam_header_image", { appId: subGame.appId })
                             .then((url) => {
-                              if (url) { img.src = url; } 
+                              if (url) { img.src = url; }
                               else { img.style.display = "none"; }
                             })
                             .catch(() => { img.style.display = "none"; });
@@ -379,6 +393,11 @@ export function LibraryDashboard({
                     <span className="library-card-banner-live">
                       <span className="live-dot" style={{ position: "relative" }}></span> Live
                     </span>
+                  )}
+                  {cardRating && (
+                    <div className="library-card-banner-rating">
+                      <CompletionRatingBadge rating={cardRating} t={t} overlay />
+                    </div>
                   )}
                 </div>
 
@@ -458,15 +477,15 @@ export function LibraryDashboard({
               <h2 className="library-play-next-title">{t("lib.gallery_title") || "Recent Unlocks Gallery"}</h2>
               <p className="library-play-next-desc">{t("lib.gallery_desc") || "Your latest achievement screenshots."}</p>
             </div>
-            <button 
-              className="library-play-btn" 
+            <button
+              className="library-play-btn"
               onClick={() => invoke("open_screenshots_folder").catch(console.error)}
               style={{ marginBottom: "14px" }}
             >
               Open Folder
             </button>
           </div>
-          
+
           <div className="library-gallery-scroll">
             {screenshots.map(s => {
               // Extract achievement name by removing the _YYYYMMDD_HHMMSS.png from the end
@@ -548,14 +567,14 @@ export function LibraryDashboard({
 
       {lightboxSrc && (
         <div className="cl-lightbox-overlay" onClick={() => setLightboxSrc(null)}>
-          <img 
-            src={lightboxSrc} 
-            alt="Preview" 
-            onClick={e => e.stopPropagation()} 
+          <img
+            src={lightboxSrc}
+            alt="Preview"
+            onClick={e => e.stopPropagation()}
             style={{ maxHeight: "90vh", maxWidth: "90vw", borderRadius: "8px", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
           />
-          <button 
-            className="btn-small btn-small-danger" 
+          <button
+            className="btn-small btn-small-danger"
             style={{ position: "absolute", top: "24px", right: "24px", width: "32px", height: "32px", fontSize: "1.2rem", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", padding: 0 }}
             onClick={() => setLightboxSrc(null)}
           >

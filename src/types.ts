@@ -31,6 +31,12 @@ export type LibraryFilter = "ALL" | "complete" | "in_progress" | "not_started" |
 export type FilterType = "ALL" | "UNLOCKED" | "LOCKED" | "TRACKED" | "MISSABLE" | "SPOILER";
 export type CompletionStatus = "complete" | "in_progress" | "not_started" | "abandoned";
 
+export interface CompletionRating {
+  difficulty?: number;
+  length?: number;
+  hours?: number;
+}
+
 export interface AppSettings {
   alwaysOnTop: boolean; themeId: string; hiddenHints: Record<string, string[]>;
   soundEnabled: boolean; opacity: number; gameSortOrders: Record<string, SortOrder>;
@@ -43,6 +49,7 @@ export interface AppSettings {
   toggleShortcut?: string; autoScreenshots?: boolean;
   geminiApiKey?: string;
   disabledCommunityDbGames?: Record<string, boolean>;
+  completionRatings?: Record<string, CompletionRating>;
 }
 
 export interface GameHistory {
