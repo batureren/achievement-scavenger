@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { CompletionRating } from "../types";
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -255,7 +255,7 @@ export function CompletionRatingBadge({ rating, t, compact = false, overlay = fa
 export function CompletionStatCard({ rating, t }: { rating?: CompletionRating; t: TFn }) {
   if (!hasCompletionRating(rating)) return null;
 
-  const renderMeter = (value: number | undefined, label: string, icon: JSX.Element) => {
+  const renderMeter = (value: number | undefined, label: string, icon: ReactNode) => {
     if (value === undefined) return null;
     const tier = ratingTier(value);
     return (
