@@ -254,7 +254,7 @@ function AchievementCardBase({
   };
 
   return (
-    <div id={`ach-${ach.apiname}`} className={`achievement-card ${ach.unlocked ? "unlocked" : ""} ${isTracked ? "is-tracked-card" : ""} ${ach.is_spoiler ? 'spoiler-wrap' : ''}`}>
+    <div id={`ach-${ach.apiname}`} className={`achievement-card ${ach.unlocked ? "unlocked" : ""} ${isTracked ? "is-tracked-card" : ""} ${ach.is_spoiler ? 'spoiler-wrap' : ''} ${ach._steamSetColor ? "has-steam-set" : ""}`} style={ach._steamSetColor ? ({ "--set-color": ach._steamSetColor } as React.CSSProperties) : undefined}>
       <div className="achievement-card-bg" style={{ width: `${ach.globalPercent || 0}%` }} />
       
       {ach.is_missable && (
@@ -299,6 +299,7 @@ function AchievementCardBase({
               )}
             </h3>
             {ach.chapter && !editMode && <span className="chapter-tag">{ach.chapter}</span>}
+            {ach._steamSetName && !editMode && <span className="chapter-tag steam-set-chip">{ach._steamSetName}</span>}
             <div className="card-actions">
               {ach.ra_type === "progression" && (
                 <span

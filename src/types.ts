@@ -7,6 +7,18 @@ export interface MergedAchievement {
   ra_points?: number; ra_trueratio?: number; requires?: string[];
   xbox_gamerscore?: number; ra_type?: string;
   _appId?: string; _setName?: string;
+  steam_group?: number; archived?: boolean; _steamSetName?: string; _steamSetColor?: string;
+}
+
+export interface SteamAchievementGroup {
+  id: number;
+  name: string;
+  dlcAppId?: number;
+  archived: boolean;
+  order: number;
+  total: number;
+  achievable?: boolean;
+  color: string;
 }
 
 export interface UserLink { id: string; appId: string; title: string; url: string; }
@@ -60,6 +72,15 @@ export interface GameHistory {
   raImageIcon?: string;
   easiestNext?: { apiname: string; name: string; percent: number; icon: string; color: string } | null;
   customName?: string;
+  steamSets?: GameHistorySteamSet[];
+}
+
+export interface GameHistorySteamSet {
+  id: number;
+  name: string;
+  color: string;
+  total: number;
+  unlocked: number;
 }
 
 export interface ChecklistItem {

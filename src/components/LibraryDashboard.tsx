@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import {
-  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink, CompletionRating
+  GameHistory, LibraryFilter, LibrarySortOrder, CompletionStatus, GameLink, CompletionRating, GameHistorySteamSet
 } from "../types";
 import { COMPLETION_CONFIG, COMPLETION_KEYS } from "../constants";
 import { PlatformIcon } from "./Icons";
@@ -303,6 +303,7 @@ export function LibraryDashboard({
             const percent = game.totalAch > 0 ? Math.round((game.unlockedAch / game.totalAch) * 100) : 0;
             const isRunning = game.linkedGames.some((sub: any) => runningAppIds.includes(sub.appId));
             const cardRating = ratingFor(game.linkedGames.map((sub: any) => sub.appId));
+            const cardSets: GameHistorySteamSet[] | undefined = !game.isGroup && game.linkedGames[0]?.steamSets?.length > 1 ? game.linkedGames[0].steamSets : undefined;
 
             const barColor = game.totalAch === 0 ? "var(--border-color)"
               : percent >= 100 ? "#a78bfa"
@@ -413,9 +414,24 @@ export function LibraryDashboard({
                     </span>
                   </div>
 
-                  <div className="progress-bar-track" style={{ height: "4px", marginBottom: "10px" }}>
-                    <div style={{ height: "100%", width: `${percent}%`, background: barColor, borderRadius: "10px", transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
-                  </div>
+                  {cardSets ? (
+                    <div className="library-set-bar">
+                      {cardSets.map((set: GameHistorySteamSet) => (
+                        <span
+                          key={set.id}
+                          className="library-set-seg"
+                          style={{ flexGrow: set.total, "--set-color": set.color } as React.CSSProperties}
+                          title={`${set.name}: ${set.unlocked}/${set.total}`}
+                        >
+                          <span className="library-set-seg-fill" style={{ width: `${set.total > 0 ? Math.round((set.unlocked / set.total) * 100) : 0}%` }} />
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="progress-bar-track" style={{ height: "4px", marginBottom: "10px" }}>
+                      <div style={{ height: "100%", width: `${percent}%`, background: barColor, borderRadius: "10px", transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
+                    </div>
+                  )}
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "10px" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>

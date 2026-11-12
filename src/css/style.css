@@ -5328,6 +5328,187 @@ video.cl-item-img {
   justify-self: end;
 }
 
+.steam-sets-card {
+  flex-basis: 100%;
+  gap: 8px;
+}
+
+.steam-sets-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.steam-sets-header .stat-label {
+  margin-bottom: 0;
+}
+
+.steam-sets-summary {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.steam-sets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.steam-set-tile {
+  --set-color: var(--accent-green);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 6px 8px 7px;
+  margin: 0;
+  text-align: left;
+  font: inherit;
+  color: var(--text-main);
+  background: color-mix(in srgb, var(--set-color) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--set-color) 22%, transparent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.steam-set-tile:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--set-color) 14%, transparent);
+  border-color: color-mix(in srgb, var(--set-color) 45%, transparent);
+}
+
+.steam-set-tile.active {
+  background: color-mix(in srgb, var(--set-color) 18%, transparent);
+  border-color: var(--set-color);
+  box-shadow: 0 0 0 1px var(--set-color) inset;
+}
+
+.steam-set-tile-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.76rem;
+}
+
+.steam-set-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--set-color);
+}
+
+.steam-set-tile-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steam-set-tile-count {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.steam-set-tile.done .steam-set-tile-count {
+  color: var(--set-color);
+}
+
+.steam-set-tile-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.steam-set-tile-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--set-color);
+  transition: width 0.4s ease;
+}
+
+.steam-set-tile-tags {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steam-set-tile.not-owned {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.steam-set-chip {
+  --set-color: #c084fc;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--set-color);
+  border-color: color-mix(in srgb, var(--set-color) 45%, transparent);
+  background: color-mix(in srgb, var(--set-color) 12%, transparent);
+}
+
+.steam-set-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--set-color);
+}
+
+.achievement-card.has-steam-set::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--set-color);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.library-set-bar {
+  display: flex;
+  gap: 2px;
+  height: 5px;
+  margin-bottom: 10px;
+}
+
+.library-set-seg {
+  position: relative;
+  flex-basis: 0;
+  min-width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--set-color) 22%, var(--border-color));
+}
+
+.library-set-seg-fill {
+  display: block;
+  height: 100%;
+  background: var(--set-color);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .library-card-banner-rating {
   position: absolute;
   right: 8px;

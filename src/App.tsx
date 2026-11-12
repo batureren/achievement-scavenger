@@ -20,13 +20,15 @@ import { PlatformIcon, GitHubIcon } from "./components/Icons";
 import { CloudSyncModal } from "./components/CloudSyncModal";
 import { BackupModal } from "./components/BackupModal";
 import { CompletionStatCard, CompletionRatingEditor, parseCompletionRating, hasCompletionRating } from "./components/CompletionRating";
+import { SteamSetsStatCard } from "./components/SteamSetsStatCard";
+import { loadSteamSchema, steamGroupLabel, hideUnearnableSteamAchievements } from "./steamSchema";
 import { SyncConfig } from "./types";
 
 import {
   AppSettings, MergedAchievement, UserLink, CommunityLink,
   LocalEdit, OverlayStyle, GameHistory, Theme,
   SortOrder, LibrarySortOrder, LibraryFilter, FilterType,
-  CustomChecklist, GameLink, CustomGuide, GameChecklists, CompletionRating
+  CustomChecklist, GameLink, CustomGuide, GameChecklists, CompletionRating, SteamAchievementGroup
 } from "./types";
 import { GuidedModePanel } from "./components/GuidedModePanel";
 import { BUILTIN_THEMES, STEAM_LANG_MAP, THEMES_URL, GITHUB_DB_BASE_URL, resolveKnownCodename } from "./constants";
@@ -88,6 +90,7 @@ function App() {
 
   const [filter, setFilter] = useState<FilterType>("ALL");
   const [selectedChapter, setSelectedChapter] = useState<string>("ALL");
+  const [selectedSteamGroup, setSelectedSteamGroup] = useState<string>("ALL");
   const [selectedSetFilter, setSelectedSetFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<SortOrder>("DEFAULT");
@@ -245,6 +248,7 @@ function App() {
   const achievementsCacheRef = useRef<Record<string, MergedAchievement[]>>({});
   const schemaCacheRef = useRef<Record<string, any[]>>({});
   const percentagesCacheRef = useRef<Record<string, Map<string, number>>>({});
+  const steamGroupsCacheRef = useRef<Record<string, SteamAchievementGroup[]>>({});
   const communityDbCacheRef = useRef<Record<string, { db: any[], links: CommunityLink[], chapters: string[], checklists?: CustomChecklist[], gameName?: string, completion?: CompletionRating }>>({});
 
   const lastNetworkFetchRef = useRef<number>(0);
@@ -882,6 +886,7 @@ function App() {
     achievementsCacheRef.current = {};
     schemaCacheRef.current = {};
     percentagesCacheRef.current = {};
+    steamGroupsCacheRef.current = {};
 
     lastNetworkFetchRef.current = 0;
     lastXboxNetworkFetchRef.current = 0;
@@ -1199,29 +1204,14 @@ function App() {
                 setGameName(resolvedName); gameNameRef.current = resolvedName; currentTickGameName = resolvedName;
                 schemaCacheRef.current[targetAppId] = [{ appIdMarker: targetAppId }];
               } else {
-                  const [schemaRes, pctRes] = await Promise.all([
-                    invoke<string>("get_game_schema", { appId: targetAppId, apiKey: key, lang: steamLang }),
-                    invoke<string>("get_global_achievement_percentages", { appId: targetAppId })
-                  ]);
-
-                  const parsedSchema = safeParseJSON(schemaRes);
-                  let newSchema = [{ appIdMarker: targetAppId }];
-                  if (parsedSchema.game) {
-                      const achs = parsedSchema.game?.availableGameStats?.achievements || [];
-                      newSchema = [{ appIdMarker: targetAppId }, ...achs];
-                  }
-                  schemaCacheRef.current[targetAppId] = newSchema;
-
-                  const parsedPct = safeParseJSON(pctRes);
-                  const pctMap = new Map<string, number>();
-                  if (parsedPct.achievementpercentages?.achievements) {
-                    for (const a of parsedPct.achievementpercentages.achievements) { pctMap.set(a.name, Number(a.percent)); }
-                  }
-                  percentagesCacheRef.current[targetAppId] = pctMap;
+                  const steamData = await loadSteamSchema(targetAppId, key, steamLang, steamId);
+                  schemaCacheRef.current[targetAppId] = steamData.schema;
+                  percentagesCacheRef.current[targetAppId] = steamData.percentages;
+                  steamGroupsCacheRef.current[targetAppId] = steamData.groups;
 
                   let resolvedName = gameHistoryRef.current[targetAppId]?.customName
                     || resolveKnownCodename(targetAppId)
-                    || parsedSchema.game?.gameName
+                    || steamData.gameName
                     || `AppID: ${targetAppId}`;
 
                   try {
@@ -1287,7 +1277,7 @@ function App() {
 
               const isTargetCommunityDisabled = !!settingsRef.current.disabledCommunityDbGames?.[targetAppId];
               setCommunityLinks(isTargetCommunityDisabled ? [] : (communityDbCacheRef.current[targetAppId]?.links || []));
-              setSelectedChapter("ALL"); setSearchQuery(""); setSortOrder("DEFAULT"); setGuidedMode(false); setMissableAlertDismissed(false);
+              setSelectedChapter("ALL"); setSelectedSteamGroup("ALL"); setSearchQuery(""); setSortOrder("DEFAULT"); setGuidedMode(false); setMissableAlertDismissed(false);
               setIsProfilePrivate(false);
 
           } catch(e) {}
@@ -1450,8 +1440,10 @@ function App() {
                     chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
                     video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
                     globalPercent: currentPcts.get(schemaAch.name), requires: localEdit.requires ?? communityAch.requires ?? [],
+                    steam_group: schemaAch.groupid, archived: schemaAch.archived,
                   };
                 }).filter(a => a.apiname);
+                merged = hideUnearnableSteamAchievements(merged, steamGroupsCacheRef.current[targetAppId]);
             }
 
             if (selectedAppIdRef.current !== targetAppId) {
@@ -1643,19 +1635,10 @@ function App() {
     } else {
       if (!schemaCacheRef.current[appId]) {
         try {
-          const [schemaRes, pctRes] = await Promise.all([
-            invoke<string>("get_game_schema", { appId, apiKey: key, lang: steamLang }),
-            invoke<string>("get_global_achievement_percentages", { appId })
-          ]);
-          const parsedSchema = safeParseJSON(schemaRes);
-          let newSchema = [{ appIdMarker: appId }];
-          if (parsedSchema.game) { const achs = parsedSchema.game?.availableGameStats?.achievements || []; newSchema = [{ appIdMarker: appId }, ...achs]; }
-          schemaCacheRef.current[appId] = newSchema;
-
-          const parsedPct = safeParseJSON(pctRes);
-          const pctMap = new Map<string, number>();
-          if (parsedPct.achievementpercentages?.achievements) { for (const a of parsedPct.achievementpercentages.achievements) { pctMap.set(a.name, Number(a.percent)); } }
-          percentagesCacheRef.current[appId] = pctMap;
+          const steamData = await loadSteamSchema(appId, key, steamLang, steamId);
+          schemaCacheRef.current[appId] = steamData.schema;
+          percentagesCacheRef.current[appId] = steamData.percentages;
+          steamGroupsCacheRef.current[appId] = steamData.groups;
         } catch { schemaCacheRef.current[appId] = [{ appIdMarker: appId }]; }
       }
 
@@ -1677,8 +1660,10 @@ function App() {
           chapter: localEdit.chapter ?? communityAch.chapter ?? "", hint: localEdit.hint ?? communityAch.hint ?? "",
           video_url: localEdit.video_url ?? communityAch.video_url ?? "", notes: localEdit.notes || "",
           globalPercent: currentPcts.get(schemaAch.name), requires: localEdit.requires ?? communityAch.requires ?? [],
+          steam_group: schemaAch.groupid, archived: schemaAch.archived,
         };
       }).filter(a => a.apiname);
+      merged = hideUnearnableSteamAchievements(merged, steamGroupsCacheRef.current[appId]);
     }
 
     return merged.filter(a => a.apiname);
@@ -1749,6 +1734,14 @@ function App() {
         easiestNext = { apiname: easiest.apiname, name: easiest.display_name, percent: p, icon: easiest.icon, color };
       }
 
+      const steamGroups = steamGroupsCacheRef.current[appId] || [];
+      const steamSets: GameHistory["steamSets"] = steamGroups.length > 1
+        ? steamGroups.map(g => {
+            const list = achs.filter(a => (a.steam_group ?? 0) === g.id);
+            return { id: g.id, name: steamGroupLabel(g, t), color: g.color, total: list.length, unlocked: list.filter(a => a.unlocked).length };
+          }).filter(g => g.total > 0)
+        : undefined;
+
       const updated = {
         ...prev,
         [appId]: {
@@ -1763,7 +1756,8 @@ function App() {
           completionStatus: existing?.completionStatus,
           rarestUnlocked,
           easiestNext,
-          raImageIcon: existing?.raImageIcon
+          raImageIcon: existing?.raImageIcon,
+          steamSets: steamSets && steamSets.length > 1 ? steamSets : undefined
         }
       };
       invoke("save_history", { data: JSON.stringify(updated) }).catch(console.error);
@@ -1818,6 +1812,7 @@ function App() {
     setFilter("ALL");
     setSearchQuery("");
     setSelectedChapter("ALL");
+    setSelectedSteamGroup("ALL");
     setSelectedSetFilter("ALL");
     setInnerTab("ACHIEVEMENTS");
     setEditMode(false);
@@ -2081,14 +2076,20 @@ function App() {
   const currentGameTracked = useMemo(() => Array.isArray(trackedData[selectedAppId]) ? trackedData[selectedAppId] : [], [trackedData, selectedAppId]);
 
   const displayedAchievements: MergedAchievement[] = useMemo(() => {
+    const steamSetFor = (appId: string, a: MergedAchievement) => {
+      const groups = steamGroupsCacheRef.current[appId];
+      if (!groups || groups.length < 2 || a.steam_group === undefined) return {};
+      const g = groups.find(x => x.id === a.steam_group);
+      return g ? { _steamSetName: steamGroupLabel(g, t), _steamSetColor: g.color } : {};
+    };
     const group = getGroupAppIds(selectedAppId);
-    if (group.length <= 1) return achievements.map(a => ({ ...a, _appId: selectedAppId }));
+    if (group.length <= 1) return achievements.map(a => ({ ...a, _appId: selectedAppId, ...steamSetFor(selectedAppId, a) }));
     return group.flatMap(id => {
       const list = id === selectedAppId ? achievements : (achievementsCacheRef.current[id] || []);
       const setName = gameHistory[id]?.customName || gameHistory[id]?.name;
-      return list.map(a => ({ ...a, _appId: id, _setName: setName }));
+      return list.map(a => ({ ...a, _appId: id, _setName: setName, ...steamSetFor(id, a) }));
     });
-  }, [achievements, selectedAppId, gameLinks, gameHistory, groupFetchTick]);
+  }, [achievements, selectedAppId, gameLinks, gameHistory, groupFetchTick, t]);
 
   const isAchievementTracked = (ach: MergedAchievement) => {
     const appId = ach._appId || selectedAppId;
@@ -2105,6 +2106,26 @@ function App() {
     if (selectedSetFilter === "ALL") return displayedAchievements;
     return displayedAchievements.filter(a => a._appId === selectedSetFilter);
   }, [displayedAchievements, selectedSetFilter]);
+
+  const steamGroupsAppId = selectedSetFilter === "ALL" ? selectedAppId : selectedSetFilter;
+  const currentSteamGroups = useMemo<SteamAchievementGroup[]>(
+    () => steamGroupsCacheRef.current[steamGroupsAppId] || [],
+    [steamGroupsAppId, achievements, groupFetchTick]
+  );
+  const steamGroupStats = useMemo(() => currentSteamGroups.map(group => {
+    const list = achievementsInSelectedSet.filter(a => (a._appId || selectedAppId) === steamGroupsAppId && (a.steam_group ?? 0) === group.id);
+    const notOwned = group.achievable === false;
+    return {
+      group,
+      label: steamGroupLabel(group, t),
+      total: notOwned ? Math.max(group.total, list.length) : list.length,
+      unlocked: list.filter(a => a.unlocked).length,
+      visible: list.length,
+      notOwned,
+    };
+  }).filter(s => s.visible > 0 || s.notOwned), [currentSteamGroups, achievementsInSelectedSet, steamGroupsAppId, selectedAppId, t]);
+  const steamGroupFilterOptions = useMemo(() => steamGroupStats.filter(s => s.visible > 0), [steamGroupStats]);
+  const isSteamGroupFilterActive = selectedSteamGroup !== "ALL" && steamGroupFilterOptions.some(s => String(s.group.id) === selectedSteamGroup);
 
   const chapterCounts = useMemo(() => {
     const counts: Record<string, { total: number; unlocked: number }> = {};
@@ -2140,6 +2161,10 @@ function App() {
       const achChapter = ach.chapter?.trim() || "No Chapter";
 
       if (selectedChapter !== "ALL" && achChapter !== selectedChapter) {
+        return false;
+      }
+
+      if (isSteamGroupFilterActive && ((ach._appId || selectedAppId) !== steamGroupsAppId || String(ach.steam_group ?? 0) !== selectedSteamGroup)) {
         return false;
       }
 
@@ -2180,7 +2205,7 @@ function App() {
       });
     }
     return result;
-  }, [displayedAchievements, trackedData, filter, selectedChapter, selectedSetFilter, searchQuery, sortOrder, guidedMode, currentGameChapters]);
+  }, [displayedAchievements, trackedData, filter, selectedChapter, selectedSetFilter, searchQuery, sortOrder, guidedMode, currentGameChapters, isSteamGroupFilterActive, selectedSteamGroup, steamGroupsAppId]);
 
   const currentGameLinks = userLinks.filter(l => l.appId === selectedAppId);
   const hiddenHintsForGame = settings.hiddenHints[selectedAppId] || [];
@@ -2500,6 +2525,19 @@ function App() {
                      <div className="mini-filter-row">
                        <button className={`filter-btn mini-filter-btn filter-btn-missable ${filter === "MISSABLE" ? "active" : ""}`} onClick={() => setFilter(filter === "MISSABLE" ? "ALL" : "MISSABLE")} title="Missable">⚠️</button>
                        <button className={`filter-btn mini-filter-btn filter-btn-spoiler ${filter === "SPOILER" ? "active" : ""}`} onClick={() => setFilter(filter === "SPOILER" ? "ALL" : "SPOILER")} title="Spoiler">👁</button>
+                      {steamGroupFilterOptions.length > 1 && (
+                        <select
+                          value={isSteamGroupFilterActive ? selectedSteamGroup : "ALL"}
+                          onChange={e => setSelectedSteamGroup(e.target.value)}
+                          className="control-select mini-select"
+                          title={t("steamSet.filter_title", { defaultValue: "Steam achievement set" })}
+                        >
+                          <option value="ALL">{t("steamSet.filter_all", { defaultValue: "All Sets" })}</option>
+                          {steamGroupFilterOptions.map(({ group, label, visible, unlocked }) => (
+                            <option key={group.id} value={String(group.id)}>{label} ({unlocked}/{visible})</option>
+                          ))}
+                        </select>
+                      )}
                       <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select mini-select">
                          <option value="ALL">{t("chap.all")}</option>
                          {((chapterCounts["No Chapter"]?.total || 0) > 0 || selectedChapter === "No Chapter") && (
@@ -2964,6 +3002,14 @@ function App() {
                       <div className="stats-dashboard">
                         <div className="stat-card"><span className="stat-label">{t("stat.avgCompletion")}</span><span className="stat-value">{averagePercent}%</span></div>
                         <CompletionStatCard rating={displayCompletion} t={t} />
+                        {steamGroupStats.length > 1 && (
+                          <SteamSetsStatCard
+                            sets={steamGroupStats}
+                            activeId={isSteamGroupFilterActive ? selectedSteamGroup : "ALL"}
+                            onSelect={id => setSelectedSteamGroup(prev => prev === id ? "ALL" : id)}
+                            t={t}
+                          />
+                        )}
                         {isSelectedGameRA && totalPoints > 0 && (
                           <div className="stat-card">
                             <span className="stat-label">{t("stat.raPoints")}</span>
@@ -3069,6 +3115,21 @@ function App() {
       >
         <GitHubIcon size={12}/> {t("btn.pr", "Create PR")}
       </button>
+
+      {steamGroupFilterOptions.length > 1 && (
+        <select
+          value={isSteamGroupFilterActive ? selectedSteamGroup : "ALL"}
+          onChange={e => setSelectedSteamGroup(e.target.value)}
+          className="control-select"
+          style={{ height: "36px" }}
+          title={t("steamSet.filter_title", { defaultValue: "Steam achievement set" })}
+        >
+          <option value="ALL">{t("steamSet.filter_all", { defaultValue: "All Sets" })}</option>
+          {steamGroupFilterOptions.map(({ group, label, visible, unlocked }) => (
+            <option key={group.id} value={String(group.id)}>{label} ({unlocked}/{visible})</option>
+          ))}
+        </select>
+      )}
 
       <select value={selectedChapter} onChange={e => setSelectedChapter(e.target.value)} className="control-select" style={{ height: "36px" }}>
         <option value="ALL">{t("chap.all")}</option>

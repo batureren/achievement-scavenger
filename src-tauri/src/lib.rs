@@ -1270,6 +1270,56 @@ async fn get_global_achievement_percentages(app_id: String) -> Result<String, St
     let json: Value = res.json().await.map_err(|e| e.to_string())?;
     Ok(json.to_string())
 }
+
+async fn fetch_game_achievements(app_id: &str, api_key: &str, lang: &str) -> Option<Value> {
+    let url = format!(
+        "https://api.steampowered.com/IPlayerService/GetGameAchievements/v1/?key={}&appid={}&language={}",
+        api_key, app_id, lang
+    );
+    let res = reqwest::get(&url).await.ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let json: Value = res.json().await.ok()?;
+    let has_achievements = json["response"]["achievements"]
+        .as_array()
+        .map(|a| !a.is_empty())
+        .unwrap_or(false);
+    if has_achievements { Some(json) } else { None }
+}
+
+#[tauri::command]
+async fn get_game_achievements(app_id: String, api_key: String, lang: String) -> Result<String, String> {
+    if api_key.is_empty() {
+        return Ok("{\"error\": \"NO_API_KEY\"}".to_string());
+    }
+    if let Some(json) = fetch_game_achievements(&app_id, &api_key, &lang).await {
+        return Ok(json.to_string());
+    }
+    if lang != "english" {
+        if let Some(json) = fetch_game_achievements(&app_id, &api_key, "english").await {
+            return Ok(json.to_string());
+        }
+    }
+    Ok("{\"error\": \"NO_DATA\"}".to_string())
+}
+
+#[tauri::command]
+async fn get_user_achievements(steam_id: String, app_id: String, api_key: String) -> Result<String, String> {
+    if api_key.is_empty() || steam_id.is_empty() {
+        return Ok("{\"error\": \"NO_API_KEY\"}".to_string());
+    }
+    let url = format!(
+        "https://api.steampowered.com/IPlayerService/GetUserAchievements/v1/?key={}&steamid={}&appid={}",
+        api_key, steam_id, app_id
+    );
+    let res = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        return Ok("{\"error\": \"API_ERROR\"}".to_string());
+    }
+    let json: Value = res.json().await.map_err(|e| e.to_string())?;
+    Ok(json.to_string())
+}
 #[tauri::command]
 async fn get_app_name(app_id: String, lang: String) -> Result<String, String> {
     let url = format!(
@@ -1631,7 +1681,7 @@ pub fn run() {
         
         .invoke_handler(tauri::generate_handler![
             get_local_steam_status, get_achievements, get_steam_owned_games, 
-            get_window_size, get_game_schema, get_global_achievement_percentages, get_app_name, launch_steam_game,
+            get_window_size, get_game_schema, get_global_achievement_percentages, get_game_achievements, get_user_achievements, get_app_name, launch_steam_game,
             set_always_on_top, set_window_opacity, load_settings, save_settings, load_api_key, save_api_key,
             load_user_links, save_user_links, load_tracked, save_tracked, load_local_edits, save_local_edits,
             load_chapters, save_chapters, save_file_dialog, load_history, save_history, set_custom_window_size,
