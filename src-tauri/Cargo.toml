@@ -1,6 +1,6 @@
 [package]
 name = "achievementscavenger"
-version = "0.2.5"
+version = "0.2.6"
 description = "Track Steam, Playstation, RetroAchievements and Xbox progress."
 authors = ["sawwormGames"]
 edition = "2024"
