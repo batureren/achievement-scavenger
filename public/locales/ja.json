@@ -269,6 +269,7 @@
     "cl.edit_item_tooltip": "項目を編集",
     "cl.duplicate_item_tooltip": "アイテムを複製",
     "cl.duplicated_toast": "アイテムを複製しました",
+    "cl.untitled_checklist": "無題",
     "cl.delete_item_tooltip": "項目を削除",
     "cl.select_checklist_empty": "コレクションの追跡を始めるにはチェックリストを作成してください。",
     "cl.mark_all_found": "すべて発見済みにする",

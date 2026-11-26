@@ -414,7 +414,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     const newId = Date.now().toString();
     const importedCollection: ChecklistCollection = {
       id: newId,
-      name: `${collection.author}'s Checklists`,
+      name: collection.name?.trim() || `${collection.author}'s Checklists`,
       author: collection.author,
       description: collection.description,
       checklists: collection.checklists.map(c => ({
@@ -449,6 +449,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
 
       const payload: SharedChecklistCollection = {
         appId,
+        name: activeCollection.name,
         author: author,
         description: activeCollection.description || "",
         checklists: cleanChecklists
@@ -536,8 +537,10 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     if (!collectionSearchQuery.trim()) return communityCollections;
     const q = collectionSearchQuery.toLowerCase();
     return communityCollections.filter(c =>
+      (c.name && c.name.toLowerCase().includes(q)) ||
       (c.author && c.author.toLowerCase().includes(q)) ||
-      (c.description && c.description.toLowerCase().includes(q))
+      (c.description && c.description.toLowerCase().includes(q)) ||
+      c.checklists.some(list => list.title?.toLowerCase().includes(q))
     );
   }, [communityCollections, collectionSearchQuery]);
 
@@ -994,7 +997,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
               <input
                 type="text"
                 className="search-input"
-                placeholder="Search by author or description..."
+                placeholder="Search by title, author or description..."
                 value={collectionSearchQuery}
                 onChange={e => setCollectionSearchQuery(e.target.value)}
                 style={{ width: "100%", marginBottom: "10px" }}
@@ -1015,6 +1018,16 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                   <div key={idx} className="community-guide-card">
                     <h4>{c.name || `${c.author}'s Checklists`}</h4>
                     {c.description && <p>{c.description}</p>}
+                    {c.checklists.length > 0 && (
+                      <div className="community-checklist-titles">
+                        {c.checklists.map((list, listIdx) => (
+                          <span key={list.id || listIdx} className="community-checklist-title">
+                            {list.title || t("cl.untitled_checklist", { defaultValue: "Untitled" })}
+                            <span className="community-checklist-title-count">{list.items?.length || 0}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div className="community-guide-card-footer">
                       <span>{c.author} • {c.checklists.length} lists</span>
                       <button className="btn-small btn-small-success" onClick={() => handleDownloadCollection(c)}>

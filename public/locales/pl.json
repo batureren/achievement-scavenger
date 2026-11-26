@@ -275,6 +275,7 @@
     "cl.edit_item_tooltip": "Edytuj element",
     "cl.duplicate_item_tooltip": "Duplikuj element",
     "cl.duplicated_toast": "Element zduplikowany",
+    "cl.untitled_checklist": "Bez tytułu",
     "cl.delete_item_tooltip": "Usuń element",
     "cl.select_checklist_empty": "Utwórz listę, aby zacząć śledzić kolekcjonerskie przedmioty.",
     "cl.mark_all_found": "Oznacz wszystkie jako znalezione",

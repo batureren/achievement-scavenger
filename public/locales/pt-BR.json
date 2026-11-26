@@ -269,6 +269,7 @@
     "cl.edit_item_tooltip": "Editar item",
     "cl.duplicate_item_tooltip": "Duplicar item",
     "cl.duplicated_toast": "Item duplicado",
+    "cl.untitled_checklist": "Sem título",
     "cl.delete_item_tooltip": "Excluir item",
     "cl.select_checklist_empty": "Crie uma lista para começar a rastrear colecionáveis.",
     "cl.mark_all_found": "Marcar tudo como encontrado",

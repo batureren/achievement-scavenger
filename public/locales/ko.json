@@ -269,6 +269,7 @@
     "cl.edit_item_tooltip": "항목 편집",
     "cl.duplicate_item_tooltip": "항목 복제",
     "cl.duplicated_toast": "항목이 복제되었습니다",
+    "cl.untitled_checklist": "제목 없음",
     "cl.delete_item_tooltip": "항목 삭제",
     "cl.select_checklist_empty": "수집품 추적을 시작하려면 체크리스트를 만드세요.",
     "cl.mark_all_found": "모두 찾음으로 표시",

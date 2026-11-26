@@ -269,6 +269,7 @@
     "cl.edit_item_tooltip": "Eintrag bearbeiten",
     "cl.duplicate_item_tooltip": "Eintrag duplizieren",
     "cl.duplicated_toast": "Eintrag dupliziert",
+    "cl.untitled_checklist": "Ohne Titel",
     "cl.delete_item_tooltip": "Eintrag löschen",
     "cl.select_checklist_empty": "Erstelle eine Checkliste, um Sammelobjekte zu verfolgen.",
     "cl.mark_all_found": "Alle als gefunden markieren",

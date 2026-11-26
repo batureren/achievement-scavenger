@@ -275,6 +275,7 @@
     "cl.edit_item_tooltip": "Upravit položku",
     "cl.duplicate_item_tooltip": "Duplikovat položku",
     "cl.duplicated_toast": "Položka duplikována",
+    "cl.untitled_checklist": "Bez názvu",
     "cl.delete_item_tooltip": "Odstranit položku",
     "cl.select_checklist_empty": "Vytvořte seznam a začněte sledovat sběratelské předměty.",
     "cl.mark_all_found": "Označit vše jako nalezené",
