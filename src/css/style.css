@@ -1,6 +1,3 @@
-/* ============================================================
-   Achievement Scavenger — style.css
-   ============================================================ */
 
 :root {
   --bg-color: #18181b;
@@ -66,10 +63,6 @@ a:hover {
   text-decoration: underline;
 }
 
-/* ============================================================
-   LAYOUT
-   ============================================================ */
-
 #app-container {
   display: flex;
   flex-direction: column;
@@ -80,10 +73,6 @@ a:hover {
 #app-container.mini-mode-active {
   padding-top: var(--menu-height);
 }
-
-/* ============================================================
-   MENU BAR
-   ============================================================ */
 
 .menu-bar {
   position: fixed;
@@ -217,10 +206,6 @@ a:hover {
   background-color: var(--border-color);
   margin: 4px 0;
 }
-
-/* ============================================================
-   SETUP / WAITING SCREEN
-   ============================================================ */
 
 #setup-screen-logo{
   display: flex;
@@ -454,10 +439,6 @@ a:hover {
   transform: translateY(0);
 }
 
-/* ============================================================
-   TRACKING SCREEN
-   ============================================================ */
-
 .library-dashboard-wrapper{
   display: flex;
   align-items: center;
@@ -544,10 +525,6 @@ a:hover {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ============================================================
-   PRIVACY WARNING
-   ============================================================ */
-
 .privacy-warning {
   background-color: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.4);
@@ -560,10 +537,6 @@ a:hover {
   align-items: center;
   gap: 8px;
 }
-
-/* ============================================================
-   LINKS ROW
-   ============================================================ */
 
 .links-row {
   display: grid;
@@ -740,10 +713,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   gap: 8px;
 }
 
-/* ============================================================
-   CONTROLS & FILTERS
-   ============================================================ */
-
 .controls-container {
   display: flex;
   flex-direction: column;
@@ -839,10 +808,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   cursor: pointer;
   max-width: 200px;
 }
-
-/* ============================================================
-   ACHIEVEMENT GRID & CARDS
-   ============================================================ */
 
 .achievement-list {
   display: grid;
@@ -1054,10 +1019,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--accent-yellow);
 }
 
-/* ============================================================
-   HINT & NOTES BOXES
-   ============================================================ */
-
 .hint-box, .notes-box {
   background-color: color-mix(in srgb, var(--bg-color) 80%, var(--card-bg));
   padding: 10px 12px;
@@ -1105,10 +1066,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   width: 100%;
   height: 100%;
 }
-
-/* ============================================================
-   EDIT PANEL
-   ============================================================ */
 
 .edit-panel {
   display: flex;
@@ -1188,10 +1145,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   opacity: 0.9;
 }
 
-/* ============================================================
-   COMPLETION STATS DASHBOARD
-   ============================================================ */
-
 .stats-dashboard {
   display: flex;
   gap: 16px;
@@ -1239,10 +1192,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   transition: flex 0.3s ease;
 }
 
-/* ============================================================
-   GUIDED MODE
-   ============================================================ */
-
 .guided-toggle {
   border-color: var(--accent-yellow);
   color: var(--accent-yellow);
@@ -1262,10 +1211,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   margin-bottom: 16px;
   font-size: 0.85rem;
 }
-
-/* ============================================================
-   SESSION HISTORY LOG
-   ============================================================ */
 
 .session-log .session-list {
   display: flex;
@@ -1303,9 +1248,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   line-height: 1.2;
 }
 
-/* ============================================================
-   COMPACT MINI MODE
-   ============================================================ */
 #jump-current{
   position: fixed;
   bottom: 75px;
@@ -1475,10 +1417,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 .mini-nav-btn.active { color: var(--accent-green); }
 .mini-nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
 
-/* ============================================================
-   ACCORDION
-   ============================================================ */
-
 .accordion-section {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -1525,10 +1463,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 .accordion-body {
   padding: 0 14px 14px;
 }
-
-/* ============================================================
-   GAME TABS BAR
-   ============================================================ */
 
 .game-tabs-bar-outer {
   position: fixed;
@@ -1638,10 +1572,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   flex-shrink: 0;
 }
 
-/* ============================================================
-   GAME TAB REMOVE BUTTON
-   ============================================================ */
-
 .game-tab-wrapper {
   display: inline-flex;
   align-items: stretch;
@@ -1695,10 +1625,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   pointer-events: none;
 }
 
-/* ============================================================
-   GAME CARD REMOVE BUTTON (Library Dashboard)
-   ============================================================ */
-
 .game-card-remove {
   position: absolute;
   top: 8px;
@@ -1728,10 +1654,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--accent-red);
   background: rgba(239, 68, 68, 0.12);
 }
-
-/* ============================================================
-   MISSABLE & SPOILER FILTER BUTTONS
-   ============================================================ */
 
 .spoiler-wrap { cursor: pointer; }
 .spoiler-blur { filter: blur(5px); transition: filter 0.2s; }
@@ -1781,10 +1703,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   border-color: #c084fc;
   color: #c084fc;
 }
-
-/* ============================================================
-   MISSABLE ALERT OVERLAY
-   ============================================================ */
 
 .missable-alert {
   display: flex;
@@ -1875,10 +1793,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.07);
 }
-
-/* ============================================================
-   CONFIRM DIALOG
-   ============================================================ */
 
 .confirm-dialog-overlay {
   position: fixed;
@@ -1972,10 +1886,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   background: #dc2626;
   border-color: #dc2626;
 }
-
-/* ============================================================
-   LIBRARY DASHBOARD — CARDS, PIN, STATUS, RAREST, SORT
-   ============================================================ */
 
 .library-card-banner {
   position: relative;
@@ -2288,10 +2198,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: var(--accent-green);
 }
 
-/* ============================================================
-   BATCH IMPORT MODAL
-   ============================================================ */
-
 .batch-import-modal {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -2438,10 +2344,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   flex-shrink: 0;
 }
 
-/* ============================================================
-   KEYFRAMES
-   ============================================================ */
-
 @keyframes pulseGlow {
   0%   { transform: translate(-50%, -50%) scale(0.85); opacity: 0.4; }
   100% { transform: translate(-50%, -50%) scale(1.45); opacity: 1; }
@@ -2460,10 +2362,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.25; }
 }
-
-/* ============================================================
-   RESPONSIVE — MOBILE / NARROW WINDOW
-   ============================================================ */
 
 @media (max-width: 700px) {
   #grid-control{
@@ -2564,9 +2462,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
     transition-duration: 0.1ms !important;
   }
 }
-/* ============================================================
-   HUNT ORDER — Priority Engine badges
-   ============================================================ */
 
 .hunt-tracked-badge {
   position: absolute;
@@ -2582,10 +2477,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   letter-spacing: 0.05em;
   pointer-events: none;
 }
-
-/* ============================================================
-   CHAIN BADGES — Requires / Unlocks
-   ============================================================ */
 
 .chain-row {
   display: flex;
@@ -2694,10 +2585,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   color: #c084fc;
 }
 
-/* ============================================================
-   REQUIRES EDITOR — chain assignment in edit mode
-   ============================================================ */
-
 .edit-requires {
   margin-top: 8px;
   border: 1px solid var(--border-color);
@@ -2737,10 +2624,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
 .edit-requires-item:hover {
   background: rgba(255, 255, 255, 0.05);
 }
-
-/* ============================================================
-   OVERLAY STYLE SYSTEM
-   ============================================================ */
 
 .overlay-eye-trigger {
   background: none;
@@ -2958,10 +2841,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent-green); cursor: po
   box-shadow: 0 8px 0 color-mix(in srgb, var(--text-main) 20%, transparent);
 }
 
-/* ============================================================
-   OVERLAY MODE CLASSES
-   ============================================================ */
-
 html.overlay-ghost, html.overlay-ghost body, html.overlay-ghost #app-container,
 html.overlay-mmo, html.overlay-mmo body, html.overlay-mmo #app-container,
 html.overlay-neon, html.overlay-neon body, html.overlay-neon #app-container,
@@ -3055,10 +2934,6 @@ html.overlay-frosted .achievement-card.unlocked {
   border-color: color-mix(in srgb, var(--accent-green) 35%, transparent) !important;
 }
 html.overlay-frosted .filter-btn { border-radius: 20px !important; }
-
-/* ============================================================
-   Shared UI adjustments for transparent modes
-   ============================================================ */
 
 html.overlay-ghost .menu-bar, html.overlay-mmo .menu-bar, html.overlay-neon .menu-bar,
 html.overlay-tactical .menu-bar, html.overlay-frosted .menu-bar {
@@ -3156,9 +3031,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   color: #000 !important;
 }
 
-/* ============================================================
-   INNER TABS (Achievements vs Checklists)
-   ============================================================ */
 .inner-tabs-container {
   display: flex;
   gap: 24px;
@@ -3188,10 +3060,6 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   color: var(--accent-green);
   border-bottom-color: var(--accent-green);
 }
-
-/* ============================================================
-   CUSTOM CHECKLISTS
-   ============================================================ */
 
 .checklists-layout {
   display: flex;
@@ -3776,10 +3644,6 @@ video.cl-item-img {
   border-color: var(--accent-green);
 }
 
-/* ============================================================
-   LIBRARY — WHAT TO PLAY NEXT
-   ============================================================ */
-
 .library-play-next-section {
   margin-top: 28px;
   padding-top: 20px;
@@ -3870,10 +3734,6 @@ video.cl-item-img {
   flex-shrink: 0;
 }
 
-/* ============================================================
-   LIBRARY — FLOATING SECTION NAV
-   ============================================================ */
-
 .library-float-nav {
   position: fixed;
   right: 22px;
@@ -3906,10 +3766,6 @@ video.cl-item-img {
   color: var(--accent-green);
   transform: translateY(-1px);
 }
-
-/* ============================================================
-   CLOUD SYNC MODAL
-   ============================================================ */
 
 .cloud-sync-modal {
   max-width: 540px;
@@ -4038,10 +3894,6 @@ video.cl-item-img {
   color: var(--text-muted);
   margin-top: 16px;
 }
-
-/* ============================================================
-   GUIDED MODE (Timeline & Blocks)
-   ============================================================ */
 
 .guided-mode-container {
   display: flex;
@@ -5262,7 +5114,6 @@ video.cl-item-img {
   width: 11px;
   height: 11px;
 }
-
 
 .completion-stat-card {
   gap: 2px;

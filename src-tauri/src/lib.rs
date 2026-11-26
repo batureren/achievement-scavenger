@@ -1,4 +1,3 @@
-// lib.rs ---
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use reqwest;
 use serde::Serialize;
@@ -46,15 +45,37 @@ struct ScreenshotMeta {
     created_at: u64,
 }
 
+#[derive(Clone, PartialEq)]
+pub struct PresenceState {
+    game_name: String,
+    unlocked: u32,
+    total: u32,
+    hunting: Vec<String>,
+    image: Option<String>,
+}
+
 #[derive(Clone)]
 pub enum RpcCommand {
-    Update {
-        game_name: String,
-        unlocked: u32,
-        total: u32,
-        hunting: String,
-    },
+    Update(PresenceState),
     Clear,
+}
+
+const DISCORD_APP_ID: &str = "1516543215178617072";
+const DISCORD_APP_ICON_KEY: &str = "app_icon";
+const DISCORD_APP_LABEL: &str = "Achievement Scavenger";
+const HUNT_CYCLE_SECS: u64 = 12;
+
+const RPC_IMAGE_RETRY_SECS: u64 = 600;
+
+static RPC_IMAGE_CACHE: OnceLock<Mutex<std::collections::HashMap<String, (Option<String>, u64)>>> = OnceLock::new();
+
+fn clamp_rpc_text(text: String) -> String {
+    if text.chars().count() <= 128 {
+        return text;
+    }
+    let mut out: String = text.chars().take(125).collect();
+    out.push_str("...");
+    out
 }
 
 fn now_millis() -> u64 {
@@ -66,57 +87,210 @@ fn now_millis() -> u64 {
 
 fn spawn_discord_thread(rx: mpsc::Receiver<RpcCommand>) {
     std::thread::spawn(move || {
-        let mut client = DiscordIpcClient::new("1516543215178617072").unwrap();
+        let mut client = match DiscordIpcClient::new(DISCORD_APP_ID) {
+            Ok(c) => c,
+            Err(_) => return,
+        };
         let mut connected = false;
+        let mut current: Option<PresenceState> = None;
+        let mut hunt_index: usize = 0;
+        let mut started_at: i64 = 0;
+        let mut last_sent: Option<String> = None;
 
-        for cmd in rx {
-            if !connected {
-                if client.connect().is_ok() {
-                    connected = true;
+        loop {
+            match rx.recv_timeout(std::time::Duration::from_secs(HUNT_CYCLE_SECS)) {
+                Ok(RpcCommand::Update(next)) => {
+                    let same_game = current.as_ref().map(|c| c.game_name == next.game_name).unwrap_or(false);
+                    if !same_game {
+                        started_at = (now_millis() / 1000) as i64;
+                        hunt_index = 0;
+                    } else if current.as_ref().map(|c| c.hunting != next.hunting).unwrap_or(false) {
+                        hunt_index = 0;
+                    }
+                    current = Some(next);
                 }
+                Ok(RpcCommand::Clear) => {
+                    current = None;
+                    last_sent = None;
+                    if connected && client.clear_activity().is_err() {
+                        connected = false;
+                        let _ = client.close();
+                    }
+                    continue;
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    if let Some(c) = &current {
+                        if c.hunting.len() > 1 {
+                            hunt_index = (hunt_index + 1) % c.hunting.len();
+                        }
+                    }
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
             }
 
-            if !connected {
+            let Some(state) = current.clone() else { continue };
+
+            let pct = if state.total > 0 {
+                (state.unlocked as f32 / state.total as f32 * 100.0) as u32
+            } else {
+                0
+            };
+
+            let details = clamp_rpc_text(format!("🏆 {}", state.game_name));
+
+            let status = if state.hunting.is_empty() {
+                format!("📊 {} / {} Achievements ({}%)", state.unlocked, state.total, pct)
+            } else {
+                let idx = hunt_index % state.hunting.len();
+                let counter = if state.hunting.len() > 1 {
+                    format!(" · {}/{}", idx + 1, state.hunting.len())
+                } else {
+                    String::new()
+                };
+                format!("⭐ Hunting: \"{}\" ({}%){}", state.hunting[idx], pct, counter)
+            };
+            let status = clamp_rpc_text(status);
+
+            let large_text = clamp_rpc_text(format!(
+                "{} · {}/{} achievements",
+                state.game_name, state.unlocked, state.total
+            ));
+
+            let key = format!("{}|{}|{}|{:?}|{}", details, status, large_text, state.image, started_at);
+            if connected && last_sent.as_deref() == Some(key.as_str()) {
                 continue;
             }
 
-            match cmd {
-                RpcCommand::Update {
-                    game_name,
-                    unlocked,
-                    total,
-                    hunting,
-                } => {
-                    let pct = if total > 0 {
-                        (unlocked as f32 / total as f32 * 100.0) as u32
-                    } else {
-                        0
-                    };
-
-                    let details = format!("🏆 {}", game_name);
-
-                    let state = if !hunting.is_empty() {
-                        format!("⭐ Hunting: \"{}\" ({}%)", hunting, pct)
-                    } else {
-                        format!("📊 {} / {} Achievements ({}%)", unlocked, total, pct)
-                    };
-
-                    let payload = activity::Activity::new().details(&details).state(&state);
-
-                    if client.set_activity(payload).is_err() {
-                        connected = false;
-                        let _ = client.close();
-                    }
+            if !connected {
+                if client.connect().is_ok() {
+                    connected = true;
+                } else {
+                    continue;
                 }
-                RpcCommand::Clear => {
-                    if client.clear_activity().is_err() {
-                        connected = false;
-                        let _ = client.close();
-                    }
-                }
+            }
+
+            let mut payload = activity::Activity::new()
+                .details(&details)
+                .state(&status)
+                .timestamps(activity::Timestamps::new().start(started_at));
+
+            if let Some(url) = state.image.as_deref() {
+                payload = payload.assets(
+                    activity::Assets::new()
+                        .large_image(url)
+                        .large_text(&large_text)
+                        .small_image(DISCORD_APP_ICON_KEY)
+                        .small_text(DISCORD_APP_LABEL),
+                );
+            }
+
+            if client.set_activity(payload).is_err() {
+                connected = false;
+                last_sent = None;
+                let _ = client.close();
+            } else {
+                last_sent = Some(key);
             }
         }
     });
+}
+
+async fn fetch_steam_store_images(client: &reqwest::Client, app_id: &str) -> Vec<String> {
+    let Ok(appid) = app_id.parse::<u32>() else { return Vec::new() };
+    let input = serde_json::json!({
+        "ids": [{ "appid": appid }],
+        "context": { "language": "english", "country_code": "US" },
+        "data_request": { "include_assets": true }
+    });
+    let Ok(res) = client
+        .get("https://api.steampowered.com/IStoreBrowseService/GetItems/v1/")
+        .query(&[("input_json", input.to_string())])
+        .send()
+        .await
+    else {
+        return Vec::new();
+    };
+    if !res.status().is_success() {
+        return Vec::new();
+    }
+    let Ok(json) = res.json::<Value>().await else { return Vec::new() };
+    let assets = &json["response"]["store_items"][0]["assets"];
+    let Some(format) = assets["asset_url_format"].as_str() else { return Vec::new() };
+
+    ["library_capsule_2x", "library_capsule", "header", "main_capsule"]
+        .iter()
+        .filter_map(|key| assets[*key].as_str())
+        .map(|file| {
+            format!(
+                "https://shared.akamai.steamstatic.com/store_item_assets/{}",
+                format.replace("${FILENAME}", file)
+            )
+        })
+        .collect()
+}
+
+async fn image_url_works(client: &reqwest::Client, url: &str) -> bool {
+    let Ok(res) = client.head(url).send().await else { return false };
+    if !res.status().is_success() {
+        return false;
+    }
+    !res
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.starts_with("text/"))
+        .unwrap_or(false)
+}
+
+async fn resolve_rpc_image(steam_app_id: Option<String>, candidates: Vec<String>) -> Option<String> {
+    let steam_app_id = steam_app_id.filter(|id| !id.is_empty() && id.chars().all(|c| c.is_ascii_digit()));
+    let candidates: Vec<String> = candidates
+        .into_iter()
+        .filter(|u| u.starts_with("https://") && u.len() <= 256)
+        .collect();
+    if steam_app_id.is_none() && candidates.is_empty() {
+        return None;
+    }
+
+    let cache_key = format!("{}|{}", steam_app_id.clone().unwrap_or_default(), candidates.join("|"));
+    let now = now_millis() / 1000;
+    let cache = RPC_IMAGE_CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    if let Ok(map) = cache.lock() {
+        if let Some((hit, at)) = map.get(&cache_key) {
+            if hit.is_some() || now.saturating_sub(*at) < RPC_IMAGE_RETRY_SECS {
+                return hit.clone();
+            }
+        }
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0")
+        .timeout(std::time::Duration::from_secs(6))
+        .build()
+        .ok()?;
+
+    let mut ordered: Vec<String> = Vec::new();
+    if let Some(id) = &steam_app_id {
+        ordered.extend(fetch_steam_store_images(&client, id).await);
+    }
+    for c in candidates {
+        if !ordered.contains(&c) {
+            ordered.push(c);
+        }
+    }
+
+    let mut found = None;
+    for url in ordered.iter().filter(|u| u.len() <= 256) {
+        if image_url_works(&client, url).await {
+            found = Some(url.clone());
+            break;
+        }
+    }
+
+    if let Ok(mut map) = cache.lock() {
+        map.insert(cache_key, (found.clone(), now));
+    }
+    found
 }
 
 async fn ws_handler(ws: WebSocketUpgrade) -> axum::response::Response {
@@ -322,21 +496,31 @@ fn open_screenshots_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn update_discord_rpc(
+async fn update_discord_rpc(
     game_name: String,
     unlocked: u32,
     total: u32,
-    hunting: String,
-    state: tauri::State<DiscordState>,
-) {
+    hunting: Vec<String>,
+    steam_app_id: Option<String>,
+    image_candidates: Vec<String>,
+    state: tauri::State<'_, DiscordState>,
+) -> Result<(), String> {
+    let image = resolve_rpc_image(steam_app_id, image_candidates).await;
+    let hunting: Vec<String> = hunting
+        .into_iter()
+        .map(|h| h.trim().to_string())
+        .filter(|h| !h.is_empty())
+        .collect();
     if let Ok(tx) = state.tx.lock() {
-        let _ = tx.send(RpcCommand::Update {
+        let _ = tx.send(RpcCommand::Update(PresenceState {
             game_name,
             unlocked,
             total,
             hunting,
-        });
+            image,
+        }));
     }
+    Ok(())
 }
 
 #[tauri::command]
@@ -767,7 +951,6 @@ fn set_window_opacity(app_handle: tauri::AppHandle, opacity: f32) -> Result<(), 
     Ok(())
 }
 
-// --- Persistence ---
 #[tauri::command]
 fn load_api_key(app_handle: tauri::AppHandle) -> Result<String, String> {
     let path = get_data_path(&app_handle, "api_key.txt")?;
@@ -822,7 +1005,6 @@ fn save_psn_credentials(app_handle: tauri::AppHandle, data: String) -> Result<()
     fs::write(path, data).map_err(|e| e.to_string())
 }
 
-// --- PlayStation Network API ---
 #[tauri::command]
 async fn authenticate_psn(npsso: String) -> Result<String, String> {
     let client = reqwest::Client::builder()
@@ -1107,7 +1289,6 @@ fn save_guides(app_handle: tauri::AppHandle, data: String) -> Result<(), String>
 #[tauri::command]
 fn save_game_guides(app_handle: tauri::AppHandle, app_id: String, data: String) -> Result<(), String> { save_single(&app_handle, &app_id, "guides.json", &data) }
 
-// --- Steam Status ---
 #[cfg(target_os = "windows")]
 #[tauri::command]
 fn get_local_steam_status() -> Result<String, String> {
@@ -1225,7 +1406,6 @@ fn get_local_steam_status() -> Result<String, String> {
     Ok("NOT_LOGGED_IN".to_string())
 }
 
-// --- Steam API ---
 #[tauri::command]
 async fn get_achievements(
     steam_id: String,
@@ -1359,7 +1539,6 @@ async fn get_steam_owned_games(steam_id: String, api_key: String) -> Result<Stri
     Ok(json.to_string())
 }
 
-// --- RetroAchievements API ---
 #[tauri::command]
 async fn get_ra_recent_game(user: String, api_key: String, count: Option<u32>) -> Result<String, String> {
     let count = count.unwrap_or(1);
@@ -1391,7 +1570,6 @@ async fn get_ra_achievements(
     Ok(text)
 }
 
-// --- Xbox Live API (via OpenXBL) ---
 const OPENXBL_BASE: &str = "https://xbl.io/api/v2";
 fn openxbl_client(api_key: &str) -> Result<reqwest::Client, String> {
     use reqwest::header::{HeaderMap, HeaderValue};
@@ -1597,7 +1775,6 @@ fn get_screenshots(app_handle: tauri::AppHandle) -> Result<String, String> {
 }
 
 
-// --- Entry Point ---
 #[cfg(target_os = "linux")]
 fn init_steam_deck_env() {
     unsafe {

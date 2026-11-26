@@ -504,7 +504,6 @@ export function LibraryDashboard({
 
           <div className="library-gallery-scroll">
             {screenshots.map(s => {
-              // Extract achievement name by removing the _YYYYMMDD_HHMMSS.png from the end
               const cleanAchName = s.filename.replace(/_\d{8}_\d{6}\.png$/, '').replace(/_/g, ' ');
               const cleanGameName = s.game_name.replace(/_/g, ' ');
 

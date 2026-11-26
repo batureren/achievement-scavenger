@@ -2230,9 +2230,33 @@ function App() {
       invoke("clear_discord_rpc").catch(() => {});
       return;
     }
-    const firstTrackedLocked = achievements.find((a) => currentGameTracked.includes(a.apiname) && !a.unlocked);
-    invoke("update_discord_rpc", { gameName: gameName, unlocked: unlockedAch, total: totalAch, hunting: firstTrackedLocked ? firstTrackedLocked.display_name : "" }).catch(console.error);
-  }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled]);
+    const hunting = currentGameTracked
+      .map(id => achievements.find(a => a.apiname === id))
+      .filter((a): a is MergedAchievement => !!a && !a.unlocked)
+      .map(a => a.display_name)
+      .slice(0, 10);
+    const history = gameHistory[selectedAppId];
+    const platform = resolvePlatform(selectedAppId);
+    const isSteamGame = platform === "STEAM" && /^\d+$/.test(selectedAppId);
+    const imageCandidates: string[] = [];
+    if (history?.raImageIcon) {
+      imageCandidates.push(history.raImageIcon.startsWith("http") ? history.raImageIcon : `https://media.retroachievements.org${history.raImageIcon}`);
+    }
+    if (isSteamGame) {
+      imageCandidates.push(
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${selectedAppId}/header.jpg`,
+        `https://cdn.akamai.steamstatic.com/steam/apps/${selectedAppId}/header.jpg`
+      );
+    }
+    invoke("update_discord_rpc", {
+      gameName,
+      unlocked: unlockedAch,
+      total: totalAch,
+      hunting,
+      steamAppId: isSteamGame ? selectedAppId : null,
+      imageCandidates,
+    }).catch(console.error);
+  }, [appState, selectedAppId, gameName, unlockedAch, totalAch, currentGameTracked, achievements, settings.discordRPCEnabled, gameHistory[selectedAppId]?.raImageIcon]);
 
   useEffect(() => {
     if (!pendingAchievementAnchor || appState !== "PLAYING") return;
