@@ -5,6 +5,7 @@ import { CustomChecklist, ChecklistItem, SharedChecklistCollection, GameChecklis
 import { getYouTubeEmbedUrl, getMediaKind, renderHintWithLinks } from "../utils";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { CollapsibleBox } from "./CollapsibleBox";
+import { ProxiedImg } from "./ProxiedImg";
 
 interface ChecklistsPanelProps {
   appId: string;
@@ -58,7 +59,7 @@ function ChecklistThumb({ src, alt, className }: { src: string; alt: string; cla
   if (getMediaKind(src) === "video") {
     return <video src={src} className={className} muted loop autoPlay playsInline />;
   }
-  return <img src={src} alt={alt} className={className} />;
+  return <ProxiedImg src={src} alt={alt} className={className} loading="lazy" />;
 }
 
 export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters = [], t }: ChecklistsPanelProps) {
@@ -592,13 +593,11 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
   );
 
   return (
-    <div className="checklists-layout">
-      <div className="checklists-sidebar" style={{ backgroundColor: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
-
-    <div className="guided-header" style={{ marginBottom: "12px", background: "var(--card-bg)" }}>
-      <div className="guided-controls" style={{ flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <select
+    <div className="checklists-container">
+      <div className="guided-header">
+        <div className="guided-controls">
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <select
               className="control-select"
               value={activeCollectionId}
               onChange={e => {
@@ -606,20 +605,26 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                 setIsEditingCollection(false);
                 setIsAddingCollection(false);
               }}
-          >
+            >
               {safeData.collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px" }} onClick={handleOpenEditCollection} title="Edit Collection Info"><PencilIcon /></button>
-          {safeData.collections.length > 1 && (
-            <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={() => setPendingDeleteCollection(activeCollection)} title="Delete Collection"><TrashIcon /></button>
-          )}
-        </div>
+            </select>
+            <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px" }} onClick={handleOpenEditCollection} title={t("cl.edit_collection_tooltip", { defaultValue: "Edit Collection Info" })}><PencilIcon /></button>
+            {safeData.collections.length > 1 && (
+              <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={() => setPendingDeleteCollection(activeCollection)} title={t("cl.delete_collection_tooltip", { defaultValue: "Delete Collection" })}><TrashIcon /></button>
+            )}
+          </div>
 
-        <button className="btn-small" onClick={() => { setIsAddingCollection(true); setIsEditingCollection(false); }}>New Collection</button>
-        <button className="btn-small btn-small-success" onClick={handlePublishChecklists} title="Publish Checklists" disabled={checklists.length === 0}>
-          <GitHubIcon /> Publish
-        </button>
-      </div>
+          <button className="btn-small" onClick={() => { setIsAddingCollection(true); setIsEditingCollection(false); }}>{t("cl.new_collection", { defaultValue: "New Collection" })}</button>
+
+          <div style={{ display: "flex", gap: "6px", marginLeft: "auto", flexWrap: "wrap" }}>
+            <button className="btn-small btn-small-success" onClick={handlePublishChecklists} title={t("cl.publish_tooltip", { defaultValue: "Publish Checklists" })} disabled={checklists.length === 0}>
+              <GitHubIcon /> {t("cl.publish", { defaultValue: "Publish" })}
+            </button>
+            <button className="btn-small" onClick={fetchCommunityChecklists}>
+              {t("cl.browse_community", { defaultValue: "Browse Checklists" })} {availableCollectionCount !== null && availableCollectionCount > 0 ? `(${availableCollectionCount})` : ""}
+            </button>
+          </div>
+        </div>
 
           {isAddingCollection && (
               <form onSubmit={handleCreateCollection} className="guided-inline-form" style={{flexDirection: "column", alignItems: "flex-start", marginTop: "10px", padding: "12px", background: "rgba(0,0,0,0.2)", borderRadius: "8px", border: "1px dashed var(--border-color)"}}>
@@ -655,9 +660,11 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
               )}
             </div>
           )}
-        </div>
+      </div>
 
-        <div style={{ background: "var(--card-bg)", border: "1px solid var(--border-color)", borderRadius: "var(--radius-lg)", padding: "10px", boxShadow: "var(--shadow-card)" }}>
+      <div className="checklists-layout">
+        {checklists.length > 0 && (
+          <div className="checklists-sidebar">
           {checklists.map(list => {
             const done = list.items.filter(i => i.completed).length;
             const pct = list.items.length ? Math.round((done / list.items.length) * 100) : 0;
@@ -697,15 +704,14 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
               </div>
             );
           })}
-
-          <form onSubmit={handleCreateChecklist} className="add-link-form" style={{ marginTop: "10px" }}>
-            <input type="text" placeholder={t("cl.new_checklist_placeholder", { defaultValue: "New Checklist..." })} value={newChecklistName} onChange={e => setNewChecklistName(e.target.value)} />
-            <button type="submit" className="btn-add-link">+</button>
-          </form>
-        </div>
-      </div>
+          </div>
+        )}
 
       <div className="checklists-content">
+        <form onSubmit={handleCreateChecklist} className="add-link-form checklist-create-form">
+          <input type="text" placeholder={t("cl.new_checklist_placeholder", { defaultValue: "New Checklist..." })} value={newChecklistName} onChange={e => setNewChecklistName(e.target.value)} />
+          <button type="submit" className="btn-add-link">+</button>
+        </form>
         {!activeChecklist ? (
           <div className="empty-state">{t("cl.select_checklist_empty", { defaultValue: "Select or create a checklist." })}</div>
         ) : (
@@ -724,10 +730,6 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                   <button className="btn-small" onClick={() => markAll(true)} disabled={totalCount === 0}>{t("cl.mark_all_found", { defaultValue: "Mark All Found" })}</button>
                   <button className="btn-small" onClick={() => markAll(false)} disabled={totalCount === 0}>{t("cl.reset", { defaultValue: "Reset" })}</button>
                   <button className="btn-small btn-small-success" onClick={openAddForm}>{t("cl.add_item_btn", { defaultValue: "Add Item" })}</button>
-
-                  <button className="btn-small" onClick={fetchCommunityChecklists}>
-                      Community Lists {availableCollectionCount !== null && availableCollectionCount > 0 ? `(${availableCollectionCount})` : ""}
-                  </button>
                 </div>
               </div>
 
@@ -946,6 +948,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
             )}
           </>
         )}
+        </div>
       </div>
 
       {lightboxSrc && (
@@ -953,7 +956,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
           {getMediaKind(lightboxSrc) === "video" ? (
             <video src={lightboxSrc} controls autoPlay loop onClick={e => e.stopPropagation()} />
           ) : (
-            <img src={lightboxSrc} alt="Preview" />
+            <ProxiedImg src={lightboxSrc} alt="Preview" />
           )}
         </div>
       )}

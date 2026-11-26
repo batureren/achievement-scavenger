@@ -3061,6 +3061,18 @@ html.overlay-frosted.overlay-opaque .filter-btn.active {
   border-bottom-color: var(--accent-green);
 }
 
+.checklists-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checklists-content .checklist-create-form {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 .checklists-layout {
   display: flex;
   gap: 20px;
@@ -5673,4 +5685,16 @@ video.cl-item-img {
     width: 100%;
     max-width: 100%;
   }
+}
+
+.proxied-img-loading {
+  display: inline-block;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.09), rgba(255,255,255,0.04));
+  background-size: 200% 100%;
+  animation: proxied-img-shimmer 1.2s linear infinite;
+}
+
+@keyframes proxied-img-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }

@@ -229,6 +229,91 @@ async fn fetch_steam_store_images(client: &reqwest::Client, app_id: &str) -> Vec
         .collect()
 }
 
+static IMAGE_PROXY_CACHE: OnceLock<Mutex<std::collections::HashMap<String, String>>> = OnceLock::new();
+const IMAGE_PROXY_MAX_BYTES: usize = 12 * 1024 * 1024;
+const IMAGE_PROXY_MAX_ENTRIES: usize = 300;
+
+fn base64_encode(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
+        out.push(TABLE[(n >> 18) as usize & 63] as char);
+        out.push(TABLE[(n >> 12) as usize & 63] as char);
+        out.push(if chunk.len() > 1 { TABLE[(n >> 6) as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 2 { TABLE[n as usize & 63] as char } else { '=' });
+    }
+    out
+}
+
+fn image_proxy_referer(url: &reqwest::Url) -> Option<String> {
+    let host = url.host_str()?.to_ascii_lowercase();
+    if host.ends_with("wikia.nocookie.net") || host.ends_with("fandom.com") {
+        let wiki = url.path_segments().and_then(|mut p| p.next()).filter(|w| !w.is_empty());
+        return Some(match wiki {
+            Some(w) => format!("https://{}.fandom.com/", w),
+            None => "https://www.fandom.com/".to_string(),
+        });
+    }
+    None
+}
+
+#[tauri::command]
+async fn fetch_image_data_url(url: String) -> Result<String, String> {
+    let parsed = reqwest::Url::parse(&url).map_err(|e| e.to_string())?;
+    if parsed.scheme() != "https" && parsed.scheme() != "http" {
+        return Err("Unsupported URL scheme".into());
+    }
+
+    let cache = IMAGE_PROXY_CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    if let Ok(map) = cache.lock() {
+        if let Some(hit) = map.get(&url) {
+            return Ok(hit.clone());
+        }
+    }
+
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut req = client
+        .get(parsed.clone())
+        .header(reqwest::header::ACCEPT, "image/avif,image/webp,image/apng,image/*,*/*;q=0.8");
+    if let Some(referer) = image_proxy_referer(&parsed) {
+        req = req.header(reqwest::header::REFERER, referer);
+    }
+
+    let res = req.send().await.map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        return Err(format!("HTTP {}", res.status().as_u16()));
+    }
+    let mime = res
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(';').next().unwrap_or("").trim().to_string())
+        .unwrap_or_default();
+    if !(mime.starts_with("image/") || mime.starts_with("video/")) {
+        return Err(format!("Unexpected content type: {}", mime));
+    }
+    let bytes = res.bytes().await.map_err(|e| e.to_string())?;
+    if bytes.len() > IMAGE_PROXY_MAX_BYTES {
+        return Err("Image too large".into());
+    }
+
+    let data_url = format!("data:{};base64,{}", mime, base64_encode(&bytes));
+    if let Ok(mut map) = cache.lock() {
+        if map.len() >= IMAGE_PROXY_MAX_ENTRIES {
+            map.clear();
+        }
+        map.insert(url, data_url.clone());
+    }
+    Ok(data_url)
+}
+
 async fn image_url_works(client: &reqwest::Client, url: &str) -> bool {
     let Ok(res) = client.head(url).send().await else { return false };
     if !res.status().is_success() {
@@ -1858,7 +1943,7 @@ pub fn run() {
         
         .invoke_handler(tauri::generate_handler![
             get_local_steam_status, get_achievements, get_steam_owned_games, 
-            get_window_size, get_game_schema, get_global_achievement_percentages, get_game_achievements, get_user_achievements, get_app_name, launch_steam_game,
+            get_window_size, get_game_schema, get_global_achievement_percentages, get_game_achievements, get_user_achievements, fetch_image_data_url, get_app_name, launch_steam_game,
             set_always_on_top, set_window_opacity, load_settings, save_settings, load_api_key, save_api_key,
             load_user_links, save_user_links, load_tracked, save_tracked, load_local_edits, save_local_edits,
             load_chapters, save_chapters, save_file_dialog, load_history, save_history, set_custom_window_size,
