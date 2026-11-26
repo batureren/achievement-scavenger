@@ -1,4 +1,3 @@
-// components/ChecklistsPanel.tsx
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import toast from "react-hot-toast";
@@ -26,6 +25,12 @@ const PencilIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
 const TrashIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -39,14 +44,8 @@ const PinIcon = () => (
   </svg>
 );
 
-const ImagePlaceholderIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-  </svg>
-);
-
 const GitHubIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" style={{marginTop:"-2px", marginRight: "4px"}}><path d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>
+  <svg width="14" height="14" viewBox="0 0 98 96" fill="currentColor" style={{marginTop:"-2px", marginRight: "4px"}}><path d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.970 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.670 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.060-22.324 24.283 1.780 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.520 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>
 );
 
 const ChevronUpIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>;
@@ -223,7 +222,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     if (direction === "down" && catIndex === currentGroups.length - 1) return;
 
     const targetIndex = direction === "up" ? catIndex - 1 : catIndex + 1;
-    
+
     const newGroups = [...currentGroups];
     [newGroups[catIndex], newGroups[targetIndex]] = [newGroups[targetIndex], newGroups[catIndex]];
 
@@ -235,10 +234,10 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     if (!activeChecklist) return;
     const itemIndex = activeChecklist.items.findIndex(i => i.id === itemId);
     if (itemIndex === -1) return;
-    
+
     const item = activeChecklist.items[itemIndex];
     const cat = item.category?.trim() || "General";
-    
+
     const catItems = activeChecklist.items.filter(i => (i.category?.trim() || "General") === cat);
     const idxInCat = catItems.findIndex(i => i.id === itemId);
     if (idxInCat === -1) return;
@@ -247,16 +246,15 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
 
     const targetIdxInCat = direction === "up" ? idxInCat - 1 : idxInCat + 1;
     const targetItemId = catItems[targetIdxInCat].id;
-    
+
     const targetItemIndex = activeChecklist.items.findIndex(i => i.id === targetItemId);
-    
+
     const newItems = [...activeChecklist.items];
     [newItems[itemIndex], newItems[targetItemIndex]] = [newItems[targetItemIndex], newItems[itemIndex]];
-    
+
     persistChecklists(checklists.map(c => c.id === activeChecklist.id ? { ...c, items: newItems } : c));
   };
 
-  // ---------- Checklist-level actions ----------
   const handleCreateChecklist = (e: FormEvent) => {
     e.preventDefault();
     const title = newChecklistName.trim();
@@ -289,10 +287,43 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     setPendingDeleteChecklist(null);
   };
 
-  // ---------- Item-level actions ----------
   const openAddForm = () => { setItemForm(EMPTY_FORM); setEditingItemId(null); setShowItemForm(true); };
-  const openEditForm = (item: ChecklistItem) => { setItemForm(item); setEditingItemId(item.id); setShowItemForm(true); };
+  const expandCategoryOf = (item: ChecklistItem) => {
+    const key = item.category?.trim() || "General";
+    setCollapsedCategories(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+  };
+
+  const openEditForm = (item: ChecklistItem) => { expandCategoryOf(item); setItemForm(item); setEditingItemId(item.id); setShowItemForm(true); };
+
+  useEffect(() => {
+    if (!showItemForm || !editingItemId) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("cl-inline-edit-form")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showItemForm, editingItemId]);
   const closeForm = () => { setShowItemForm(false); setEditingItemId(null); setItemForm(EMPTY_FORM); };
+
+  const duplicateItem = (checklistId: string, item: ChecklistItem) => {
+    const copy: ChecklistItem = {
+      ...item,
+      id: `${Date.now()}${Math.random().toString(36).substring(2, 6)}`,
+      completed: false,
+    };
+    persistChecklists(checklists.map(c => {
+      if (c.id !== checklistId) return c;
+      const index = c.items.findIndex(i => i.id === item.id);
+      const items = [...c.items];
+      items.splice(index === -1 ? items.length : index + 1, 0, copy);
+      return { ...c, items };
+    }));
+    setActiveChecklistId(checklistId);
+    expandCategoryOf(copy);
+    setItemForm(copy);
+    setEditingItemId(copy.id);
+    setShowItemForm(true);
+    toast.success(t("cl.duplicated_toast", { defaultValue: "Item duplicated" }));
+  };
 
   const handleSaveItem = (e: FormEvent) => {
     e.preventDefault();
@@ -342,7 +373,6 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
       : c)));
   };
 
-  // ---------- Community Actions ----------
   const fetchCommunityChecklists = async () => {
     setIsCommunityModalOpen(true);
     setLoadingCollections(true);
@@ -438,11 +468,11 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
     }
   };
 
-  // ---------- Derived data ----------
   const filteredItems = useMemo(() => {
     if (!activeChecklist) return [];
     const q = searchQuery.trim().toLowerCase();
     return activeChecklist.items.filter(i => {
+      if (showItemForm && i.id === editingItemId) return true;
       if (statusFilter === "FOUND" && !i.completed) return false;
       if (statusFilter === "MISSING" && i.completed) return false;
       if (q) {
@@ -451,7 +481,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
       }
       return true;
     });
-  }, [activeChecklist, searchQuery, statusFilter]);
+  }, [activeChecklist, searchQuery, statusFilter, showItemForm, editingItemId]);
 
   const groupedItems = useMemo(() => {
     const groups = new Map<string, ChecklistItem[]>();
@@ -517,15 +547,56 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
 
   const toggleCategory = (key: string) => setCollapsedCategories(prev => ({ ...prev, [key]: !prev[key] }));
 
+  const renderItemForm = () => (
+              <form id={editingItemId ? "cl-inline-edit-form" : undefined} className="cl-form-container" onSubmit={handleSaveItem}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <input type="text" className="edit-input" style={{ flex: "2 1 200px" }} placeholder={t("cl.item_name_placeholder", { defaultValue: "Item Name *" })} required
+                    value={itemForm.name || ""} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} />
+                  <input type="text" className="edit-input" style={{ flex: "1 1 140px" }} placeholder={t("cl.item_category_placeholder", { defaultValue: "Category (optional)" })} list="checklist-categories"
+                    value={itemForm.category || ""} onChange={e => setItemForm({ ...itemForm, category: e.target.value })} />
+                  <datalist id="checklist-categories">
+                    {existingCategories.map(c => <option key={c} value={c} />)}
+                  </datalist>
+                </div>
+                {knownChapters.length > 0 && (
+                  <select
+                    className="edit-input control-select"
+                    style={{ maxWidth: "100%", width: "100%" }}
+                    value={itemForm.chapter || ""}
+                    onChange={e => setItemForm({ ...itemForm, chapter: e.target.value })}
+                  >
+                    <option value="">{t("cl.no_chapter_option", { defaultValue: "No Chapter" })}</option>
+                    {knownChapters.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                )}
+                <input type="text" className="edit-input" placeholder={t("cl.item_location_placeholder", { defaultValue: "Location (optional)" })}
+                  value={itemForm.location || ""} onChange={e => setItemForm({ ...itemForm, location: e.target.value })} />
+                <textarea className="edit-input edit-textarea" placeholder={t("cl.item_desc_placeholder", { defaultValue: "Description (optional)" })}
+                  value={itemForm.desc || ""} onChange={e => setItemForm({ ...itemForm, desc: e.target.value })} />
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <input type="url" className="edit-input" placeholder={t("cl.item_image_placeholder", { defaultValue: "Image URL (optional)" })}
+                    value={itemForm.imageUrl || ""} onChange={e => setItemForm({ ...itemForm, imageUrl: e.target.value })} />
+                  <input type="url" className="edit-input" placeholder={t("cl.item_video_placeholder", { defaultValue: "Video URL (optional)" })}
+                    value={itemForm.videoUrl || ""} onChange={e => setItemForm({ ...itemForm, videoUrl: e.target.value })} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                  <button type="button" className="btn-small" onClick={closeForm}>{t("cl.cancel", { defaultValue: "Cancel" })}</button>
+                  <button type="submit" className="btn-primary" style={{ padding: "7px 16px" }}>
+                    {editingItemId ? t("cl.save_changes", { defaultValue: "Save Changes" }) : t("cl.add_item_submit", { defaultValue: "Add Item" })}
+                  </button>
+                </div>
+              </form>
+  );
+
   return (
     <div className="checklists-layout">
       <div className="checklists-sidebar" style={{ backgroundColor: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
-        
+
     <div className="guided-header" style={{ marginBottom: "12px", background: "var(--card-bg)" }}>
       <div className="guided-controls" style={{ flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-          <select 
-              className="control-select" 
+          <select
+              className="control-select"
               value={activeCollectionId}
               onChange={e => {
                 persist({ ...safeData, activeCollectionId: e.target.value });
@@ -540,7 +611,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
             <button className="icon-btn hint-visible" style={{ width: "28px", height: "28px", color: "var(--accent-red)", borderColor: "rgba(239, 68, 68, 0.3)" }} onClick={() => setPendingDeleteCollection(activeCollection)} title="Delete Collection"><TrashIcon /></button>
           )}
         </div>
-        
+
         <button className="btn-small" onClick={() => { setIsAddingCollection(true); setIsEditingCollection(false); }}>New Collection</button>
         <button className="btn-small btn-small-success" onClick={handlePublishChecklists} title="Publish Checklists" disabled={checklists.length === 0}>
           <GitHubIcon /> Publish
@@ -582,7 +653,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
             </div>
           )}
         </div>
-        
+
         <div style={{ background: "var(--card-bg)", border: "1px solid var(--border-color)", borderRadius: "var(--radius-lg)", padding: "10px", boxShadow: "var(--shadow-card)" }}>
           {checklists.map(list => {
             const done = list.items.filter(i => i.completed).length;
@@ -645,12 +716,12 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                   onBlur={commitTitleDraft}
                   onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                 />
-                
+
               <div className="btn-group" style={{ alignSelf: "flex-start" }}>
                   <button className="btn-small" onClick={() => markAll(true)} disabled={totalCount === 0}>{t("cl.mark_all_found", { defaultValue: "Mark All Found" })}</button>
                   <button className="btn-small" onClick={() => markAll(false)} disabled={totalCount === 0}>{t("cl.reset", { defaultValue: "Reset" })}</button>
                   <button className="btn-small btn-small-success" onClick={openAddForm}>{t("cl.add_item_btn", { defaultValue: "Add Item" })}</button>
-                  
+
                   <button className="btn-small" onClick={fetchCommunityChecklists}>
                       Community Lists {availableCollectionCount !== null && availableCollectionCount > 0 ? `(${availableCollectionCount})` : ""}
                   </button>
@@ -700,46 +771,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
               )}
             </div>
 
-            {showItemForm && (
-              <form className="cl-form-container" onSubmit={handleSaveItem}>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <input type="text" className="edit-input" style={{ flex: "2 1 200px" }} placeholder={t("cl.item_name_placeholder", { defaultValue: "Item Name *" })} required
-                    value={itemForm.name || ""} onChange={e => setItemForm({ ...itemForm, name: e.target.value })} />
-                  <input type="text" className="edit-input" style={{ flex: "1 1 140px" }} placeholder={t("cl.item_category_placeholder", { defaultValue: "Category (optional)" })} list="checklist-categories"
-                    value={itemForm.category || ""} onChange={e => setItemForm({ ...itemForm, category: e.target.value })} />
-                  <datalist id="checklist-categories">
-                    {existingCategories.map(c => <option key={c} value={c} />)}
-                  </datalist>
-                </div>
-                {knownChapters.length > 0 && (
-                  <select
-                    className="edit-input control-select"
-                    style={{ maxWidth: "100%", width: "100%" }}
-                    value={itemForm.chapter || ""}
-                    onChange={e => setItemForm({ ...itemForm, chapter: e.target.value })}
-                  >
-                    <option value="">{t("cl.no_chapter_option", { defaultValue: "No Chapter" })}</option>
-                    {knownChapters.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                )}
-                <input type="text" className="edit-input" placeholder={t("cl.item_location_placeholder", { defaultValue: "Location (optional)" })}
-                  value={itemForm.location || ""} onChange={e => setItemForm({ ...itemForm, location: e.target.value })} />
-                <textarea className="edit-input edit-textarea" placeholder={t("cl.item_desc_placeholder", { defaultValue: "Description (optional)" })}
-                  value={itemForm.desc || ""} onChange={e => setItemForm({ ...itemForm, desc: e.target.value })} />
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <input type="url" className="edit-input" placeholder={t("cl.item_image_placeholder", { defaultValue: "Image URL (optional)" })}
-                    value={itemForm.imageUrl || ""} onChange={e => setItemForm({ ...itemForm, imageUrl: e.target.value })} />
-                  <input type="url" className="edit-input" placeholder={t("cl.item_video_placeholder", { defaultValue: "Video URL (optional)" })}
-                    value={itemForm.videoUrl || ""} onChange={e => setItemForm({ ...itemForm, videoUrl: e.target.value })} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
-                  <button type="button" className="btn-small" onClick={closeForm}>{t("cl.cancel", { defaultValue: "Cancel" })}</button>
-                  <button type="submit" className="btn-primary" style={{ padding: "7px 16px" }}>
-                    {editingItemId ? t("cl.save_changes", { defaultValue: "Save Changes" }) : t("cl.add_item_submit", { defaultValue: "Add Item" })}
-                  </button>
-                </div>
-              </form>
-            )}
+            {showItemForm && !editingItemId && renderItemForm()}
 
             {isFinderActive ? (
               <>
@@ -763,19 +795,18 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                               <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip", { defaultValue: "Edit Item" })} onClick={() => { setActiveChecklistId(group.checklist.id); setFinderChapter(""); setFinderLocation(""); openEditForm(item); }}>
                                 <PencilIcon />
                               </button>
+                              <button className="icon-btn hint-visible" title={t("cl.duplicate_item_tooltip", { defaultValue: "Duplicate Item" })} onClick={() => { setFinderChapter(""); setFinderLocation(""); duplicateItem(group.checklist.id, item); }}>
+                                <CopyIcon />
+                              </button>
                             </div>
 
                             <div className="cl-item-checkbox">
                               <input type="checkbox" checked={item.completed} onChange={() => toggleItemInList(group.checklist.id, item.id)} />
                             </div>
 
-                            {item.imageUrl ? (
+                            {item.imageUrl && (
                               <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
                                 <ChecklistThumb src={item.imageUrl} alt={item.name} className="cl-item-img" />
-                              </div>
-                            ) : (
-                              <div className="cl-item-img cl-item-img--placeholder">
-                                <ImagePlaceholderIcon />
                               </div>
                             )}
 
@@ -791,8 +822,8 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                                 <CollapsibleBox maxHeight={60}>
                                   <p className="cl-item-desc">{renderHintWithLinks(item.desc)}</p>
                                 </CollapsibleBox>
-                              )}                            
-                              </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -802,7 +833,7 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
               </>
             ) : (
               <>
-                {totalCount === 0 && !showItemForm && (
+                {totalCount === 0 && !(showItemForm && !editingItemId) && (
                   <div className="empty-state">{t("cl.no_items_yet", { defaultValue: "No items yet. Add one to get started!" })}</div>
                 )}
                 {totalCount > 0 && filteredItems.length === 0 && (
@@ -831,6 +862,9 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                         {items.map((item, itemIndex) => {
                           const embedUrl = item.videoUrl ? getYouTubeEmbedUrl(item.videoUrl) : null;
                           const isVideoOpen = expandedVideoId === item.id;
+                          if (showItemForm && editingItemId === item.id) {
+                            return <div key={item.id}>{renderItemForm()}</div>;
+                          }
                           return (
                             <div key={item.id} className={`cl-item-card ${item.completed ? "completed" : ""}`}>
                               <span className="cl-item-number">{numberByItemId.get(item.id)}</span>
@@ -839,13 +873,9 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                                 <input type="checkbox" checked={item.completed} onChange={() => toggleItemComplete(item.id)} />
                               </div>
 
-                              {item.imageUrl ? (
+                              {item.imageUrl && (
                                 <div className="cl-item-img-wrapper" onClick={() => setLightboxSrc(item.imageUrl)}>
                                   <ChecklistThumb src={item.imageUrl} alt={item.name} className="cl-item-img" />
-                                </div>
-                              ) : (
-                                <div className="cl-item-img cl-item-img--placeholder">
-                                  <ImagePlaceholderIcon />
                                 </div>
                               )}
 
@@ -864,6 +894,9 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
                                     </button>
                                     <button className="icon-btn hint-visible" title={t("cl.edit_item_tooltip", { defaultValue: "Edit Item" })} onClick={() => openEditForm(item)}>
                                       <PencilIcon />
+                                    </button>
+                                    <button className="icon-btn hint-visible" title={t("cl.duplicate_item_tooltip", { defaultValue: "Duplicate Item" })} onClick={() => duplicateItem(activeChecklist.id, item)}>
+                                      <CopyIcon />
                                     </button>
                                     <button className="icon-btn hint-visible" title={t("cl.delete_item_tooltip", { defaultValue: "Delete Item" })} onClick={() => setPendingDeleteItem(item)}>
                                       <TrashIcon />
@@ -912,7 +945,6 @@ export function ChecklistsPanel({ appId, gameChecklists, onChange, knownChapters
         )}
       </div>
 
-      {/* Lightbox */}
       {lightboxSrc && (
         <div className="cl-lightbox-overlay" onClick={() => setLightboxSrc(null)}>
           {getMediaKind(lightboxSrc) === "video" ? (

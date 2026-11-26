@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "Rinomina lista",
     "cl.delete_checklist_tooltip": "Elimina lista",
     "cl.edit_item_tooltip": "Modifica elemento",
+    "cl.duplicate_item_tooltip": "Duplica elemento",
+    "cl.duplicated_toast": "Elemento duplicato",
     "cl.delete_item_tooltip": "Elimina elemento",
     "cl.select_checklist_empty": "Crea una lista per iniziare a tracciare i collezionabili.",
     "cl.mark_all_found": "Segna tutto come trovato",

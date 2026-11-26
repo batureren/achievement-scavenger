@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "重新命名清單",
     "cl.delete_checklist_tooltip": "刪除清單",
     "cl.edit_item_tooltip": "編輯項目",
+    "cl.duplicate_item_tooltip": "複製項目",
+    "cl.duplicated_toast": "項目已複製",
     "cl.delete_item_tooltip": "刪除項目",
     "cl.select_checklist_empty": "建立一個清單以開始追蹤收藏品。",
     "cl.mark_all_found": "全部標記為已找到",

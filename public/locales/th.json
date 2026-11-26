@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "เปลี่ยนชื่อรายการตรวจสอบ",
     "cl.delete_checklist_tooltip": "ลบรายการตรวจสอบ",
     "cl.edit_item_tooltip": "แก้ไขรายการ",
+    "cl.duplicate_item_tooltip": "ทำสำเนารายการ",
+    "cl.duplicated_toast": "ทำสำเนารายการแล้ว",
     "cl.delete_item_tooltip": "ลบรายการ",
     "cl.select_checklist_empty": "สร้างรายการตรวจสอบเพื่อเริ่มติดตามของสะสม",
     "cl.mark_all_found": "ทำเครื่องหมายว่าพบทั้งหมด",

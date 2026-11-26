@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "Đổi tên danh sách",
     "cl.delete_checklist_tooltip": "Xóa danh sách",
     "cl.edit_item_tooltip": "Sửa mục",
+    "cl.duplicate_item_tooltip": "Nhân bản mục",
+    "cl.duplicated_toast": "Đã nhân bản mục",
     "cl.delete_item_tooltip": "Xóa mục",
     "cl.select_checklist_empty": "Tạo một danh sách để bắt đầu theo dõi vật phẩm sưu tầm.",
     "cl.mark_all_found": "Đánh dấu tất cả đã tìm thấy",

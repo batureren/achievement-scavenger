@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "Listeyi yeniden adlandır",
     "cl.delete_checklist_tooltip": "Listeyi sil",
     "cl.edit_item_tooltip": "Öğeyi düzenle",
+    "cl.duplicate_item_tooltip": "Öğeyi çoğalt",
+    "cl.duplicated_toast": "Öğe çoğaltıldı",
     "cl.delete_item_tooltip": "Öğeyi sil",
     "cl.select_checklist_empty": "Koleksiyon takibine başlamak için bir liste oluştur.",
     "cl.mark_all_found": "Tümünü Bulundu İşaretle",

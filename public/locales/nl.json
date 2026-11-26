@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "Checklist hernoemen",
     "cl.delete_checklist_tooltip": "Checklist verwijderen",
     "cl.edit_item_tooltip": "Item bewerken",
+    "cl.duplicate_item_tooltip": "Item dupliceren",
+    "cl.duplicated_toast": "Item gedupliceerd",
     "cl.delete_item_tooltip": "Item verwijderen",
     "cl.select_checklist_empty": "Maak een checklist om verzamelobjecten bij te houden.",
     "cl.mark_all_found": "Alles markeren als gevonden",

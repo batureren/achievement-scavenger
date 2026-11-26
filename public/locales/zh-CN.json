@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "重命名清单",
     "cl.delete_checklist_tooltip": "删除清单",
     "cl.edit_item_tooltip": "编辑项目",
+    "cl.duplicate_item_tooltip": "复制项目",
+    "cl.duplicated_toast": "项目已复制",
     "cl.delete_item_tooltip": "删除项目",
     "cl.select_checklist_empty": "创建一个清单以开始追踪收藏品。",
     "cl.mark_all_found": "全部标记为已找到",

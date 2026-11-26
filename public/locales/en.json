@@ -268,6 +268,8 @@
     "cl.rename_tooltip": "Rename checklist",
     "cl.delete_checklist_tooltip": "Delete checklist",
     "cl.edit_item_tooltip": "Edit item",
+    "cl.duplicate_item_tooltip": "Duplicate item",
+    "cl.duplicated_toast": "Item duplicated",
     "cl.delete_item_tooltip": "Delete item",
     "cl.select_checklist_empty": "Create a checklist to start tracking collectibles.",
     "cl.mark_all_found": "Mark All Found",

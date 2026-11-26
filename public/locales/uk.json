@@ -273,6 +273,8 @@
     "cl.rename_tooltip": "Перейменувати список",
     "cl.delete_checklist_tooltip": "Видалити список",
     "cl.edit_item_tooltip": "Редагувати елемент",
+    "cl.duplicate_item_tooltip": "Дублювати елемент",
+    "cl.duplicated_toast": "Елемент дубльовано",
     "cl.delete_item_tooltip": "Видалити елемент",
     "cl.select_checklist_empty": "Створіть список, щоб почати відстежувати колекційні предмети.",
     "cl.mark_all_found": "Позначити все як знайдене",

@@ -273,6 +273,8 @@
     "cl.rename_tooltip": "Přejmenovat seznam",
     "cl.delete_checklist_tooltip": "Odstranit seznam",
     "cl.edit_item_tooltip": "Upravit položku",
+    "cl.duplicate_item_tooltip": "Duplikovat položku",
+    "cl.duplicated_toast": "Položka duplikována",
     "cl.delete_item_tooltip": "Odstranit položku",
     "cl.select_checklist_empty": "Vytvořte seznam a začněte sledovat sběratelské předměty.",
     "cl.mark_all_found": "Označit vše jako nalezené",

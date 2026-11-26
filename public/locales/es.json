@@ -267,6 +267,8 @@
     "cl.rename_tooltip": "Renombrar lista",
     "cl.delete_checklist_tooltip": "Eliminar lista",
     "cl.edit_item_tooltip": "Editar elemento",
+    "cl.duplicate_item_tooltip": "Duplicar elemento",
+    "cl.duplicated_toast": "Elemento duplicado",
     "cl.delete_item_tooltip": "Eliminar elemento",
     "cl.select_checklist_empty": "Crea una lista para empezar a rastrear coleccionables.",
     "cl.mark_all_found": "Marcar todo como encontrado",
